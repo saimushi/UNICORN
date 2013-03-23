@@ -1,0 +1,18 @@
+RewriteEngine On
+
+# All files with .something are skipped
+RewriteCond %{REQUEST_URI} \..+$
+RewriteCond %{REQUEST_URI} !\.html$
+RewriteRule .* - [L]
+# the others are redirected to the front web controller
+# 無指定はIndex.jsonへ
+#RewriteRule ^/$ index.php [QSA,L]
+# htmlファイルの処理
+RewriteRule ([^\+]*)?\+?(.*)\.(.*)$ index.php?_c_=$1&_a_=$2&_o_=$3 [QSA,L]
+#RewriteRule (.*)\.(.*)$ index.php?_c_=$1&_o_=$2 [QSA,L]
+
+#php_flag mbstring.encoding_translation off
+#php_value error_reporting 1
+#php_value error_reporting 6143
+#php_value mbstring.http_input pass
+#php_value mbstring.internal_encoding UTF-8
