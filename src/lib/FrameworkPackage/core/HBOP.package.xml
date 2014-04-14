@@ -1,0 +1,88 @@
+<?xml version="1.0" ?>
+<xml>
+	<default>
+		<!-- 自動走査パスの設定 -->
+		<!-- あまり多く定義するとフレームワークの速度が低下するので注意して下さい！ -->
+		<link suffix=".php">lib/FrameworkPackage/function</link>
+		<link suffix=".php">lib/GenericPackage/function</link>
+		<link suffix=".php">lib/VendorPackage</link>
+		<link suffix=".php">lib/VendorPackage/PEAR</link>
+		<implement suffix=".class.php">lib/FrameworkPackage/class</implement>
+		<implement suffix=".class.php">lib/GenericPackage/class</implement>
+		<abstract suffix=".abstract.php">lib/FrameworkPackage/class</abstract>
+		<abstract suffix=".abstract.php">lib/GenericPackage/class</abstract>
+		<interface suffix=".interface.php">lib/FrameworkPackage/class</interface>
+		<interface suffix=".interface.php">lib/GenericPackage/class</interface>
+		<!-- 自動走査パスの設定ここまで！ -->
+		<!-- フレームワーク標準のMVCパターンを使用する場合のパス定義 -->
+		<controlmain suffix=".php">lib/FrameworkPackage/class/MVC/Controllers</controlmain>
+		<modelmain suffix=".php">lib/FrameworkPackage/class/MVC/Models</modelmain>
+		<viewmain suffix=".php">lib/FrameworkPackage/class/MVC/Views</viewmain>
+		<!-- フレームワークの初期化時に必ず自動で読み込ませるファイルは以下に定義します。 -->
+		<auto>
+			<mobule>default.functions.inc.php</mobule>
+		</auto>
+	</default>
+	<!-- classマッピング定義ココから -->
+	<!-- 上記のdefault節で定義されてるパス配下で、且つ依存関係の無い単独動作のファイルは以下の個別定義追加は不要です -->
+	<Core>
+		<link mapfrom="MVCCore" mapto="Core">default.implement.MVC/MVCCore</link>
+	</Core>
+	<MVCControllerBase>
+		<link>default.interface.MVC/MVCController</link>
+	    <link>default.abstract.MVC/MVCControllerBase</link>
+	</MVCControllerBase>
+	<APIControllerBase>
+		<link>default.implement.MVC/APIControllerBase</link>
+	</APIControllerBase>
+	<ImageControllerBase>
+		<link>default.implement.MVC/ImageControllerBase</link>
+	</ImageControllerBase>
+	<Utilities>
+		<link mapfrom="Cipher" mapto="Crypt">default.implement.Cipher/Cipher</link>
+		<link>default.implement.Utilities/Utilities</link>
+	</Utilities>
+	<Validations>
+		<link>default.implement.Utilities/Validations</link>
+	</Validations>
+	<DBO>
+		<link>default.adodb5/adodb-exceptions.inc.php</link>
+	    <link>default.adodb5/adodb.inc.php</link>
+		<link mapfrom="GenericDBO" mapto="DBO">default.implement.DB/GenericDBO</link>
+	</DBO>
+	<ORMapper>
+		<link renamefrom="GenericModel" renameto="Model">default.interface.ORM/GenericModel</link>
+		<link mapfrom="GenericModelBase" mapto="ModelBase">default.abstract.ORM/GenericModelBase</link>
+		<link mapfrom="GenericORMapper" mapto="ORMapper">default.implement.ORM/GenericORMapper</link>
+	</ORMapper>
+	<Memcached>
+		<link mapfrom="GenericMemcached" mapto="Memcached">default.implement.KVS/GenericMemcached.class.php</link>
+	</Memcached>
+	<Crypt>
+		<link mapfrom="Cipher" mapto="Crypt">default.implement.Cipher/Cipher</link>
+	</Crypt>
+	<HTTPRequest>
+		<link>default.PEAR/HTTP/Request2.php</link>
+		<link mapfrom="GenericHttpRequest" mapto="HTTPRequest">default.implement.Request/GenericHttpRequest</link>
+	</HTTPRequest>
+	<!-- classマッピング定義ココまで -->
+	<!-- 自動解決出来ないclassファイルの定義ココから -->
+	<HtmlTemplate>
+		<link addmethod="simple_html_dom_node_get_dom" renamefrom="simple_html_dom, simple_html_dom_node" renameto="simple_html_dom_org, simple_html_dom_node_org">simple/simple_html_dom.php</link>
+		<link>default.implement.TemplateEngine/simple_html_dom_wrapper.php</link>
+		<link mapfrom="PQuery" mapto="HtmlTemplate">default.implement.TemplateEngine/PQuery.class.php</link>
+		<simple_html_dom_node_get_dom targetclass="simple_html_dom_node"><![CDATA[function & getDOM(){ return $this->dom; }]]></simple_html_dom_node_get_dom>
+	</HtmlTemplate>
+	<HtmlViewAssignor>
+		<link addmethod="simple_html_dom_node_get_dom" renamefrom="simple_html_dom, simple_html_dom_node" renameto="simple_html_dom_org, simple_html_dom_node_org">simple/simple_html_dom.php</link>
+		<link>default.implement.TemplateEngine/simple_html_dom_wrapper.php</link>
+		<link mapfrom="PQuery" mapto="HtmlTemplate">default.implement.TemplateEngine/PQuery.class.php</link>
+		<simple_html_dom_node_get_dom targetclass="simple_html_dom_node"><![CDATA[function & getDOM(){ return $this->dom; }]]></simple_html_dom_node_get_dom>
+		<link>default.implement.MVC/HtmlViewAssignor</link>
+	</HtmlViewAssignor>
+	<Image>
+		<pattern><![CDATA[^Image[a-zA-Z]*(Info|Util)]]></pattern>
+		<link>default.implement.Image/Image</link>
+	</Image>
+	<!-- 自動解決出来ないclassファイルの定義ココまで -->
+</xml>

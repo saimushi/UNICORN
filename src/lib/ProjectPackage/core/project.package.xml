@@ -1,0 +1,37 @@
+<?xml version="1.0" ?>
+<xml>
+	<default>
+		<!-- 自動走査パス設定の追加 -->
+		<!-- あまり多く定義するとフレームワークの速度が低下するので注意して下さい！ -->
+	    <link suffix=".php">lib/OrganizPackage/function</link>
+	    <implement suffix=".class.php">lib/OrganizPackage/class</implement>
+		<implement suffix=".class.php">lib/ProjectPackage/class</implement>
+		<abstract suffix=".abstract.php">lib/OrganizPackage/class</abstract>
+		<abstract suffix=".abstract.php">lib/ProjectPackage/class</abstract>
+		<interface suffix=".interface.php">lib/OrganizPackage/class</interface>
+		<interface suffix=".interface.php">lib/ProjectPackage/class</interface>
+		<!-- 自動走査パスの設定ここまで！ -->
+	   	<!-- MVC用のパス定義 ※非自動走査対象 -->
+		<controlmain suffix=".php">lib/ProjectPackage/class/MVC/Controllers</controlmain>
+		<controlmain suffix=".php">lib/ProjectPackage/class/MVC/Controllers/App</controlmain>
+		<controlmain suffix=".php">lib/ProjectPackage/class/MVC/Controllers/WebView</controlmain>
+		<modelmain suffix=".php">lib/ProjectPackage/class/MVC/Models</modelmain>
+		<viewmain suffix=".php">lib/ProjectPackage/class/MVC/Views</viewmain>
+		<!-- classマッピング定義ココから -->
+		<auto>
+		    <mobule>lib/ProjectPackage/core/locale/locale.php</mobule>
+			<mobule>lib/OrganizPackage/function/functions.inc.php</mobule>
+		</auto>
+	</default>
+	<AppSession>
+		<link>default.implement.Session/AppSession</link>
+	</AppSession>
+	<WebAPIController>
+		<link renamefrom="APIController" renameto="APIController extends APIControllerBase">default.webmain.API/APIController</link>
+	    <link>default.webmain.API/WebAPI/WebAPIController</link>
+	</WebAPIController>
+	<ImageController>
+		<link renamefrom="APIController" renameto="APIController extends ImageControllerBase">default.webmain.API/APIController</link>
+	    <link>default.webmain.API/Image/ImageController</link>
+	</ImageController>
+</xml>

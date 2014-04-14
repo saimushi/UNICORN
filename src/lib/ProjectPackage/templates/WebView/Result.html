@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=450px">
+<title>せいせき</title>
+<link rel="stylesheet" href="./css/childe.css">
+</head>
+<body>
+	<!-- 背景を body タグで指定する代わりに、この div タグに指定する -->
+	<div class="background-hack"></div>
+	<section id="treeinfo" class="leftside">
+		<h1>
+			<img src="img/h1_name.png" />
+		</h1>
+		<!-- 成長の木表示 -->
+		<article class="width-rightside-cut">
+			<h2>
+				<img src="img/levelTree.png" id="tree_level_img" />
+			</h2>
+			<h3>
+				<img src="img/tokyoTower.png" class="tokyoTower" />
+			</h3>
+		</article>
+		<!-- レベル表示 -->
+		<aside id="userinfo" class="rightside">
+			<img src="img/frame.png">
+			<dl id="dateinfo">
+				<dt class="name1">
+					へいせい<span class="hesei">xxx</span>ねん
+				</dt>
+				<dd class="name2">
+					(せいれき<span class="seireki">xxx</span>ねん)
+				</dd>
+				<dd class="name3">
+					<span class="month">12</span>&nbsp;がつ
+				</dd>
+			</dl>
+			<dl id="levelinfo">
+				<dd class="shizuku">
+					<img src="img/shizuku.png">
+				</dd>
+				<dt class="dropinfo1">しずくのかず</dt>
+				<dd class="dropinfo2">
+					<span id="drop">2</span>こ
+				</dd>
+				<dt class="levelinfo11">
+					<img src="img/t_maze.png">
+				</dt>
+				<dd class="levelinfo12">
+					<span id="yourlevel1" class="maze_level">25</span>きゅう
+				</dd>
+				<dt class="levelinfo21">
+					<img src="img/t_num.png">
+				</dt>
+				<dd class="levelinfo22">
+					<span id="yourlevel2" class="fourplace_level">30</span>きゅう
+				</dd>
+				<dt class="levelinfo31">
+					<img src="img/t_toueizu.png">
+				</dt>
+				<dd class="levelinfo32">
+					<span id="yourlevel3" class="projection_level">35</span>きゅう
+				</dd>
+			</dl>
+		</aside>
+	</section>
+	<!-- カレンダー表示 -->
+	<section id="daylyinfo" class="leftside">
+		<h1 class="p2">
+			<span class="h4sub"><span id="seireki4" class="info-seireki">1234</span>ねん</span><span
+				class="month2"><img src="img/mon3.png" class="month_img" /></span><img
+				src="img/gatsu.png" />
+		</h1>
+		<nav id="before" class="paging">
+			<a href="" id="beforeMonthButton"><img
+				src="img/arrow_l.png" /></a>
+		</nav>
+		<article class="width-sidecut">
+			<table class="list1">
+				<tr>
+					<th><img src="img/d1.png"></th>
+					<th><img src="img/d2.png"></th>
+					<th><img src="img/d3.png"></th>
+					<th><img src="img/d4.png"></th>
+					<th><img src="img/d5.png"></th>
+					<th><img src="img/d6.png"></th>
+					<th><img src="img/d7.png"></th>
+				</tr>
+				<tr>
+					<td><img id="histories-0" src="img/masu_non.png" /></td>
+					<td><img id="histories-1" src="img/masu_non.png" /></td>
+					<td><img id="histories-2" src="img/masu_non.png" /></td>
+					<td><img id="histories-3" src="img/masu_non.png" /></td>
+					<td><img id="histories-4" src="img/masu_non.png" /></td>
+					<td><img id="histories-5" src="img/n1.png" /></td>
+					<td><img id="histories-6" src="img/n2.png" /></td>
+				</tr>
+				<tr>
+					<td><img id="histories-7" src="img/n3.png" /></td>
+					<td><img id="histories-8" src="img/n4.png" /></td>
+					<td><img id="histories-9" src="img/n5.png" /></td>
+					<td><img id="histories-10" src="img/n6.png" /></td>
+					<td><img id="histories-11" src="img/na.png" /></td>
+					<td><img id="histories-12" src="img/n8.png" /></td>
+					<td><img id="histories-13" src="img/n9.png" /></td>
+				</tr>
+				<tr>
+					<td><img id="histories-14" src="img/n10.png" /></td>
+					<td><img id="histories-15" src="img/n11.png" /></td>
+					<td><img id="histories-16" src="img/n12.png" /></td>
+					<td><img id="histories-17" src="img/n13.png" /></td>
+					<td><img id="histories-18" src="img/n14.png" /></td>
+					<td><img id="histories-19" src="img/n15.png" /></td>
+					<td><img id="histories-20" src="img/n16.png" /></td>
+				</tr>
+				<tr>
+					<td><img id="histories-21" src="img/n17.png" /></td>
+					<td><img id="histories-22" src="img/n18.png" /></td>
+					<td><img id="histories-23" src="img/n19.png" /></td>
+					<td><img id="histories-24" src="img/n20.png" /></td>
+					<td><img id="histories-25" src="img/na.png" /></td>
+					<td><img id="histories-26" src="img/na.png" /></td>
+					<td><img id="histories-27" src="img/na.png" /></td>
+				</tr>
+				<tr>
+					<td><img id="histories-28" src="img/n24.png" /></td>
+					<td><img id="histories-29" src="img/n25.png" /></td>
+					<td><img id="histories-30" src="img/n26.png" /></td>
+					<td><img id="histories-31" src="img/n27.png" /></td>
+					<td><img id="histories-32" src="img/n28.png" /></td>
+					<td><img id="histories-33" src="img/na.png" /></td>
+					<td><img id="histories-34" src="img/na.png" /></td>
+				</tr>
+				<tr>
+					<td><img id="histories-35" src="img/na.png" /></td>
+					<td><img id="histories-36" src="img/masu_non.png" /></td>
+					<td><img id="histories-37" src="img/masu_non.png" /></td>
+					<td><img id="histories-38" src="img/masu_non.png" /></td>
+					<td><img id="histories-39" src="img/masu_non.png" /></td>
+					<td><img id="histories-40" src="img/masu_non.png" /></td>
+					<td><img id="histories-41" src="img/masu_non.png" /></td>
+				</tr>
+			</table>
+		</article>
+		<nav id="next" class="paging">
+			<a href="" id="nextMonthButton"><img
+				src="img/arrow_r.png" /></a>
+		</nav>
+	</section>
+
+
+	<section id="urucharainfo">
+		<h1>
+			<img src="img/h1_name2.png" />
+		</h1>
+		<article class="width-full">
+			<table class="list2">
+				<tr>
+					<td><img src="img/cara_title.png" title="くまもん" /><img
+						src="img/cara.png" title="くまもん" />
+						<p class="cara_desc">紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。</p>
+					</td>
+					<td><img src="img/cara_title.png" title="comming soon" /> <img
+						src="img/cara_dummy.png" title="くまもん" />
+						<p class="cara_desc">紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。</p>
+					</td>
+					<td><img src="img/cara_title.png" title="comming soon" /> <img
+						src="img/cara_dummy.png" title="くまもん" />
+						<p class="cara_desc">紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。</p>
+					</td>
+				</tr>
+<!-- 				<tr>
+					<td><img src="img/cara_title.png" title="comming soon" /> <img
+						src="img/cara_dummy.png" title="くまもん" />
+						<p class="cara_desc">紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。</p>
+					</td>
+					<td><img src="img/cara_title.png" title="comming soon" /> <img
+						src="img/cara_dummy.png" title="くまもん" />
+						<p class="cara_desc">紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。</p>
+					</td>
+					<td><img src="img/cara_title.png" title="comming soon" /> <img
+						src="img/cara_dummy.png" title="くまもん" />
+						<p class="cara_desc">紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。紹介分。</p>
+					</td>
+				</tr>
+ -->			</table>
+		</article>
+		<nav id="parentLink" class="link">
+			<a href="./parents.html" class="pl"></a>
+		</nav>
+	</section>
+</body>
+</html>
