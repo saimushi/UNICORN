@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<xml>
-	<FrameworkManager>
-	    <SESSION_EXPIRED_TIME>10800</SESSION_EXPIRED_TIME>
-		<WITHLY_PACKAGE_CONFIG_XML_PATH_1 code='TRUE'><![CDATA[Configure::LIB_PATH.'FrameworkManager/manager.package.xml']]></WITHLY_PACKAGE_CONFIG_XML_PATH_1>
-	</FrameworkManager>
-</xml>

@@ -10,15 +10,18 @@ class MVCCore {
 	public static $appleReviewd = FALSE;
 	public static $mustAppVersioned = TRUE;
 	public static $CurrentController;
+	public static $flowXMLBasePath = '';
+	public static $flowXMLPaths;
 
 	/**
 	 * WebインターフェースでのMVCのメイン処理
-	 * DIコンテナで実行するかどうか
 	 *
 	 * @param boolean DIコンテナで実行するかどうか
 	 * @throws Exception
 	 */
-	public static function webmain($argContainerMode=false){
+	public static function webmain($argFlowXMLBasePath=''){
+
+		self::$flowXMLBasePath = $argFlowXMLBasePath;
 
 		logging($_REQUEST, 'post');
 		logging($_COOKIE, 'cookie');
@@ -109,19 +112,33 @@ class MVCCore {
 
 		// 実行
 		try{
-			// コントロール対象を取得
-			$controlerClassName = self::loadMVCModule();
-			self::$CurrentController = new $controlerClassName();
 			$httpStatus = 200;
-			self::$CurrentController->controlerClassName = $controlerClassName;
-			self::$CurrentController->outputType = $outputType;
-			self::$CurrentController->deviceType = self::$deviceType;
-			self::$CurrentController->appVersion = self::$appVersion;
-			self::$CurrentController->appleReviewd = self::$appleReviewd;
-			self::$CurrentController->mustAppVersioned = self::$mustAppVersioned;
-			$res = self::$CurrentController->$actionMethodName();
+			// コントロール対象を取得
+			$res = self::loadMVCModule();
 			if(FALSE === $res){
-				throw new Exception();
+				// ただのhtml表示かも知れないのを調べる
+				if(is_file($_SERVER['DOCUMENT_ROOT'] . $_SERVER['REQUEST_URI'])){
+					// そのままスタティックファイルとして表示
+					$res = file_get_contents($_SERVER['DOCUMENT_ROOT'] . $_SERVER['REQUEST_URI']);
+				}
+				else{
+					// エラー
+					throw new Exception("is?? controller class faild.");
+				}
+			}
+			else{
+				$controlerClassName = $res;
+				self::$CurrentController = new $controlerClassName();
+				self::$CurrentController->controlerClassName = $controlerClassName;
+				self::$CurrentController->outputType = $outputType;
+				self::$CurrentController->deviceType = self::$deviceType;
+				self::$CurrentController->appVersion = self::$appVersion;
+				self::$CurrentController->appleReviewd = self::$appleReviewd;
+				self::$CurrentController->mustAppVersioned = self::$mustAppVersioned;
+				$res = self::$CurrentController->$actionMethodName();
+				if(FALSE === $res){
+					throw new Exception($actionMethodName . " executed faild.");
+				}
 			}
 		}
 		catch (Exception $Exception){
@@ -146,7 +163,9 @@ class MVCCore {
 			}
 			else{
 				$isBinary = FALSE;
-				$outputType = self::$CurrentController->outputType;
+				if(isset(self::$CurrentController->outputType)){
+					$outputType = self::$CurrentController->outputType;
+				}
 				if('html' === $outputType){
 					// htmlヘッダー出力
 					header('Content-type: text/html; charset=UTF-8');
@@ -209,10 +228,12 @@ class MVCCore {
 	/**
 	 * MVCクラスモジュールの読み込み処理
 	 * @param string クラス名
-	 * @param string クラスの読み故事にエラーが在る場合にbooleanを返すかどうか
+	 * @param string クラスの読み込事にエラーが在る場合にbooleanを返すかどうか
 	 * @return boolean
 	 */
-	public static function loadMVCModule($argClassName = NULL, $argClassExistsCalled = FALSE){
+	public static function loadMVCModule($argClassName = NULL, $argClassExistsCalled = FALSE, $argTargetPath = ''){
+
+		static $currentTargetPath = '';
 
 		$targetPath = '';
 		if(NULL !== $argClassName){
@@ -221,7 +242,6 @@ class MVCCore {
 		else {
 			// コントロール対象を自動特定
 			$controlerClassName = 'Index';
-			debug($controlerClassName);
 			if(isset($_GET['_c_']) && strlen($_GET['_c_']) > 0){
 				$controlerClassName = ucfirst($_GET['_c_']);
 				if(FALSE !== strpos($_GET['_c_'], '/') && strlen($_GET['_c_']) > 1){
@@ -230,29 +250,91 @@ class MVCCore {
 						$controlerClassName = ucfirst($matches[2]);
 						if(isset($matches[1]) && strlen($matches[1]) > 0){
 							$targetPath = $matches[1].'/';
-							debug('targetPath = ' . $targetPath);
+							if('' === $currentTargetPath){
+								$currentTargetPath = $targetPath;
+							}
 						}
 					}
 				}
 			}
 		}
+		if('' !== $argTargetPath){
+			$targetPath = $argTargetPath;
+		}
+		if('' === $targetPath){
+			$targetPath = $currentTargetPath;
+		}
 
-		$version = NULL;
+		$version = '';
 		if(isset($_GET['_v_']) && strlen($_GET['_v_']) > 0){
 			$version = $_GET['_v_'];
 		}
 
-		// コントローラを読み込み
-		if(NULL !== $version){
-			// バージョン一致のファイルを先ず走査する
-			loadModule('default.controlmain.' . $targetPath . $version . '/' . $controlerClassName, TRUE);
-		}
 		if(!class_exists($controlerClassName, FALSE)){
-			loadModule('default.controlmain.' . $targetPath . $controlerClassName, $argClassExistsCalled);
-		}
-		if(!class_exists($controlerClassName, FALSE)){
-			// エラー終了
-			return FALSE;
+			// コントローラを読み込み
+			if('' !== $version){
+				// バージョン一致のファイルを先ず走査する
+				loadModule('default.controlmain.' . $targetPath . $version . '/' . $controlerClassName, TRUE);
+			}
+			if(!class_exists($controlerClassName, FALSE)){
+				loadModule('default.controlmain.' . $targetPath . $controlerClassName, TRUE);
+			}
+			if(class_exists($controlerClassName, FALSE)){
+				// FlowGenerateする必要がなさそうなのでココで終了
+				return $controlerClassName;
+			}
+			else if('' === self::$flowXMLBasePath){
+				// エラー終了
+				return FALSE;
+			}
+			else{
+				// ココからはFlow処理
+				if(TRUE === self::$flowXMLBasePath){
+					// self::$flowXMLBasePathがTRUEとなっていた場合はConfigureにFLOWXML_PATH定義が無いか調べる
+					if(class_exists('Configure', FALSE) && NULL !== Configure::constant('FLOWXML_PATH')){
+						self::$flowXMLBasePath = Configure::FLOWXML_PATH;
+					}
+				}
+				// Flow出来ない！
+				if('' === self::$flowXMLBasePath){
+					// エラー終了
+					return FALSE;
+				}
+				// XML定義の存在チェック
+				// クラス名は分解しておく
+				$classHint  = explode('_', $controlerClassName);
+				$classXMLName = $classHint[0];
+				debug($classXMLName);
+				$flowXMLPath = '';
+				if('' !== $version){
+					// バージョン一致のファイルを先ず走査する
+					if(file_exists_ip(self::$flowXMLBasePath . '/' . $targetPath . $version . '/' . $classXMLName . '.flow.xml')){
+						$flowXMLPath = self::$flowXMLBasePath . '/' . $targetPath . $version . '/' . $classXMLName . '.flow.xml';
+					}
+				}
+				if('' === $flowXMLPath){
+					// バージョン関係ナシのファイルを走査する
+					if(file_exists_ip(self::$flowXMLBasePath . '/' . $targetPath . $classXMLName . '.flow.xml')){
+						$flowXMLPath = self::$flowXMLBasePath . '/' . $targetPath . $classXMLName . '.flow.xml';
+					}
+				}
+				if('' === $flowXMLPath){
+					// エラー終了
+					return FALSE;
+				}
+				// flowファイルの履歴を残しておく
+				self::$flowXMLPaths[] = array("class" => $controlerClassName, "xml" => $flowXMLPath);
+				// Flowに応じたクラス定義の自動生成を委任
+				loadModule('Flow');
+				if(FALSE === Flow::generate($flowXMLPath, $controlerClassName)){
+					// エラー終了
+					return FALSE;
+				}
+				if(!class_exists($controlerClassName, FALSE)){
+					// エラー終了
+					return FALSE;
+				}
+			}
 		}
 
 		return $controlerClassName;
@@ -261,19 +343,20 @@ class MVCCore {
 	/**
 	 * MVCクラスモジュールの読み込み処理
 	 * @param string クラス名
-	 * @param string クラスの読み故事にエラーが在る場合にbooleanを返すかどうか
+	 * @param string htmlの読み込事にエラーが在る場合にbooleanを返すかどうか
 	 * @return boolean
 	 */
-	public static function loadView($argClassName = NULL){
+	public static function loadView($argClassName = NULL, $argFileExistsCalled = FALSE, $argTargetPath = ''){
+
+		static $currentTargetPath = '';
 
 		$targetPath = '';
 		if(NULL !== $argClassName){
 			$controlerClassName = $argClassName;
 		}
-		else {
+		else{
 			// コントロール対象を自動特定
 			$controlerClassName = 'Index';
-			debug($controlerClassName);
 			if(isset($_GET['_c_']) && strlen($_GET['_c_']) > 0){
 				$controlerClassName = ucfirst($_GET['_c_']);
 				if(FALSE !== strpos($_GET['_c_'], '/') && strlen($_GET['_c_']) > 1){
@@ -282,11 +365,19 @@ class MVCCore {
 						$controlerClassName = ucfirst($matches[2]);
 						if(isset($matches[1]) && strlen($matches[1]) > 0){
 							$targetPath = $matches[1].'/';
-							debug('view targetPath = ' . $targetPath);
+							if('' === $currentTargetPath){
+								$currentTargetPath = $targetPath;
+							}
 						}
 					}
 				}
 			}
+		}
+		if('' !== $argTargetPath){
+			$targetPath = $argTargetPath;
+		}
+		if('' === $targetPath){
+			$targetPath = $currentTargetPath;
 		}
 
 		$version = NULL;
@@ -296,24 +387,41 @@ class MVCCore {
 
 		$HtmlView = NULL;
 
-		// コントローラを読み込み
+		// htmlを読み込み
 		if(NULL !== $version){
-			debug($targetPath . $version . '/' . $controlerClassName . '.html');
 			if(TRUE === file_exists_ip($targetPath . $version . '/' . $controlerClassName . '.html')){
+				if(TRUE === $argFileExistsCalled){
+					return $targetPath . $version . '/' . $controlerClassName . '.html';
+				}
 				// Viewインスタンスの生成
 				$HtmlView = new HtmlViewAssignor($targetPath . $version . '/' . $controlerClassName . '.html');
+			}
+			elseif(TRUE === file_exists_ip($targetPath . $version . '/' . strtolower($controlerClassName) . '.html')){
+				if(TRUE === $argFileExistsCalled){
+					return $targetPath . $version . '/' . strtolower($controlerClassName) . '.html';
+				}
+				// Viewインスタンスの生成
+				$HtmlView = new HtmlViewAssignor($targetPath . $version . '/' . strtolower($controlerClassName) . '.html');
 			}
 		}
 
 		if(NULL === $HtmlView){
 			// バージョンを抜いてインクルード
-			debug(get_include_path());
-			debug($targetPath . '/' . $controlerClassName . '.html');
 			if(TRUE === file_exists_ip($targetPath . '/' . $controlerClassName . '.html')){
+				if(TRUE === $argFileExistsCalled){
+					return $targetPath . '/' . $controlerClassName . '.html';
+				}
 				// Viewインスタンスの生成
 				$HtmlView = new HtmlViewAssignor($targetPath . '/' . $controlerClassName . '.html');
 			}
-			else {
+			elseif(TRUE === file_exists_ip($targetPath . '/' . strtolower($controlerClassName) . '.html')){
+				if(TRUE === $argFileExistsCalled){
+					return $targetPath . '/' . strtolower($controlerClassName) . '.html';
+				}
+				// Viewインスタンスの生成
+				$HtmlView = new HtmlViewAssignor($targetPath . '/' . strtolower($controlerClassName) . '.html');
+			}
+			else{
 				// エラー終了
 				return FALSE;
 			}

@@ -13,7 +13,13 @@ class PQuery extends simple_html_dom {
 			// $argTargetをそのままテンプレートとして使う
 			$buffer = &self::_convertBuffer($argTarget, $argFileEncoding, $argConvertEncoding);
 		}else{
-			$buffer = &self::_readBuffer($argTarget, $argFileEncoding, $argConvertEncoding);
+			if(1024 >= strlen($argTarget) && TRUE === file_exists_ip($argTarget)){
+				$buffer = &self::_readBuffer($argTarget, $argFileEncoding, $argConvertEncoding);
+			}
+			else {
+				// html文字列扱い
+				$buffer = &self::_convertBuffer($argTarget, $argFileEncoding, $argConvertEncoding);
+			}
 		}
 		$this->load($buffer);
 	}

@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<xml>
+	<section id="Login" type="web">
+		<execute>
+	   		<view/>
+		</execute>
+	</section>
+</xml>

@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<xml>
+	<section id="Index">
+		<execute>
+			<assign var="res" class="Auth" method="isSession" arg1="FrameworkManagerConfig::DB_DSN"/>
+			<if var="res" val="true">
+				<flow section="Index-authed"/>
+			</if>
+			<else>
+				<flow section="Login"/>
+		    </else>
+		</execute>
+	</section>
+	<section id="Index-authed" type="web">
+		<execute>
+	   		<view/>
+		</execute>
+	</section>
+</xml>

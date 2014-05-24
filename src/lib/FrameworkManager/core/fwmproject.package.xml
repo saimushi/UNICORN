@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<xml>
+	<default>
+		<link suffix=".php">lib/Packages/OrganizPackage/function</link>
+	    <implement suffix=".class.php">lib/Packages/OrganizPackage/class</implement>
+		<implement suffix=".class.php">lib/Packages/ProjectPackage/class</implement>
+		<abstract suffix=".abstract.php">lib/Packages/OrganizPackage/class</abstract>
+		<abstract suffix=".abstract.php">lib/Packages/ProjectPackage/class</abstract>
+		<interface suffix=".interface.php">lib/Packages/OrganizPackage/class</interface>
+		<interface suffix=".interface.php">lib/Packages/ProjectPackage/class</interface>
+	    	<!-- フレームワーク標準のMVCパターンを使用する場合のパス定義 -->
+		<webmain suffix=".php">lib/Packages/ProjectPackage/class/MVC/WebControllers</webmain>
+		<modelmain suffix=".php">lib/Packages/ProjectPackage/class/MVC/Models</modelmain>
+    	<!-- classマッピング定義ココから -->
+		<auto>
+			<mobule>lib/Packages/OrganizPackage/function/functions.inc.php</mobule>
+		</auto>
+	</default>
+	<Session>
+		<link renamefrom="SessionDB" renameto="Session">default.implement.Session/SessionDB</link>
+	</Session>
+	<WebAPIController>
+		<link renamefrom="APIController" renameto="APIController extends APIControllerBase">default.webmain.API/APIController</link>
+	    <link>default.webmain.API/WebAPI/WebAPIController</link>
+	</WebAPIController>
+	<ImageController>
+		<link renamefrom="APIController" renameto="APIController extends ImageControllerBase">default.webmain.API/APIController</link>
+	    <link>default.webmain.API/Image/ImageController</link>
+	</ImageController>
+</xml>

@@ -134,14 +134,6 @@ function initParamStore() {
 }
 
 /**
- * require_onceのエイリアス
- * @param string ファイルパス
- */
-function loadFile($argFilePathStr) {
-	require_once $argFilePathStr;
-}
-
-/**
  * resultSetをXML文字列に変換
  */
 function convertObjectToXML($data, $level = 0) {
@@ -531,17 +523,17 @@ function httpRequest($argURLStr, $argContextArr = array (), $argTimeNum = 120, $
 
 			// URL その他のオプションを適切に設定します
 			$options = array (
-			CURLOPT_URL=>$argURLStr,
-			CURLOPT_HEADER=>TRUE,
-			CURLOPT_POST=>TRUE,
-			CURLOPT_POSTFIELDS=>$content,
-			CURLOPT_SSLVERSION=>3,
-			CURLOPT_SSL_VERIFYPEER=>FALSE,
-			CURLOPT_SSL_VERIFYHOST=>FALSE,
-			CURLOPT_USERAGENT=>$useragent,
-			CURLOPT_PORT=>443,
-			CURLOPT_TIMEOUT=>$argTimeNum,
-			CURLOPT_RETURNTRANSFER=>TRUE,
+					CURLOPT_URL=>$argURLStr,
+					CURLOPT_HEADER=>TRUE,
+					CURLOPT_POST=>TRUE,
+					CURLOPT_POSTFIELDS=>$content,
+					CURLOPT_SSLVERSION=>3,
+					CURLOPT_SSL_VERIFYPEER=>FALSE,
+					CURLOPT_SSL_VERIFYHOST=>FALSE,
+					CURLOPT_USERAGENT=>$useragent,
+					CURLOPT_PORT=>443,
+					CURLOPT_TIMEOUT=>$argTimeNum,
+					CURLOPT_RETURNTRANSFER=>TRUE,
 			);
 
 			/* Basic認証突破用 */
@@ -654,6 +646,69 @@ function pathInfoEX($argPath, $argKey) {
 	}
 }
 
+/**
+ * ディレクトリごとコピーする
+ */
+function dir_copy($dir_name, $new_dir) {
+	if (!is_dir($new_dir)) {
+		mkdir($new_dir);
+	}
+
+	if (is_dir($dir_name)) {
+		if ($dh = opendir($dir_name)) {
+			while (($file = readdir($dh)) !== false) {
+				if ($file == "." || $file == "..") {
+					continue;
+				}
+				if (is_dir($dir_name . "/" . $file)) {
+					dir_copy($dir_name . "/" . $file, $new_dir . "/" . $file);
+				}
+				else {
+					copy($dir_name . "/" . $file, $new_dir . "/" . $file);
+				}
+			}
+			closedir($dh);
+		}
+	}
+	return true;
+}
+
+/**
+ * ディレクトリごと削除する
+ */
+function dir_delete($dir_name) {
+	if (is_dir($dir_name)) {
+		if ($dh = opendir($dir_name)) {
+			while (($file = readdir($dh)) !== false) {
+				if ($file == "." || $file == "..") {
+					continue;
+				}
+				if (is_dir($dir_name . "/" . $file)) {
+					dir_delete($dir_name . "/" . $file);
+				}
+				else {
+					unlink($dir_name . "/" . $file);
+				}
+			}
+			closedir($dh);
+		}
+		rmdir($dir_name);
+	}
+
+	return true;
+}
+
+/**
+ * ディレクトリごと移動(コピーして削除)する
+ */
+function dir_move($dir_name, $new_dir) {
+	if(true === dir_copy($dir_name, $new_dir)){
+		// コピーに成功してから削除する
+		// XXX 冗長だが敢えて
+		return dir_delete($dir_name);
+	}
+	return false;
+}
 
 // UTF-8文字列をUnicodeエスケープする。ただし英数字と記号はエスケープしない。
 if(!function_exists('unicode_decode')) {
@@ -684,9 +739,9 @@ if(!function_exists('unicode_encode')) {
 
 /********************************
  * Retro-support of get_called_class()
- * Tested and works in PHP 5.2.4
- * http://www.sol1.com.au/
- ********************************/
+* Tested and works in PHP 5.2.4
+* http://www.sol1.com.au/
+********************************/
 if(!function_exists('get_called_class')) {
 	function get_called_class($bt = false,$l = 1) {
 		if (!$bt) $bt = debug_backtrace();

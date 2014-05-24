@@ -1,10 +1,10 @@
 <?php
 
-class APIControllerBase {
+class APIControllerBase extends WebControllerBase {
 
-	public $controlerClassName = "";
 	public $httpStatus = 200;
-	public $outputType = "html";
+	public $outputType = "json";
+	public $jsonUnescapedUnicode = true;
 
 	/**
 	 */

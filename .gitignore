@@ -4,3 +4,4 @@ fuel/app/cache/*/*
 /.buildpath
 /.project
 /tmps
+.DS_Store

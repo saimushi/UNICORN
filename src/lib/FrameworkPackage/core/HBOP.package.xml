@@ -1,10 +1,12 @@
-<?xml version="1.0" ?>
+<?xml version="1.0"?>
 <xml>
 	<default>
 		<!-- 自動走査パスの設定 -->
 		<!-- あまり多く定義するとフレームワークの速度が低下するので注意して下さい！ -->
 		<link suffix=".php">lib/FrameworkPackage/function</link>
 		<link suffix=".php">lib/GenericPackage/function</link>
+		<link suffix=".class.php">lib/GenericPackage/class/Exception</link>
+		<link suffix=".php">lib/VendorPackage/PEAR</link>
 		<link suffix=".php">lib/VendorPackage</link>
 		<link suffix=".php">lib/VendorPackage/PEAR</link>
 		<implement suffix=".class.php">lib/FrameworkPackage/class</implement>
@@ -13,11 +15,11 @@
 		<abstract suffix=".abstract.php">lib/GenericPackage/class</abstract>
 		<interface suffix=".interface.php">lib/FrameworkPackage/class</interface>
 		<interface suffix=".interface.php">lib/GenericPackage/class</interface>
-		<!-- 自動走査パスの設定ここまで！ -->
 		<!-- フレームワーク標準のMVCパターンを使用する場合のパス定義 -->
 		<controlmain suffix=".php">lib/FrameworkPackage/class/MVC/Controllers</controlmain>
 		<modelmain suffix=".php">lib/FrameworkPackage/class/MVC/Models</modelmain>
 		<viewmain suffix=".php">lib/FrameworkPackage/class/MVC/Views</viewmain>
+		<!-- 自動走査パスの設定ここまで！ -->
 		<!-- フレームワークの初期化時に必ず自動で読み込ませるファイルは以下に定義します。 -->
 		<auto>
 			<mobule>default.functions.inc.php</mobule>
@@ -25,18 +27,39 @@
 	</default>
 	<!-- classマッピング定義ココから -->
 	<!-- 上記のdefault節で定義されてるパス配下で、且つ依存関係の無い単独動作のファイルは以下の個別定義追加は不要です -->
+	<Flow>
+		<link mapfrom="FlowManager" mapto="Flow">default.implement.AOP/FlowManager</link>
+	</Flow>
 	<Core>
 		<link mapfrom="MVCCore" mapto="Core">default.implement.MVC/MVCCore</link>
 	</Core>
+	<Auth>
+		<link mapfrom="SessionDB" mapto="Session">default.implement.Session/SessionDB</link>
+	    <link>default.implement.Auth/Auth</link>
+	</Auth>
+	<Session>
+		<link mapfrom="SessionDB" mapto="Session">default.implement.Session/SessionDB</link>
+	</Session>
 	<MVCControllerBase>
 		<link>default.interface.MVC/MVCController</link>
 	    <link>default.abstract.MVC/MVCControllerBase</link>
 	</MVCControllerBase>
+	<WebControllerBase>
+		<link>default.interface.MVC/MVCController</link>
+		<link>default.abstract.MVC/MVCControllerBase</link>
+		<link>default.implement.MVC/WebControllerBase</link>
+	</WebControllerBase>
 	<APIControllerBase>
+		<link>default.interface.MVC/MVCController</link>
+		<link>default.abstract.MVC/MVCControllerBase</link>
+		<link>default.implement.MVC/WebControllerBase</link>
 		<link>default.implement.MVC/APIControllerBase</link>
 	</APIControllerBase>
 	<ImageControllerBase>
-		<link>default.implement.MVC/ImageControllerBase</link>
+		<link>default.interface.MVC/MVCController</link>
+		<link>default.abstract.MVC/MVCControllerBase</link>
+		<link>default.implement.MVC/WebControllerBase</link>
+		<link>default.implement.MVC/APIControllerBase</link>
 	</ImageControllerBase>
 	<Utilities>
 		<link mapfrom="Cipher" mapto="Crypt">default.implement.Cipher/Cipher</link>
