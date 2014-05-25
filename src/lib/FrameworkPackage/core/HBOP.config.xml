@@ -19,5 +19,5 @@
 	<API_MAINTENANCE_FLAG_FILE code="TRUE"><![CDATA[dirname( __FILE__ ).'/.apimaintenance']]></API_MAINTENANCE_FLAG_FILE>
 	<DB_MAINTENANCE_FLAG_FILE code="TRUE"><![CDATA[dirname( __FILE__ ).'/.dbmaintenance']]></DB_MAINTENANCE_FLAG_FILE>
 	<!-- DB定義(DSN形式指定) ※この定義は必須では無いが、この定義は自動で解決されます -->
-	<DB_DSN>mysqlt://pzl:tnBNyfwf8r95vbNT@localhost/pzl?persist</DB_DSN>
+	<DB_DSN>mysqlt://hbop:hboppass@localhost/pzl?persist</DB_DSN>
 </xml>
