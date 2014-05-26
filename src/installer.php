@@ -16,11 +16,11 @@
 mb_http_output("UTF-8");
 
 // ダウンロード直後のデフォルトのフレームワークパスを定義しておく
-// XXX インストーラによって変更されます。
-$frameworkPath = "/Users/saimushi/workspace/HBOP/src/lib/FrameworkPackage";
+// XXX インストーラによって変更されます。(予定)
+$frameworkPath = dirname(__FILE__)."/lib/FrameworkPackage";
 
 // ダウンロード直後のデフォルトのフレームワーク管理機能のパスを定義しておく
-// XXX インストーラによって変更されます。
+// XXX インストーラによって変更されます。(予定)
 $fwmgrPath = dirname(__FILE__)."/lib/FrameworkManager";
 
 // CLI実行かどうかのフラグの初期化
@@ -39,9 +39,11 @@ elseif (!isset($_GET["a"]) && (!isset($argv) || null === $argv)){
 <meta id="viewport" name="viewport"
 	content="target-densitydpi=device-dpi, width=device-width, maximum-scale=1.0, user-scalable=no">
 <title>HBOP installer</title>
-<link id="resert_css" rel="stylesheet"
-	href="http://reset5.googlecode.com/hg/reset.min.css">
-<style id="resertplus_css" type="text/css">
+<style id="resert_css" type="text/css">
+
+/* reset5 © 2011 opensource.736cs.com MIT */
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td,article,aside,audio,canvas,details,figcaption,figure,footer,header,hgroup,mark,menu,meter,nav,output,progress,section,summary,time,video{border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent;margin:0;padding:0;}body{line-height:1;}article,aside,dialog,figure,footer,header,hgroup,nav,section,blockquote{display:block;}nav ul{list-style:none;}ol{list-style:decimal;}ul{list-style:disc;}ul ul{list-style:circle;}blockquote,q{quotes:none;}blockquote:before,blockquote:after,q:before,q:after{content:none;}ins{text-decoration:underline;}del{text-decoration:line-through;}mark{background:none;}abbr[title],dfn[title]{border-bottom:1px dotted #000;cursor:help;}table{border-collapse:collapse;border-spacing:0;}hr{display:block;height:1px;border:0;border-top:1px solid #ccc;margin:1em 0;padding:0;}input[type=submit],input[type=button],button{margin:0!important;padding:0!important;}input,select,a img{vertical-align:middle;}
+
 /* フォントサイズと太さのリセット */
 html {
 	font-size: 10px;
@@ -353,9 +355,7 @@ dl.page_sub_body {
 	/* box setting */
 	width: 150px;
 	height: 50px;
-	/* position setting */
-	margin-left: auto;
-	margin-right: auto;
+	top: 0;
 	/* style setting */
 	font-size: 1.2em;
 }
@@ -568,10 +568,7 @@ $(document).ready(function(){
 			else {
 				$("#apply").show();
 			}
-			if(argStep == maxstep-1) {
-				$("#endstep").show();
-			}
-			else if(argStep == maxstep) {
+			if(argStep == maxstep) {
 				// インストール完了ページ表示時はナビゲーターはもう不要
 				$("#navigatior").hide();
 			}
@@ -1408,7 +1405,7 @@ $(document).ready(function(){
 				<p><button id="nextstep" type="button">次のステップへ</button></p>
 				<p><button id="execute" type="button">実行</button></p>
 				<p><button id="apply" type="button">設定</button></p>
-				<p><button id="endstep" type="button">インストールを<br>完了する</button></p>
+				<p><button id="endstep" type="button ">インストールを<br>完了する</button></p>
 			</div>
 			<div id="navigatestep1" class="navigate_step leftfloat">
 				<p class="navigate_header">STEP:1</p>
@@ -1586,27 +1583,6 @@ elseif(isset($_GET["a"])){
 			}
 			// hlogも不要
 			@unlink(dirname(__FILE__)."/hlog");
-			// 移動が無事に成功したので、このファイル上の20行目の$frameworkPathを強制的に書き換える
-			$targetLineNum = 20;
-			$replaceStr = "\$frameworkPath = \"".$_POST["newframeworkpath"]."\";";
-			$handle = fopen(__FILE__, 'r');
-			if(FALSE === $handle){
-				exit(json_encode(array("ok"=>false,"error"=>"何らかの理由でこのファイルのfopen(r:読込・ポインタはファイル先頭)に失敗しています。 \n 考えられる理由: \n このファイルへの書込権限が設定されていません。\n".$error)));
-			}
-			$readLine = 0;
-			$file="";
-			while (($buffer = fgets($handle, 4096)) !== false) {
-				$readLine++;
-				if($targetLineNum === $readLine){
-					// 置換処理
-					$file .= $replaceStr . PHP_EOL;
-				}
-				else {
-					$file .= $buffer;
-				}
-			}
-			fclose($handle);
-			file_put_contents(__FILE__, $file);
 			exit(json_encode($res));
 		}
 		else if(isset($_GET["apply"]) && 6 === (int)$_GET["apply"]) {
@@ -1749,6 +1725,27 @@ elseif(isset($_GET["a"])){
 					// XML文字列を再生成
 					$confXML->asXML($confPath);
 					installerlog($confXML->asXML());
+// 					// このファイル上の20行目の$frameworkPathを強制的に書き換える
+// 					$targetLineNum = 20;
+// 					$replaceStr = "\$frameworkPath = \"".$_POST["newframeworkpath"]."\";";
+// 					$handle = fopen(__FILE__, 'r');
+// 					if(FALSE === $handle){
+// 						exit(json_encode(array("ok"=>false,"error"=>"何らかの理由でこのファイルのfopen(r:読込・ポインタはファイル先頭)に失敗しています。 \n 考えられる理由: \n このファイルへの書込権限が設定されていません。\n".$error)));
+// 					}
+// 					$readLine = 0;
+// 					$file="";
+// 					while (($buffer = fgets($handle, 4096)) !== false) {
+// 						$readLine++;
+// 						if($targetLineNum === $readLine){
+// 							// 置換処理
+// 							$file .= $replaceStr . PHP_EOL;
+// 						}
+// 						else {
+// 							$file .= $buffer;
+// 						}
+// 					}
+// 					fclose($handle);
+// 					file_put_contents(__FILE__, $file);
 				}
 
 				// package.xmlのdefault->link句を書き換える
