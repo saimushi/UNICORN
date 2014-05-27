@@ -397,8 +397,10 @@ dl.page_sub_body {
 }
 
 /* デフォルトでは非表示にしていく要素の定義 */
-#page1, #page2, #page3, #page4, #page5, #nextstep, #execute, #apply, #endstep, #page1_sub_title4, .errormsg,
-#page2_body2, #page2_body3, #page2_body5, #page2_body6, #page2_body7, #page2_body8, #page2_body9, #page2_body10 {
+#page1, #page2, #page3, #page4, #page5, #nextstep, #execute, #apply, #endstep, #page1_sub_title4, .errormsg
+, #page2_body2, #page2_body3, #page2_body5, #page2_body6, #page2_body7, #page2_body8, #page2_body9, #page2_body10
+, #page3_body2, #page3_body3, #page3_body4, #page3_body5, #page3_body6, #page3_body7, #page3_body8, #page3_body9, #page3_body10
+{
 	/* box setting */
 	display: none;
 }
@@ -413,11 +415,11 @@ dl.page_sub_body {
 	margin-top: -30px;
 }
 
-#page2_body2 .loading {
+#page2_body2 .loading, #page3_body5 .loading {
 	margin-top: 15px;
 }
 
-#page2_body3 .loading {
+#page2_body3 .loading, #page3_body6 .loading {
 	margin-top: 30px;
 }
 
@@ -522,18 +524,22 @@ $(document).ready(function(){
 	// ステップを管理する変数の定義
 	var step = 0;
 	var maxstep = 5;
+	var stepApply = 1;
 
 	// 次のステップボタンのクリックイベント
 	$("#startstep").click(function(){
 		step+=1;
+		stepApply = 1;
 		next(step);
 	});
 	$("#nextstep").click(function(){
 		step+=1;
+		stepApply = 1;
 		next(step);
 	});
 	$("#endstep").click(function(){
 		step+=1;
+		stepApply = 1;
 		next(step);
 	});
 
@@ -655,9 +661,11 @@ $(document).ready(function(){
 		}
 	}
 
-	// ステップ内の該当の設定の適用処理を実行
-	var step2apply = 1;
-	var maxStep2apply = 9;
+	// 各ステップの設定数定義
+	var maxStep2apply = 8;
+	var maxStep3apply = 7;
+
+	// ステップを横断して利用する変数の定義
 	var beforeframeworkpath = "";
 	var beforegenericpath = "";
 	var beforevendorpath = "";
@@ -665,16 +673,28 @@ $(document).ready(function(){
 	var genericpath = "";
 	var vendorpath = "";
 	var packeagepath = "";
-	// 5分最大で待つ
-	var apply4Loop = 0;
-	var apply4MaxLoop = 300000;
+	var fwmpath = "";
+	var fwmdbuser = "";
+	var fwmdbpass = "";
+	var fwmdb = "";
+
+	// 通信定義 5分最大で待つ
+	var waitLoop = 0;
+	var waitMAXLoop = 300000;
+
+	// ステップ内の該当の設定の適用処理を実行
 	function apply(argStep){
 		if(argStep == 2){
-			if(step2apply <= maxStep2apply){
+			if(stepApply <= maxStep2apply){
+				$("#page" + argStep + " .hlog").text("");
+				// ローディング非表示
+				$("#step" + argStep + "input" + stepApply + "form_box .loading").removeClass("active");
+				// エラーを非表示
+				$("#page" + argStep + " .errormsg").hide();
 				// 変数初期化
 				var inputpath = "";
 				// applyステップ毎のバリデーション
-				if(1 == step2apply){
+				if(1 == stepApply){
 					// applyステップ1のバリデート
 					if(1 > $("#input-path").val().length){
 						$("#page" + argStep + " .errormsg").show();
@@ -684,7 +704,7 @@ $(document).ready(function(){
 					}
 					inputpath = $("#input-path").val();
 				}
-				else if(2 == step2apply){
+				else if(2 == stepApply){
 					// applyステップ2のバリデート
 					if(1 > $("#input-genericpath").val().length){
 						$("#page" + argStep + " .errormsg").show();
@@ -701,8 +721,7 @@ $(document).ready(function(){
 					$("#genericpath").text($("#input-genericpath").val());
 					$("#vendorpath").text($("#input-vendorpath").val());
 				}
-				else if(3 == step2apply){
-					// 項目ローディング表示
+				else if(3 == stepApply){
 					// applyステップ3のバリデート
 					if(1 > $("#input-newframeworkpath").val().length){
 						$("#page" + argStep + " .errormsg").show();
@@ -724,42 +743,40 @@ $(document).ready(function(){
 					}
 					if($("#frameworkpath").text() == $("#input-newframeworkpath").val() && $("#genericpath").text() == $("#input-newgenericpath").val() && $("#vendorpath").text() == $("#input-newvendorpath").val()){
 						// 処理をスキップして次の設定へ(ステップは変わらない)
-						$("#page2_body" + step2apply).hide();
-						$("#page2_body5").show();
+						$("#page" + argStep + "_body" + stepApply).hide();
+						// 次のステップをスキップしてさらに次のステップへ自動で移動
+						stepApply = 5;
+						$("#page" + argStep + "_body" + stepApply).show();
 						$("#newframeworkpath").text(frameworkpath);
 						$("#input-packagepath").val($("#packagepath").text());
-						// 次のステップへ自動で移動
-						step2apply = 5;
-						apply(step2apply);
 						// ページの上部へ移動
 						inPageLocation("#pagetop");
 						return;
 					}
 				}
-				else if(4 == step2apply){
+				else if(4 == stepApply){
 					// 5分待っても移動が終わっていないかどうか
-					if(apply4Loop > apply4MaxLoop){
+					if(waitLoop > waitMAXLoop){
 						// 即エラーで終了
 						$("#page" + argStep + " .errormsg").show();
 						$("#page" + argStep + " .errormsg").text("(!!!)移動処理に5分以上経っています！\n\n処理に時間が掛かり過ぎています。\n引き続き待つ場合は、再度「設定」ボタンを押して下さい。");
-						apply4Loop = 0;
+						waitLoop = 0;
 						return;
 					}
 					// 項目ローディング表示
 					$("#step" + argStep + "input3form_box .loading").addClass("active");
 				}
-				else if(5 == step2apply){
+				else if(5 == stepApply){
 					// 何もせず次へ(ステップは変わらない)
-					$("#page2_body5").hide();
-					$("#page2_body6").show();
+					$("#page" + argStep + "_body" + stepApply).hide();
 					// 次のステップへ自動で移動
-					step2apply++;
-					apply(step2apply);
+					stepApply++;
+					$("#page" + argStep + "_body" + stepApply).show();
 					// ページの上部へ移動
 					inPageLocation("#pagetop");
 					return;
 				}
-				else if(6 == step2apply){
+				else if(6 == stepApply){
 					// applyステップ6のバリデート
 					if(1 > $("#input-packagepath").val().length){
 						$("#page" + argStep + " .errormsg").show();
@@ -769,12 +786,12 @@ $(document).ready(function(){
 					}
 					inputpath = $("#input-packagepath").val();
 				}
-				else if(8 == step2apply){
+				else if(8 == stepApply){
 					// 何もせず次へ(ステップは変わらない)
-					$("#page2_body" + step2apply).hide();
-					step2apply++;
-					$("#page2_body" + step2apply).show();
-					$("#hlog").text("");
+					$("#page" + argStep + "_body" + stepApply).hide();
+					stepApply++;
+					$("#page" + argStep + "_body" + stepApply).show();
+					$("#page" + argStep + " .hlog").text("");
 					$("#nextstep").show();
 					// 実行ボタンは初期化しておく
 					$("#apply").hide();
@@ -785,7 +802,7 @@ $(document).ready(function(){
 				}
 
 				var data = { path: inputpath, frameworkpath: $("#frameworkpath").text(), newframeworkpath: $("#input-newframeworkpath").val(), genericpath: $("#genericpath").text(), newgenericpath: $("#input-newgenericpath").val() , vendorpath: $("#vendorpath").text(), newvendorpath: $("#input-newvendorpath").val() };
-				if(7 == step2apply){
+				if(7 == stepApply){
 					// 今まで設定されている物をセット
 					data = {
 						beforeframeworkpath: beforeframeworkpath,
@@ -807,20 +824,17 @@ $(document).ready(function(){
 				$("#input-newvendorpath").attr("disabled", "disabled");
 				$("#input-packagepath").attr("disabled", "disabled");
 				$("#apply").attr("disabled", "disabled");
-				$("#hlog").text("");
 				// 項目ローディング表示
-				$("#step" + argStep + "input" + step2apply + "form_box .loading").addClass("active");
-				// エラーを非表示
-				$("#page" + argStep + " .errormsg").hide();
+				$("#step" + argStep + "input" + stepApply + "form_box .loading").addClass("active");
 				$.ajax({
 					type: "POST",
-					url: "?a=1&step=" + argStep + "&apply=" + step2apply + "&debug=" + isDebug,
+					url: "?a=1&step=" + argStep + "&apply=" + stepApply + "&debug=" + isDebug,
 					data: data,
 					dataType: "json",
 					cache: false,
 				}).done(function(json) {
 					// ローディング非表示
-					$("#step" + argStep + "input" + step2apply + "form_box .loading").removeClass("active");
+					$("#step" + argStep + "input" + stepApply + "form_box .loading").removeClass("active");
 					// 各種disableをハズす
 					$("#input-path").removeAttr("disabled", "");
 					$("#input-genericpath").removeAttr("disabled", "");
@@ -830,7 +844,7 @@ $(document).ready(function(){
 					$("#input-newvendorpath").removeAttr("disabled", "");
 					$("#apply").removeAttr("disabled", "");
 					if(true == json.ok){
-						if(1 == step2apply){
+						if(1 == stepApply){
 							// フレームワークを発見
 							frameworkpath = json.paths[0];
 							beforeframeworkpath = frameworkpath;
@@ -847,7 +861,7 @@ $(document).ready(function(){
 								}
 							}
 						}
-						else if(2 == step2apply){
+						else if(2 == stepApply){
 							// GenericPackageを発見
 							genericpath = $("#genericpath").text();
 							// VendorPackageを発見
@@ -859,28 +873,29 @@ $(document).ready(function(){
 							$("#input-newgenericpath").val($("#genericpath").text());							
 							$("#input-newvendorpath").val($("#vendorpath").text());							
 						}
-						else if(3 == step2apply){
-							step2apply++;
+						else if(3 == stepApply){
 							// ローディング強制表示
-							$("#step" + argStep + "input3form_box .loading").removeClass("active");
+							$("#step" + argStep + "input" + stepApply + "form_box .loading").addClass("active");
 							// 3ステップ目は、1秒後に4ステップ目を実行
+							stepApply++;
+							waitLoop = 0;
 							setTimeout(function() {
-								apply4Loop++;
+								waitLoop++;
 								apply(argStep);
 					        }, 1000);
 							return;
 						}
-						else if(4 == step2apply){
+						else if(4 == stepApply){
 							// 最新の移動ログを画面に表示	
-							$("#hlog").text(json.hlog);
+							$("#page" + argStep + " .hlog").text(json.hlog);
 							// 4ステップ目は、ディレクトリの移動処理が終わってなければ1秒後にもう一度同じステップを実行する
 							if(true == json.wait){
-								// ローディング強制表示
-								$("#step" + argStep + "input3form_box .loading").removeClass("active");
+								// 一つ前のステップのローディングを強制表示
+								$("#step" + argStep + "input" + (stepApply - 1) + "form_box .loading").addClass("active");
 								// 1秒後にもう一度実行
 								setTimeout(function() {
 									// 同じステップを再度
-									apply4Loop++;
+									waitLoop++;
 									apply(argStep);
 						        }, 1000);
 								return;
@@ -891,56 +906,256 @@ $(document).ready(function(){
 							vendorpath = $("#input-newvendorpath").val();
 							$("#newframeworkpath").text(frameworkpath);
 							$("#input-packagepath").val($("#packagepath").text());
-							$("#page2_body3").hide();
-							$("#page2_body5").show();
+							$("#page" + argStep + "_body" + (stepApply - 1)).hide();
 							// 次のステップへ自動で移動
-							step2apply++;
-							apply(argStep);
+							stepApply ++;
+							$("#page" + argStep + "_body" + stepApply).show();
+							// ページの上部へ移動
+							inPageLocation("#pagetop");
 							return;
 						}
-						else if(6 == step2apply){
+						else if(6 == stepApply){
 							packeagepath = $("#input-packagepath").val();
 							// packeage.xmlの現在の内容を画面に表示
-							$("#hlog").text(json.hlog);
+							$("#page" + argStep + " .hlog").text(json.hlog);
 						}
-						else if(7 == step2apply){
+						else if(7 == stepApply){
 							// packeage.xmlの最新の内容を画面に表示
-							$("#hlog").text(json.hlog);
+							$("#page" + argStep + " .hlog").text(json.hlog);
 						}
 						// 次の設定へ(ステップは変わらない)
-						$("#page2_body" + step2apply).hide();
-						$("#page2_body" + (step2apply+1)).show();
-						step2apply++;
+						$("#page" + argStep + "_body" + stepApply).hide();
+						$("#page" + argStep + "_body" + (stepApply+1)).show();
+						stepApply++;
 						// ページの上部へ移動
 						inPageLocation("#pagetop");
+						return;
 					}
 					else {
-						if(4 == step2apply){
+						if(4 == stepApply){
 							// 一歩前に戻す
-							step2apply--;
+							stepApply--;
 						}
 						// バリデート以外の理由によるエラー
 						$("#page" + argStep + " .errormsg").show();
 						$("#page" + argStep + " .errormsg").text("(!!!)" + json.error);
 						// ページの上部へ移動
 						inPageLocation("#page" + argStep + " .errormsg");
+						return;
 					}
 				});
-			}
-			else {
-				// 全ての設定が成功で終了
-				// 次のステップへ行けるように
-				$("#nextstep").show();
-				// 実行ボタンは初期化しておく
-				$("#apply").hide();
-				$("#apply").removeAttr("disabled", "");
-				// ページの上部へ移動
-				inPageLocation("#pagetop");
+				return;
 			}
 		}
 		else if(argStep == 3){
-			
+			if(stepApply <= maxStep3apply){
+				$("#page" + argStep + " .hlog").text("");
+				// ローディング非表示
+				$("#step" + argStep + "input" + stepApply + "form_box .loading").removeClass("active");
+				// エラーを非表示
+				$("#page" + argStep + " .errormsg").hide();
+				// applyステップ毎のバリデーション
+				if(1 == stepApply){
+					// applyステップ1のバリデート
+					if(1 > $("#input-fwmpath").val().length){
+						$("#page" + argStep + " .errormsg").show();
+						$("#page" + argStep + " .errormsg").text("(!!!)フレームワークマネージャーの現在のパスを入力して下さい。");
+						// 終了
+						return;
+					}
+					fwmpath = $("#input-fwmpath").val();
+					var data = { fwmpath: fwmpath };
+				}
+				else if(2 == stepApply){
+					// applyステップ3のバリデート
+					if(1 > $("#input-newfwmpath").val().length){
+						$("#page" + argStep + " .errormsg").show();
+						$("#page" + argStep + " .errormsg").text("(!!!)フレームワークマネージャーの移動先のパスを入力して下さい。");
+						// 終了
+						return;
+					}
+					if($("#fwmpath").text() == $("#input-newfwmpath").val()){
+						// 処理をスキップして次の設定へ(ステップは変わらない)
+						$("#page" + argStep + "_body" + stepApply).hide();
+						// 次のステップへ自動で移動
+						stepApply = 4;
+						$("#page" + argStep + "_body" + stepApply).show();
+						// ページの上部へ移動
+						inPageLocation("#pagetop");
+						return;
+					}
+					var data = { fwmpath: fwmpath, newfwmpath: $("#input-newfwmpath").val() };
+				}
+				else if(3 == stepApply){
+					// 5分待っても移動が終わっていないかどうか
+					if(waitLoop > waitMAXLoop){
+						// 即エラーで終了
+						$("#page" + argStep + " .errormsg").show();
+						$("#page" + argStep + " .errormsg").text("(!!!)移動処理に5分以上経っています！\n\n処理に時間が掛かり過ぎています。\n引き続き待つ場合は、再度「設定」ボタンを押して下さい。");
+						waitLoop = 0;
+						return;
+					}
+					// 1個前の項目ローディング表示
+					$("#step" + argStep + "input" + (stepApply - 1) + "form_box .loading").addClass("active");
+				}
+				else if(4 == stepApply){
+					// 何もせず次へ(ステップは変わらない)
+					$("#page" + argStep + "_body" + stepApply).hide();
+					// 次のステップへ自動で移動
+					stepApply++;
+					$("#page" + argStep + "_body" + stepApply).show();
+					// ページの上部へ移動
+					inPageLocation("#pagetop");
+					return;
+				}
+				else if(5 == stepApply){
+					if(true == $("#input-skipcreatedb").prop("checked")){
+						// 自分でDBを設定するを選んだ場合は何もせず次へ(ステップは変わらない)
+						$("#page" + argStep + "_body" + stepApply).hide();
+						// 次のステップへ自動で移動
+						stepApply++;
+						$("#page" + argStep + "_body" + stepApply).show();
+						// ページの上部へ移動
+						inPageLocation("#pagetop");
+						return;
+					}
+					// applyステップ5のバリデート
+					if(1 > $("#input-mysqluser").val().length){
+						$("#page" + argStep + " .errormsg").show();
+						$("#page" + argStep + " .errormsg").text("(!!!)データベースユーザー名を入力して下さい。");
+						// 終了
+						return;
+					}
+					var data = { fwmpath: fwmpath, mysqluser: $("#input-mysqluser").val(), mysqlpass: $("#input-mysqlpass").val() };
+				}
+				else if(6 == stepApply){
+					// applyステップ6のバリデート
+					if(1 > $("#input-fwmdbuser").val().length){
+						$("#page" + argStep + " .errormsg").show();
+						$("#page" + argStep + " .errormsg").text("(!!!)データベースユーザー名を入力して下さい。");
+						// 終了
+						return;
+					}
+					if(1 > $("#input-fwmdbpass").val().length){
+						$("#page" + argStep + " .errormsg").show();
+						$("#page" + argStep + " .errormsg").text("(!!!)データベースパスワードを入力して下さい。");
+						// 終了
+						return;
+					}
+					if(1 > $("#input-fwmdb").val().length){
+						$("#page" + argStep + " .errormsg").show();
+						$("#page" + argStep + " .errormsg").text("(!!!)データベース名を入力して下さい。");
+						// 終了
+						return;
+					}
+					var data = { fwmpath: fwmpath, fwmdbuser: $("#input-fwmdbuser").val(), fwmdbpass: $("#input-fwmdbpass").val(), fwmdb: $("#input-fwmdb").val() };
+				}
+				else if(7 == stepApply){
+					var data = { fwmpath: fwmpath, fwmdbuser: fwmdbuser, fwmdbpass: fwmdbpass, fwmdb: fwmdb };
+				}
+
+				// 各種フォームパーツの無効化
+				$("#input-fwmpath").attr("disabled", "disabled");
+				$("#apply").attr("disabled", "disabled");
+				// 項目ローディング表示
+				$("#step" + argStep + "input" + stepApply + "form_box .loading").addClass("active");
+				$.ajax({
+					type: "POST",
+					url: "?a=1&step=" + argStep + "&apply=" + stepApply + "&debug=" + isDebug,
+					data: data,
+					dataType: "json",
+					cache: false,
+				}).done(function(json) {
+					// ローディング非表示
+					$("#step" + argStep + "input" + stepApply + "form_box .loading").removeClass("active");
+					// 各種disableをハズす
+					$("#input-fwmpath").removeAttr("disabled", "");
+					$("#apply").removeAttr("disabled", "");
+					if(true == json.ok){
+						if(1 == stepApply){
+							$("#fwmpath").text(fwmpath);
+							$("#input-newfwmpath").val(fwmpath);
+							$("#createdbsql").text(json.createdbsql);
+						}
+						else if(2 == stepApply){
+							// ローディング強制表示
+							$("#step" + argStep + "input" + stepApply + "form_box .loading").addClass("active");
+							// 3ステップ目は、1秒後に4ステップ目を実行
+							stepApply++;
+							waitLoop = 0;
+							setTimeout(function() {
+								waitLoop++;
+								apply(argStep);
+					        }, 1000);
+							return;
+						}
+						else if(3 == stepApply){
+							// 最新の移動ログを画面に表示	
+							$("#page" + argStep + " .hlog").text(json.hlog);
+							// 4ステップ目は、ディレクトリの移動処理が終わってなければ1秒後にもう一度同じステップを実行する
+							if(true == json.wait){
+								// ローディング強制表示
+								$("#step" + argStep + "input" + (stepApply - 1) + "form_box .loading").addClass("active");
+								// 1秒後にもう一度実行
+								setTimeout(function() {
+									// 同じステップを再度
+									waitLoop++;
+									apply(argStep);
+						        }, 1000);
+								return;
+							}
+							// 各種パス情報は次のステップ以降でも使う！
+							fwmpath = $("#input-newfwmpath").val();
+							$("#page" + argStep + "_body" + (stepApply - 1)).hide();
+							// 次のステップへ自動で移動
+							stepApply++;
+							$("#page" + argStep + "_body" + stepApply).show();
+							// ページの上部へ移動
+							inPageLocation("#pagetop");
+							return;
+						}
+						else if(6 == stepApply){
+							fwmdbuser = $("#input-fwmdbuser").val();
+							fwmdbpass = $("#input-fwmdbpass").val();
+							fwmdb = $("#input-fwmdb").val();
+							$("#createtablesql").text(json.createtablesql);
+						}
+						// 次の設定へ(ステップは変わらない)
+						$("#page" + argStep + "_body" + stepApply).hide();
+						$("#page" + argStep + "_body" + (stepApply+1)).show();
+						stepApply++;
+						// ページの上部へ移動
+						inPageLocation("#pagetop");
+						return;
+					}
+					else {
+						if(3 == stepApply){
+							// 一歩前に戻す
+							stepApply--;
+						}
+						// バリデート以外の理由によるエラー
+						$("#page" + argStep + " .errormsg").show();
+						$("#page" + argStep + " .errormsg").text("(!!!)" + json.error);
+						// ページの上部へ移動
+						inPageLocation("#page" + argStep + " .errormsg");
+						return;
+					}
+				});
+			}
+			return;
 		}
+
+		// 全ての設定が成功で終了
+		// 次のステップへ行けるように
+		$("#nextstep").show();
+		// 実行ボタンは初期化しておく
+		$("#apply").hide();
+		$("#apply").removeAttr("disabled", "");
+		// ページの上部へ移動
+		inPageLocation("#pagetop");
+
+		// 終了
+		return;
 	}
 
 	// ページ内リンクへオートスクロール
@@ -960,7 +1175,12 @@ $(document).ready(function(){
 
 	// 各種フォームの初期値のセット
 	$("#input-path").val("<?php echo $frameworkPath; ?>");
-	$("#input-fwmgrpath").val("<?php echo $fwmgrPath; ?>");
+	$("#input-fwmpath").val("<?php echo $fwmgrPath; ?>");
+	$("#input-mysqluser").val("root");
+	$("#input-mysqlpass").val("root");
+	$("#input-fwmdbuser").val("fwm");
+	$("#input-fwmdbpass").val("fwmpass");
+	$("#input-fwmdb").val("fwm");
 
 	// ページ初期表示処理
 	if("" !== getParameterByName("step")){
@@ -1270,7 +1490,7 @@ $(document).ready(function(){
 					<br>
 				</p>
 				<div id="step2input6form_box" class="text-input-form">
-					<form id="step2input6form" name="step2input6sform">
+					<form id="step2input6form" name="step2input6form">
 						<input id="input-packagepath" class="input-text" type="text" name="path" value="" maxlenght="255" />
 						<input id="input-packagepath-reset" class="input-reset" type="reset" value="×" />
 					</form><span class="loading"></span>
@@ -1348,7 +1568,7 @@ $(document).ready(function(){
 				</p>
 			</div>
 			<div class="page_body">
-				<pre id="hlog"></pre>
+				<pre class="hlog"></pre>
 			</div>
 			<div class="page_body">
 				<pre class="errormsg red"></pre>
@@ -1363,7 +1583,7 @@ $(document).ready(function(){
 					<strong class="orange">先ず、フレームワーク管理機能の現在のパスを確認させて下さい。</strong>
 					<br>
 					<br>
-					フレームワーク管理機能は”FrameworkManager”と言うディレクトリ名で
+					フレームワーク管理機能は”FrameworkManager”(以後、フレームワークマネージャーと呼びます)と言うディレクトリ名で
 					<br>
 					ダウンロード直後は
 					<br>
@@ -1381,16 +1601,191 @@ $(document).ready(function(){
 				</p>
 				<div id="step3input1form_box" class="text-input-form">
 					<form id="step3input1form" name="step2input1form">
-						<input id="input-fwmgrpath" class="input-text" type="text" name="fwmgrpath" value="" maxlenght="255" />
-						<input id="input-fwmgrpath-reset" class="input-reset" type="reset" value="×" />
+						<input id="input-fwmpath" class="input-text" type="text" name="fwmpath" value="" maxlenght="255" />
+						<input id="input-fwmpath-reset" class="input-reset" type="reset" value="×" />
 					</form><span class="loading"></span>
 				</div>
+			</div>
+			<div id="page3_body2" class="page_body">
+				<p>
+					<strong class="green">フレームワークマネージャーは指定のパスで確認出来ました！</strong>
+					<br>
+					<br>
+					<strong id="fwmpath" class="green"></strong>
+					<br>
+					<br>
+					<br>
+					<strong class="orange">フレームワークマネージャーを、指定の任意のパスに移動する事が出来ます。</strong>
+					<br>
+					<br>
+					移動する場合は以下のそれぞれのフォームに、<strong>移動先となるパスを入力して「設定」ボタンを押して下さい。</strong>
+					<br>
+					<br>
+					<strong>移動しない場合は、そのまま「設定」ボタンを押して下さい。</strong>
+					<br>
+					<br>
+				</p>
+				<br>
+				<small>フレームワークマネージャーパス</small>
+				<div id="step3input2form_box" class="text-input-form">
+					<form id="step3input2form" name="step3input2form">
+						<input id="input-newfwmpath" class="input-text" type="text" name="newfwmpath" value="" maxlenght="255" />
+						<input id="input-newfwmpath-reset" class="input-reset" type="reset" value="×" />
+					</form><span class="loading"></span>
+				</div>
+			</div>
+			<div id="page3_body4" class="page_body">
+				<p>
+					<strong class="green">フレームワークマネージャーのパスの設定が無事に完了しました！</strong>
+					<br>
+					<br>
+					<strong>下の移動ログを確認し、「設定」ボタンを押して下さい。</strong>
+					<br>
+					<br>
+				</p>
+			</div>
+			<div id="page3_body5" class="page_body">
+				<p>
+					<strong class="orange">フレームワークマネージャー用のデータベースを作成します。</strong>
+					<br>
+					<br>
+					<strong class="red">
+						(!!!)データベースはMySQLデータベースサーバーを必要とします。
+						また、MySQLサーバーはこのインストーラーを実行しているサーバーにインストールされている必要があります。
+						MySQLデータベースサーバーがまだインストールされていない場合は
+						先ずMySQLデータベースサーバーをインストールして下さい。
+					</strong>
+					<br>
+					以下のSQL文を実行し、データベースの追加とデータベースユーザーの追加を実行します。
+					<br>
+					<br>
+					<pre id="createdbsql" class="strong orange"></pre>
+					<br>
+					<br>
+					<strong>
+						create database文とgrant文をmysqlデータベースに対して実行が可能な
+						データベースの接続情報(rootユーザー情報等)を
+						以下に入力して「設定」ボタンを押して下さい。
+					</strong>
+					<br>
+					<br>
+					<br>
+					<strong class="red">
+					尚、入力されたデータベースのユーザー・パスワードは保存されずそのまま破棄されます！
+					</strong>
+					<br>
+					<br>
+				</p>
+				<br>
+				<small>データベースユーザー名</small>
+				<div id="step3input5-1form_box" class="text-input-form">
+					<form id="step3input5-1form" name="step3input5-1form">
+						<input id="input-mysqluser" class="input-text" type="text" name="mysqluser" value="" maxlenght="255" />
+						<input id="input-mysqluser-reset" class="input-reset" type="reset" value="×" />
+					</form><span class="loading"></span>
+				</div>
+				<br>
+				<small>データベースパスワード</small>
+				<div id="step3input5-2form_box" class="text-input-form">
+					<form id="step3input5-2form" name="step3input5-2form">
+						<input id="input-mysqlpass" class="input-text" type="text" name="mysqlpass" value="" maxlenght="255" />
+						<input id="input-mysqlpass-reset" class="input-reset" type="reset" value="×" />
+					</form>
+				</div>
+				<br>
+				<small>この手順をスキップして、自身でデータベースの設定をする</small>
+				<div id="step3input5-4form_box" class="text-checkbox-form">
+					<form id="step3input5-4form" name="step3input5-4form">
+						<input id="input-skipcreatedb" class="input-checkbox" type="checkbox" name="skipcreatedb" />
+					</form>
+				</div>
+			</div>
+			<div id="page3_body6" class="page_body">
+				<p>
+					<strong class="green">フレームワークマネージャー用のデータベースを作成しました！</strong>
+					<br>
+					<br>
+					<strong class="orange">
+						フレームワークマネージャー用のデータベースへテスト接続と
+						フレームワークマネージャーの設定ファイルの更新を行います。
+					</strong>
+					<br>
+					<br>
+					<strong>作成したフレームワークマネージャー用のデータベースの接続情報を入力して「設定」ボタンを押して下さい。</strong>
+					<br>
+					<br>
+					<strong>以前のステップでインストーラーによってデータベース作成している場合は、そのまま「設定」ボタンを押して下さい。</strong>
+					<br>
+					<br>
+				</p>
+				<br>
+				<small>データベースユーザー名</small>
+				<div id="step3input6-1form_box" class="text-input-form">
+					<form id="step3input6-1form" name="step3input6-1form">
+						<input id="input-fwmdbuser" class="input-text" type="text" name="mysqluser" value="" maxlenght="255" />
+						<input id="input-fwmdbuser-reset" class="input-reset" type="reset" value="×" />
+					</form><span class="loading"></span>
+				</div>
+				<br>
+				<small>データベースパスワード</small>
+				<div id="step3input6-2form_box" class="text-input-form">
+					<form id="step3input6-2form" name="step3input6-2form">
+						<input id="input-fwmdbpass" class="input-text" type="text" name="fwmdbpass" value="" maxlenght="255" />
+						<input id="input-fwmdbpass-reset" class="input-reset" type="reset" value="×" />
+					</form>
+				</div>
+				<br>
+				<small>データベース名</small>
+				<div id="step3input6-2form_box" class="text-input-form">
+					<form id="step3input6-3form" name="step3input6-3form">
+						<input id="input-fwmdb" class="input-text" type="text" name="fwmdb" value="" maxlenght="255" />
+						<input id="input-fwmdb-reset" class="input-reset" type="reset" value="×" />
+					</form>
+				</div>
+			</div>
+			<div id="page3_body7" class="page_body">
+				<p>
+					<strong class="green">
+						フレームワークマネージャー用のデータベースへのテスト接続に成功しました！
+						フレームワークマネージャーの設定ファイルを更新しました！
+					</strong>
+					<br>
+					<strong class="orange">
+						最後に、フレームワークマネージャーが利用する、データベーステーブルの作成を行います。
+					</strong>
+					<br>
+					以下のSQL文を実行し、データベースにテーブルを追加します。
+					<br>
+					<br>
+					<pre id="createtablesql" class="strong orange"></pre>
+					<br>
+					<br>
+					<strong>上記SQL文を確認し「設定」ボタンを押して下さい。</strong>
+					<br>
+					<br>
+				</p>
+			</div>
+			<div class="page_body">
+				<pre class="hlog"></pre>
+			</div>
+			<div class="page_body">
+				<pre class="errormsg red"></pre>
 			</div>
 		</article>
 	</section>
 	<section id="page4" class="page_box">
 		<article class="page">
 			<h3 id="page4_title" class="page_title"><strong class="orange">STEP:4</strong><br>フレームワーク管理機能のアクセス権の設定(任意)</h3>
+			<div id="page4_body1" class="page_body">
+				<p>
+					<strong class="orange">準備中</strong>
+					<br>
+					<br>
+					フレームワーク管理機能のhttps設定や、接続ネットワークの限定などの設定が行えるようになる予定です。
+					<br>
+					<br>
+				</p>
+			</div>
 		</article>
 	</section>
 	<section id="page5" class="page_box">
@@ -1433,6 +1828,7 @@ $(document).ready(function(){
 }
 elseif(isset($_GET["a"])){
 	// 以下Ajax処理
+	// ステップ1システム要件のバリデーションチェック
 	if(isset($_GET["step"]) && 1 === (int)$_GET["step"]) {
 		// STEP1、システム要件チェック
 		if(!isset($_GET["validate"])) {
@@ -1496,6 +1892,7 @@ elseif(isset($_GET["a"])){
 			exit("{\"ok\":true}");
 		}
 	}
+	// ステップ2フレームワークの各種パスの確認と変更
 	else if(isset($_GET["step"]) && 2 === (int)$_GET["step"]) {
 		// STEP2、FrameworkPackageとGenericPackageのパス確認
 		if(isset($_GET["apply"]) && 1 === (int)$_GET["apply"]) {
@@ -1538,6 +1935,7 @@ elseif(isset($_GET["a"])){
 			@unlink(dirname(__FILE__)."/clog");
 			@unlink(dirname(__FILE__)."/flog");
 			@unlink(dirname(__FILE__)."/glog");
+			@unlink(dirname(__FILE__)."/hlog");
 			if($_POST["frameworkpath"] != $_POST["newframeworkpath"]){
 				// execが実行出来るかどうかチェック
 				exec("php " . __FILE__ . " check=1 2>&1", $res);
@@ -1769,6 +2167,108 @@ elseif(isset($_GET["a"])){
 			$pkgXML->asXML($_POST['packeagepath']);
 			// 書き換えた新しいXMLをそのまま読み込んで帰す
 			exit(json_encode(array("ok"=>true,"hlog"=>str_replace("\t","　", file_get_contents($_POST['packeagepath'])))));
+		}
+	}
+	// ステップ3フレームワークマネージャーのインストール
+	else if(isset($_GET["step"]) && 3 === (int)$_GET["step"]) {
+		// フレームワークマネージャーのパス確認
+		if(isset($_GET["apply"]) && 1 === (int)$_GET["apply"]) {
+			$path = $_POST["fwmpath"];
+			// 送られたパスの配下にHBOPがあるかどうかを調べる
+			if(false === is_file($path."/core/fwmproject.config.xml")){
+				// 存在を確認出来ず
+				exit("{\"ok\":false,\"error\":\"指定されたパス「" . $path . "」にフレームワークマネージャーを見つけられませんでした。\\n正しいパスを指定し治して、「設定」ボタンを押して下さい。\"}");
+			}
+			// 見つかったら、4設定目で使うcreatedb文を今の内に取っておく
+			exit(json_encode(array("ok"=>true,"createdbsql"=>file_get_contents($path."/core/createdb.sql"))));
+		}
+	 	else if(isset($_GET["apply"]) && 2 === (int)$_GET["apply"]) {
+			@unlink(dirname(__FILE__)."/clog");
+			@unlink(dirname(__FILE__)."/flog");
+			@unlink(dirname(__FILE__)."/glog");
+			@unlink(dirname(__FILE__)."/hlog");
+			if(10 > filesize(dirname(__FILE__)."/clog") &&$_POST["fwmpath"] != $_POST["newfwmpath"]){
+				// execが実行出来るかどうかチェック
+				exec("php " . __FILE__ . " check=1 2>&1", $res);
+				// execのスタート時の戻り値を取っておく
+				@file_put_contents(dirname(__FILE__)."/clog", $res);
+				// フレームワークディレクトリの移動
+				exec("php " . __FILE__ . " f=" . $_POST["fwmpath"] . "\&nf=" . $_POST["newfwmpath"]. " > /dev/null &");
+			}
+			exit("{\"ok\":true}");
+		}
+	 	else if(isset($_GET["apply"]) && 3 === (int)$_GET["apply"]) {
+			if(10 <= filesize(dirname(__FILE__)."/clog")){
+				// clogが10バイト以上あったらコンソール実行にエラーがあったと言う事
+				$error = @file_get_contents(dirname(__FILE__)."/clog");
+				if(false !== strpos($error, "dyld: Symbol not found: __cg_jpeg_resync_to_restart  Referenced from:")){
+					$error .= "\n\nこの問題は作者がMacOSで実行中に直面しました。\n以下のURLを参考に解決しました。参考にしてみて下さい。\n\nhttp://symfony.jobweb.jp/?p=496#comment-12";
+				}
+				exit(json_encode(array("ok"=>false,"error"=>"何らかの理由で移動スクリプトのコンソール実行に失敗しています。\n以下のコンソール実行チェックログを確認し、問題を解決し、再度「設定」ボダンを押して下さい。\n\n".$error)));
+			}
+			// clogはもう不要
+			@unlink(dirname(__FILE__)."/clog");
+			$res = array("ok"=>true, "hlog"=>file_get_contents(dirname(__FILE__)."/hlog"));
+			// 移動コンソール処理が今だに実行中かどうか
+			if(false !== is_file(dirname(__FILE__)."/flog") || false !== is_file(dirname(__FILE__)."/glog")){
+				$res["wait"] = true;
+				exit(json_encode($res));
+			}
+			// hlogも不要
+			@unlink(dirname(__FILE__)."/hlog");
+			exit(json_encode($res));
+		}
+	 	else if(isset($_GET["apply"]) && 5 === (int)$_GET["apply"]) {
+			$path = $_POST["fwmpath"];
+			// MySQLに接続してcreate文とgrant文を実行する
+			if(false === is_file($path."/core/createdb.sql")){
+				// create文が見つからないエラー！
+				exit("{\"ok\":false,\"error\":\"createdb.sqlを見つけられませんでした。\"}");
+			}
+			$createdb = file_get_contents($path."/core/createdb.sql");
+			$connect = mysqli_connect("localhost", $_POST["mysqluser"], $_POST["mysqlpass"], "mysql");
+			if (!$connect) {
+				exit("{\"ok\":false,\"error\":\"MySQLサーバーへの接続に失敗しました。 \\n " . mysqli_connect_error() . " \\n 考えられる理由: \\n 1.指定されたユーザー・パスワードが間違っています。 \\n 2.指定されたユーザー・パスワードにmysqlデータベースへのアクセス権限が無いかも知れません。 \\n 3.インストーラーを実行しているサーバーにMySQLサーバーがインストールされていません。\"}");
+			}
+			if (!mysqli_multi_query($connect, $createdb)) {
+				exit("{\"ok\":false,\"error\":\"create文の実行に失敗しました。 \\n " . mysqli_error($connect) . " \\n 考えられる理由: \\n 1.指定された設定情報にcreate databaseの実行権限が無いかも知れません。 \\n 2.指定された設定情報にgrantの実行権限が無いかも知れません。\"}");
+			}
+			mysqli_close($connect);
+			exit("{\"ok\":true}");
+		}
+		else if(isset($_GET["apply"]) && 6 === (int)$_GET["apply"]) {
+			// MySQL接続テスト
+			$path = $_POST["fwmpath"];
+			$connect = mysqli_connect("localhost", $_POST["fwmdbuser"], $_POST["fwmdbpass"], $_POST["fwmdb"]);
+			if (!$connect) {
+				exit("{\"ok\":false,\"error\":\"フレームワークマネージャー用のデータベースへの接続に失敗しました。 \\n " . mysqli_connect_error() . " \\n 考えられる理由: \\n 1.指定されたユーザー・パスワード・データベース名が間違っています。 \\n 2.指定されたユーザー・パスワードにフレームワークマネージャー用のデータベースへのアクセス権限が無いかも知れません。\"}");
+			}
+			// create tableの実行テスト
+			if (!mysqli_query($connect, "CREATE TABLE IF NOT EXISTS `test` (`id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'PKey', PRIMARY KEY(`id`))")) {
+				exit("{\"ok\":false,\"error\":\"create文の実行に失敗しました。 \\n " . mysqli_error($connect) . " \\n 考えられる理由: \\n 1.指定された設定情報にcreate tableの実行権限が無いかも知れません。\"}");
+			}
+			// alter tableの実行テスト
+			if (!mysqli_query($connect, "ALTER TABLE `test` MODIFY COLUMN `id` int(10)")) {
+				exit("{\"ok\":false,\"error\":\"alter文の実行に失敗しました。 \\n " . mysqli_error($connect) . " \\n 考えられる理由: \\n 1.指定された設定情報にalter tableの実行権限が無いかも知れません。\"}");
+			}
+			// drop tableの実行テスト
+			if (!mysqli_query($connect, "DROP TABLE `test`")) {
+				exit("{\"ok\":false,\"error\":\"drop文の実行に失敗しました。 \\n " . mysqli_error($connect) . " \\n 考えられる理由: \\n 1.指定された設定情報にdrop tableの実行権限が無いかも知れません。\"}");
+			}
+			mysqli_close($connect);
+			// 全ての接続テストにクリアしたので、受け取ったデータベース接続情報で、フレームワークマネージャーのDB接続情報設定を書き換える
+			$fwmConfXMLPath = $path."/core/fwmproject.config.xml";
+			if(false === is_file($fwmConfXMLPath)){
+				// create文が見つからないエラー！
+				exit("{\"ok\":false,\"error\":\"" . $path."/core/fwmproject.config.xmlを見つけられませんでした。\"}");
+			}
+			$fwmConfXML = simplexml_load_file($fwmConfXMLPath);
+			$fwmConfXML->FrameworkManager->DB_DSN = "mysqlt://" . $_POST["fwmdbuser"] . ":" . $_POST["fwmdbpass"] . "@localhost/" . $_POST["fwmdb"];
+			// XML文字列を再生成
+			$fwmConfXML->asXML($fwmConfXMLPath);
+			installerlog($fwmConfXML->asXML());
+			// createtable文も一緒に返す
+			exit(json_encode(array("ok"=>true,"createtablesql"=>file_get_contents($path."/core/createtable.sql"))));
 		}
 	}
 	exit ("{\"error\":\"該当するシステム要件チェックがありません。\"}");
