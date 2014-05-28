@@ -35,14 +35,14 @@
 	</Core>
 	<Auth>
 		<link mapfrom="SessionDB" mapto="Session">default.implement.Session/SessionDB</link>
-	    <link>default.implement.Auth/Auth</link>
+		<link>default.implement.Auth/Auth</link>
 	</Auth>
 	<Session>
 		<link mapfrom="SessionDB" mapto="Session">default.implement.Session/SessionDB</link>
 	</Session>
 	<MVCControllerBase>
 		<link>default.interface.MVC/MVCController</link>
-	    <link>default.abstract.MVC/MVCControllerBase</link>
+		<link>default.abstract.MVC/MVCControllerBase</link>
 	</MVCControllerBase>
 	<WebControllerBase>
 		<link>default.interface.MVC/MVCController</link>
@@ -70,14 +70,20 @@
 	</Validations>
 	<DBO>
 		<link>default.adodb5/adodb-exceptions.inc.php</link>
-	    <link>default.adodb5/adodb.inc.php</link>
+		<link>default.adodb5/adodb.inc.php</link>
 		<link mapfrom="GenericDBO" mapto="DBO">default.implement.DB/GenericDBO</link>
 	</DBO>
 	<ORMapper>
+		<package>DBO</package>
 		<link renamefrom="GenericModel" renameto="Model">default.interface.ORM/GenericModel</link>
 		<link mapfrom="GenericModelBase" mapto="ModelBase">default.abstract.ORM/GenericModelBase</link>
 		<link mapfrom="GenericORMapper" mapto="ORMapper">default.implement.ORM/GenericORMapper</link>
 	</ORMapper>
+	<MigrationManager>
+		<package>ORMapper</package>
+		<link mapfrom="GenericMigrationBase" mapto="MigrationBase">default.abstract.ORM/GenericMigrationBase</link>
+		<link mapfrom="GenericMigrationManager" mapto="MigrationManager">default.implement.ORM/GenericMigrationManager</link>
+	</MigrationManager>
 	<Memcached>
 		<link mapfrom="GenericMemcached" mapto="Memcached">default.implement.KVS/GenericMemcached.class.php</link>
 	</Memcached>

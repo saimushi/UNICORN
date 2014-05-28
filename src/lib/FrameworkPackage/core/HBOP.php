@@ -138,32 +138,6 @@ function loadModule($argHint, $argClassExistsCalled = FALSE){
 			// ジェネレートされたファイルを読み込んで終了
 			return TRUE;
 		}
-
-// 		if(is_file($generatedIncFileName)){
-// 			$unlink=TRUE;
-// 			if(filemtime($generatedIncFileName) >= filemtime(__FILE__)){
-// 				// フレームワークコアの変更が見当たらない場合は、コンフィグと比較
-// 				for($pkConfXMLCnt = 0, $timecheckNum = 0; count($pkConfXMLs) > $pkConfXMLCnt; $pkConfXMLCnt++){
-// 					// XXX 時間チェック(タイムゾーン変えてもちゃんと動く？？)
-// 					if(filemtime($generatedIncFileName) >= $pkConfXMLs[$pkConfXMLCnt]['time']){
-// 						$timecheckNum++;
-// 					}
-// 				}
-// 				if($timecheckNum === $pkConfXMLCnt){
-// 					$unlink=FALSE;
-// 					// 静的ファイル化されたrequire群ファイルを読み込んで終了
-// 					// fatal errorがいいのでrequireする
-// 					require_once $generatedIncFileName;
-// 				}
-// 			}
-// 			if(FALSE === $unlink){
-// 				// ジェネレートされたファイルを読み込んで終了
-// 				return TRUE;
-// 			}
-// 			// ここまで来たら再ジェネレートが走るのでジェネレート済みの古いファイルを削除しておく
-// 			@file_put_contents($generatedIncFileName, '');
-// 			@unlink($generatedIncFileName);
-// 		}
 	}
 
 	// パッケージ名に該当するノードが格納されたパッケージXML格納用
@@ -252,6 +226,12 @@ function loadModule($argHint, $argClassExistsCalled = FALSE){
 			@file_put_contents($generatedIncFileName, '');
 		}
 		// 明示的な指定がある場合の捜査
+
+		// 依存関係にあるパッケージを全て読み込む
+		for($packagePathCnt = 0, $errorCnt = 0; count($pkConfXML->{$packageName}->package) > $packagePathCnt; $packagePathCnt++){
+			// loadModuleの再帰処理による自動解決を試みる
+			loadModule($pkConfXML->{$packageName}->package[$packagePathCnt], $argClassExistsCalled);
+		}
 		// パッケージ定義の中に、複数のlinkが設定されていたら、そのlink数分処理をループ
 		// linkを全て読み込む
 		for($packagePathCnt = 0, $errorCnt = 0; count($pkConfXML->{$packageName}->link) > $packagePathCnt; $packagePathCnt++){
@@ -291,9 +271,9 @@ function loadModule($argHint, $argClassExistsCalled = FALSE){
 				}
 			}
 			else{
-				// ファイルはインクルードで処理する
+				// ファイルはインクルードで処理してみる
 				if(FALSE === @include_once($pkConfXML->{$packageName}->link[$packagePathCnt])){
-					// includeに場合、パッケージがハズレだったので_loadDefaultModuleでdefault定義パッケージを走査して貰ってみる事にする
+					// includeの場合、パッケージがハズレだったので_loadDefaultModuleでdefault定義パッケージを走査して貰ってみる事にする
 					$subPackageName = $pkConfXML->{$packageName}->link[$packagePathCnt];
 					if(preg_match('/^default\.(.+)/', $subPackageName, $matches)){
 						$subPackageName = $matches[1];
@@ -401,11 +381,11 @@ function loadModule($argHint, $argClassExistsCalled = FALSE){
 						$mapClass[] = 'class ' . $maptoClassName[$mapIndex] . ' extends ' . $mapfromClassName[$mapIndex].'{}';
 					}
 					$mapClass = implode('', $mapClass);
-					$classCheck = ' && !class_exists(\'' . $maptoClassName[0] . '\', FALSE)';
+					$classCheck = ' && !class_exists(\'' . $maptoClassName[0] . '\', FALSE) && !interface_exists(\'' . $maptoClassName . '\', FALSE)';
 				}
 				else{
 					$mapClass = 'class ' . $maptoClassName . ' extends ' . $mapfromClassName . '{}';
-					$classCheck = ' && !class_exists(\'' . $maptoClassName . '\', FALSE)';
+					$classCheck = ' && !class_exists(\'' . $maptoClassName . '\', FALSE) && !interface_exists(\'' . $maptoClassName . '\', FALSE)';
 				}
 				// マップクラス生成
 				eval($mapClass);
@@ -1459,13 +1439,56 @@ function generateIncCache($argGeneratedPath, $argIncludePath){
 function generateClassCache($argGeneratedPath, $argIncludePath, $argClassBuffer, $argClassName=''){
 	$classCheck = $argClassName;
 	if('' !== $argClassName){
-		$classCheck = ' && !class_exists(\'' . $argClassName . '\', FALSE)';
+		$classCheck = ' && !class_exists(\'' . $argClassName . '\', FALSE) && !interface_exists(\'' . $maptoClassName . '\', FALSE)';
 	}
 	// 先ず先頭に条件文を追加
 	@file_put_contents_e($argGeneratedPath, '<?php' . sprintf(_getAutoGenerateIncPHPMainBase(), $argIncludePath) . '?>', FILE_PREPEND);
 	// ファイルの終端に処理を追加
 	@file_put_contents_e($argGeneratedPath, '<?php' . PHP_EOL . 'if(FALSE === $unlink' . $classCheck . '){ ' . PHP_EOL . $argClassBuffer . PHP_EOL . '}' . PHP_EOL . '?>', FILE_APPEND);
 	@chmod($argGeneratedPath, 0777);
+}
+
+
+/**
+ * 現在設定されている自動最適化キャッシュ生成フラグを返す
+ */
+function getAutoMigrationEnabled(){
+	static $autoMigrationEnabled = NULL;
+	if(NULL === $autoMigrationEnabled){
+		if(NULL !== constant('PROJECT_NAME')){
+			// 併設されている事を前提とする！
+			$autoMigrationEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.automigration';
+		}
+		else{
+			$corefilename = corefilename();
+			$autoMigrationEnabledFilepath = dirname(dirname(__FILE__)).'/.automigration';
+			if(defined($corefilename . '_AUTO_MIGRATION_ENABLED')){
+				$autoMigrationEnabledFilepath = constant($corefilename . '_AUTO_MIGRATION_ENABLED');
+			}
+		}
+		// 自動マイグレーションフラグのセット
+		$autoMigrationEnabled = file_exists($autoMigrationEnabledFilepath);
+	}
+	return $autoMigrationEnabled;
+}
+
+/**
+ * 現在設定されている自動最適化キャッシュファイル保存先パス情報を返す
+ */
+function getAutoMigrationPath(){
+	static $migrationPath = NULL;
+	if(NULL === $migrationPath){
+		$migrationPath = dirname(dirname(__FILE__)).'/automigration/';
+		if(NULL !== constant('PROJECT_NAME')){
+			// 併設されている事を前提とする！
+			$tmpMigrationPath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/automigration';
+			if(TRUE === is_dir($tmpMigrationPath)){
+				// パスとして認める
+				$migrationPath = $tmpMigrationPath.'/';
+			}
+		}
+	}
+	return $migrationPath;
 }
 
 /*------------------------------ 根幹関数定義 ココから ------------------------------*/

@@ -30,22 +30,10 @@ abstract class GenericModelBase {
 	public $className = NULL;
 
 	/**
-	 * 対象テーブルのシーケンス取得クエリ-MySQL用
+	 * 対象テーブルのシーケンス取得クエリ-CLOBフィール等用
 	 * @var string
 	 */
-	public $sequenceSelectQueryForMySQL = NULL;
-
-	/**
-	 * 対象テーブルのシーケンス取得クエリ-Postgres用
-	 * @var string
-	 */
-	public $sequenceSelectQueryForPostgre = NULL;
-
-	/**
-	 * 対象テーブルのシーケンス取得クエリ-Oracle用
-	 * @var string
-	 */
-	public $sequenceSelectQueryForOracle = NULL;
+	public $sequenceSelectQuery = NULL;
 
 	/**
 	 * 対象レコードのプライマリーキー
@@ -66,7 +54,7 @@ abstract class GenericModelBase {
 	public $pkeyName = NULL;
 
 	/**
-	 * フィール定義情報一覧
+	 * フィールド定義情報一覧
 	 */
 	public $describes = array();
 
@@ -281,9 +269,9 @@ abstract class GenericModelBase {
 				if("mysql" === $this->_DBO->DBType){
 					if(isset($this->describes[$this->pkeyName]["autoincrement"]) && TRUE !== $this->describes[$this->pkeyName]["autoincrement"]){
 						// mysqlでも独自シーケンスを使っているのであらばそれに準拠する
-						if(isset($sequenceSelectQueryForMySQL) && NULL !== $sequenceSelectQueryForMySQL && strlen($sequenceSelectQueryForMySQL) > 0){
+						if(isset($sequenceSelectQuery) && NULL !== $sequenceSelectQuery && strlen($sequenceSelectQuery) > 0){
 							// 独自シーケンス取得SQLが定義済みならばそれを使う
-							$seqSql = $sequenceSelectQueryForMySQL;
+							$seqSql = $sequenceSelectQuery;
 						}else{
 							// 独自シーケンス取得SQLが未定義済みならばフレームワーク固有のSQLを実行
 							$seqSql = "UPDATE ".$this->tableName."_".$this->pkeyName."_seq SET id=LAST_INSERT_ID(id+1)";
@@ -291,7 +279,7 @@ abstract class GenericModelBase {
 							if(FALSE === $response){
 								throw new Exception("");
 							}
-							$seqSql .= "SELECT LAST_INSERT_ID() as new_id FROM ".$this->tableName."_".$this->pkeyName."_seq";
+							$seqSql = "SELECT LAST_INSERT_ID() as new_id FROM ".$this->tableName."_".$this->pkeyName."_seq";
 						}
 					}
 					else{
@@ -301,22 +289,22 @@ abstract class GenericModelBase {
 				}
 				elseif("postgres" === $this->_DBO->DBType){
 					// posgreは先にシーケンスを取れるので取っておく
-					if(isset($sequenceSelectQueryForMySQL) && NULL !== $sequenceSelectQueryForMySQL && strlen($sequenceSelectQueryForMySQL) > 0){
+					if(isset($sequenceSelectQuery) && NULL !== $sequenceSelectQuery && strlen($sequenceSelectQuery) > 0){
 						// 独自シーケンス取得SQLが定義済みならばそれを使う
-						$seqSql = $sequenceSelectQueryForMySQL;
+						$seqSql = $sequenceSelectQuery;
 					}else{
 						// 独自シーケンス取得SQLが未定義済みならばフレームワーク固有のSQLを実行
-						$seqSql .= "SELECT nextval(".$this->tableName."_".$this->pkeyName."_seq) as new_id";
+						$seqSql = "SELECT nextval(".$this->tableName."_".$this->pkeyName."_seq) as new_id";
 					}
 				}
 				elseif("oracle" === $this->_DBO->DBType){
 					// oracleは先にシーケンスを取れるので取っておく
-					if(isset($sequenceSelectQueryForMySQL) && NULL !== $sequenceSelectQueryForMySQL && strlen($sequenceSelectQueryForMySQL) > 0){
+					if(isset($sequenceSelectQuery) && NULL !== $sequenceSelectQuery && strlen($sequenceSelectQuery) > 0){
 						// 独自シーケンス取得SQLが定義済みならばそれを使う
-						$seqSql = $sequenceSelectQueryForMySQL;
+						$seqSql = $sequenceSelectQuery;
 					}else{
 						// 独自シーケンス取得SQLが未定義済みならばフレームワーク固有のSQLを実行
-						$seqSql .= "SELECT ".$this->tableName."_".$this->pkeyName."_seq.NEXTVAL as new_id FROM DUAL";
+						$seqSql = "SELECT ".$this->tableName."_".$this->pkeyName."_seq.NEXTVAL as new_id FROM DUAL";
 					}
 				}
 				else{

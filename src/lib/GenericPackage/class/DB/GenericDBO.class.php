@@ -33,7 +33,14 @@ class GenericDBO {
 	 * インスタンス化されて使用された場合、DBType(mysql,oracle等の)情報を取っておく
 	 * @var transaction
 	 */
+
 	public $DBType = NULL;
+
+	/**
+	 * インスタンス化されて使用された場合、DSN情報を取っておく
+	 * @var transaction
+	 */
+	public $dbidentifykey = NULL;
 
 	public static  function sharedInstance($argDSN="Default"){
 		static $DBO = array();
@@ -75,6 +82,9 @@ class GenericDBO {
 			// 与えられたDSN情報を使用する
 			$dsn = $this->DSN;
 			$calledClassName = "default";
+			if(TRUE === @property_exists($this, "dbidentifykey")){
+				$this->dbidentifykey = $calledClassName;
+			}
 		}
 		else{
 			// フレームワークの機能を使ったDSNの自動解決処理
@@ -98,6 +108,9 @@ class GenericDBO {
 			}
 			if(TRUE === @property_exists($this, "DSN")){
 				$this->DSN = $dsn;
+			}
+			if(TRUE === @property_exists($this, "dbidentifykey")){
+				$this->dbidentifykey = $calledClassName;
 			}
 		}
 
@@ -471,6 +484,19 @@ class GenericDBO {
 	 * クエリー実行とDBインスタンスの初期化を同時に行う
 	 */
 	public function rollback(){
+		$instanceIndex = self::_initDB();
+		if(TRUE === self::$_transaction[$instanceIndex]){
+			$res = self::$_DBInstance[$instanceIndex]->RollbackTrans();
+			self::$_transaction[$instanceIndex] = FALSE;
+			return $res;
+		}
+		return NULL;
+	}
+
+	/**
+	 * クエリー実行とDBインスタンスの初期化を同時に行う
+	 */
+	public function getDsn(){
 		$instanceIndex = self::_initDB();
 		if(TRUE === self::$_transaction[$instanceIndex]){
 			$res = self::$_DBInstance[$instanceIndex]->RollbackTrans();

@@ -304,7 +304,6 @@ class MVCCore {
 				// クラス名は分解しておく
 				$classHint  = explode('_', $controlerClassName);
 				$classXMLName = $classHint[0];
-				debug($classXMLName);
 				$flowXMLPath = '';
 				if('' !== $version){
 					// バージョン一致のファイルを先ず走査する

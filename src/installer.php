@@ -842,6 +842,7 @@ $(document).ready(function(){
 					$("#input-newframeworkpath").removeAttr("disabled", "");
 					$("#input-newgenericpath").removeAttr("disabled", "");
 					$("#input-newvendorpath").removeAttr("disabled", "");
+					$("#input-packagepath").removeAttr("disabled", "");
 					$("#apply").removeAttr("disabled", "");
 					if(true == json.ok){
 						if(1 == stepApply){
