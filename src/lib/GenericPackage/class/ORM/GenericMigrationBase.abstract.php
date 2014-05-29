@@ -103,7 +103,6 @@ abstract class GenericMigrationBase {
 			}
 			else{
 				$fielPropatyQuerys = $this->_getFielPropatyQuery(array($field => $propaty));
-				debug($fielPropatyQuerys);
 				$fieldDef = $fielPropatyQuerys['fieldDef'];
 				if(strlen($fieldDef) > 0){
 					$sql = 'ALTER TABLE `' . $this->tableName . '` ' . $propaty['alter'] . ' COLUMN ' . $fieldDef;
@@ -111,7 +110,6 @@ abstract class GenericMigrationBase {
 			}
 			if(strlen($sql) > 0){
 				$executed = TRUE;
-				debug($sql);
 				$argDBO->execute($sql);
 			}
 		}
