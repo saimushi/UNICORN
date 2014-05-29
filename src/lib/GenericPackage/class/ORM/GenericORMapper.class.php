@@ -106,9 +106,12 @@ class GenericORMapper {
 		return $model;
 	}
 
-	public static function getModelPropertyDefs($argDBO, $tableName){
-		// テーブル定義を取得
-		$describes = $argDBO->getTableDescribes($tableName);
+	public static function getModelPropertyDefs($argDBO, $tableName, $argDescribes=NULL){
+		$describes = $argDescribes;
+		if(NULL === $describes){
+			// テーブル定義を取得
+			$describes = $argDBO->getTableDescribes($tableName);
+		}
 		$describeDef = "\$this->describes = array(); ";
 		$varDef = NULL;
 		$pkeysVarDef = "public \$pkeys = array(";
@@ -129,7 +132,7 @@ class GenericORMapper {
 						$describe["default"] = "FALSE";
 					}
 				}
-				if(NULL === $describe["default"]){
+				if(isset($describe["default"]) && NULL === $describe["default"]){
 					$describe["default"] = "NULL";
 				}
 				if(TRUE === $describe["null"]){
@@ -152,7 +155,7 @@ class GenericORMapper {
 				}
 				$describeDef .= "\$this->describes[\"" . $colName . "\"] = array(); ";
 				$describeDef .= "\$this->describes[\"" . $colName . "\"][\"type\"] = \"" . $describe["type"] . "\"; ";
-				if(FALSE !== $describe["default"]){
+				if(isset($describe["default"]) && FALSE !== $describe["default"]){
 					if("NULL" !== $describe["default"]){
 						$describeDef .= "\$this->describes[\"" . $colName . "\"][\"default\"] = " . $escape . $describe["default"] . $escape . "; ";
 					}
@@ -163,10 +166,10 @@ class GenericORMapper {
 				$describeDef .= "\$this->describes[\"" . $colName . "\"][\"null\"] = " . $describe["null"] . "; ";
 				$describeDef .= "\$this->describes[\"" . $colName . "\"][\"pkey\"] = " . $describe["pkey"] . "; ";
 				if(isset($describe["length"])){
-					$describeDef .= "\$this->describes[\"" . $colName . "\"][\"length\"] = \"" . $describe["length"] . "\"; ";
+					$describeDef .= "\$this->describes[\"" . $colName . "\"][\"length\"] = " . $describe["length"] . "; ";
 				}
 				if(isset($describe["min-length"])){
-					$describeDef .= "\$this->describes[\"" . $colName . "\"][\"min-length\"] = \"" . $describe["min-length"] . "\"; ";
+					$describeDef .= "\$this->describes[\"" . $colName . "\"][\"min-length\"] = " . $describe["min-length"] . "; ";
 				}
 				$describeDef .= "\$this->describes[\"" . $colName . "\"][\"autoincrement\"] = " . $describe["autoincrement"] . "; ";
 				$varDef .= "public \$" . $colName;

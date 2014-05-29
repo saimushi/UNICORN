@@ -6,18 +6,12 @@ abstract class GenericMigrationBase {
 	public $tableName = '';
 	public $describes = array();
 
-	/**
-	 * createのマイグレーションを適用する
-	 * @param instance $argDBO
-	 * @return boolean
-	*/
-	public function create($argDBO){
-		$sql = '';
+	private function _getFielPropatyQuery($argDescribe){
 		// create文を生成する
 		$fieldDef = '';
 		$pkeyDef = '';
 		// XXX まだMySQLにしか対応してません！ゴメンナサイ！！
-		foreach($this->describes as $field => $propaty){
+		foreach($argDescribe as $field => $propaty){
 			if(strlen($fieldDef) > 0){
 				// 2行目以降は頭に「,」付ける
 				$fieldDef .= ', ';
@@ -61,9 +55,23 @@ abstract class GenericMigrationBase {
 				$pkeyDef .= ', PRIMARY KEY(`' . $field . '`)';
 			}
 		}
+		return array('fieldDef'=>$fieldDef, 'pkeyDef'=>$pkeyDef);
+	}
+
+	/**
+	 * createのマイグレーションを適用する
+	 * @param instance $argDBO
+	 * @return boolean
+	 */
+	public function create($argDBO){
+		$sql = '';
+		$fielPropatyQuerys = $this->_getFielPropatyQuery($this->describes);
+		$pkeyDef = $fielPropatyQuerys['pkeyDef'];
+		$fieldDef = $fielPropatyQuerys['fieldDef'];
 		if(strlen($fieldDef) > 0){
 			$sql = 'CREATE TABLE IF NOT EXISTS `' . $this->tableName . '` (' . $fieldDef . $pkeyDef . ')';
 			$argDBO->execute($sql);
+			$argDBO->commit();
 		}
 		return TRUE;
 	}
@@ -73,9 +81,43 @@ abstract class GenericMigrationBase {
 	 * @param instance $argDBO
 	 * @return boolean
 	 */
-	public function down($argDBO){
+	public function drop($argDBO){
 		$sql = 'DROP TABLE `' . $this->tableName . '`';
 		$argDBO->execute($sql);
+		$argDBO->commit();
+		return TRUE;
+	}
+
+	/**
+	 * alterのマイグレーションを適用する
+	 * @param instance $argDBO
+	 * @return boolean
+	 */
+	public function alter($argDBO, $argDescribes){
+		$executed = FALSE;
+		// ALTERは一行づつ処理
+		foreach($argDescribes as $field => $propaty){
+			$sql = '';
+			if('DROP' === $propaty['alter']){
+				$sql = 'ALTER TABLE `' . $this->tableName . '` DROP COLUMN `' . $field . '`';
+			}
+			else{
+				$fielPropatyQuerys = $this->_getFielPropatyQuery(array($field => $propaty));
+				debug($fielPropatyQuerys);
+				$fieldDef = $fielPropatyQuerys['fieldDef'];
+				if(strlen($fieldDef) > 0){
+					$sql = 'ALTER TABLE `' . $this->tableName . '` ' . $propaty['alter'] . ' COLUMN ' . $fieldDef;
+				}
+			}
+			if(strlen($sql) > 0){
+				$executed = TRUE;
+				debug($sql);
+				$argDBO->execute($sql);
+			}
+		}
+		if(TRUE === $executed){
+			$argDBO->commit();
+		}
 		return TRUE;
 	}
 }

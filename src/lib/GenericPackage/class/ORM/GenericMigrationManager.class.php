@@ -104,11 +104,11 @@ class GenericMigrationManager {
 			}
 			else {
 				// ALTERかDROP指示を生成
-				$upAlterDef = '$alter = array();';
-				$downAlterDef = '$alter = array();';
+				$upAlterDef = '$alter = array(); ';
+				$downAlterDef = '$alter = array(); ';
 				// 差分をフィールドを走査して特定する
 				$lastModel = new $migrationHash();
-				$beforeDescribes = $migrationHash->describes;
+				$beforeDescribes = $lastModel->describes;
 				$describes = array();
 				eval(str_replace('$this->', '$', $describeDef));
 				// 増えてる減ってるでループの起点を切り替え
@@ -116,37 +116,66 @@ class GenericMigrationManager {
 					// フィールドが増えている もしくは数は変わらない
 					foreach($describes as $feldKey => $propary){
 						// 最新のテーブル定義に合わせて
-						if($describes){
+						$alter = NULL;
+						if(!array_key_exists($feldKey, $beforeDescribes)){
 							// 増えてるフィールドを単純に増やす
-							$feldKey;
+							$alter = 'ADD';
+							$downAlterDef .= '$alter["'.$feldKey.'"] = array(); ';
+							$downAlterDef .= '$alter["'.$feldKey.'"]["alter"] = "DROP"; ';
+						}
+						// 新旧フィールドのハッシュ値比較
+						elseif(sha1(serialize($propary)) != sha1(serialize($beforeDescribes[$feldKey]))){
+							// ハッシュ値が違うので新しいフィールド情報でAlterする
+							$alter = 'MODIFY';
+							// 元に戻すMODYFI
+							$alterDefs = ORMapper::getModelPropertyDefs($argDBO, $argTblName, array($feldKey=>$beforeDescribes[$feldKey]));
+							$downAlterDef .= str_replace('$this->describes = array(); ', '', $alterDefs['describeDef']);
+							$downAlterDef .= '$alter["'.$feldKey.'"]["alter"] = "' . $alter . '"; ';
+						}
+						if(NULL === $alter){
 							// 処理をスキップして次のループへ
 							continue;
 						}
-						// 新旧フィールドのハッシュ値比較
-						if($describes){
-							// ハッシュ値が違うので新しいフィールド情報でAlterする
-						}
+						// up生成
+						$alterDefs = ORMapper::getModelPropertyDefs($argDBO, $argTblName, array($feldKey=>$propary));
+						$upAlterDef .= str_replace('$this->describes = array(); ', '', $alterDefs['describeDef']);
+						$upAlterDef .= '$alter["'.$feldKey.'"]["alter"] = "' . $alter . '"; ';
 					}
 				}
 				else{
 					// フィールドが減っている
+					// XXX upとdownがただ増えている時と逆なだけ
 					foreach($beforeDescribes as $feldKey => $propary){
 						// 前のテーブル定義に合わせて
-						if($beforeDescribes){
+						$alter = NULL;
+						if(!array_key_exists($feldKey, $describes)){
 							// 減ってるフィールドを単純にARTER DROPする
-							$feldKey;
+							$alter = 'ADD';
+							$upAlterDef .= '$alter["'.$feldKey.'"] = array(); ';
+							$upAlterDef .= '$alter["'.$feldKey.'"]["alter"] = "DROP"; ';
+						}
+						// 新旧フィールドのハッシュ値比較
+						elseif(sha1(serialize($propary)) != sha1(serialize($describes[$feldKey]))){
+							// ハッシュ値が違うので新しいフィールド情報でAlterする
+							$alter = 'MODIFY';
+							// 元に戻すMODYFI
+							$alterDefs = ORMapper::getModelPropertyDefs($argDBO, $argTblName, array($feldKey=>$describes[$feldKey]));
+							$upAlterDef .= str_replace('$this->describes = array(); ', '', $alterDefs['describeDef']);
+							$upAlterDef .= '$alter["'.$feldKey.'"]["alter"] = "' . $alter . '"; ';
+						}
+						if(NULL === $alter){
 							// 処理をスキップして次のループへ
 							continue;
 						}
-						// 新旧フィールドのハッシュ値比較
-						if($describes){
-							// ハッシュ値が違うので新しいフィールド情報でAlterする
-						}
+						// down生成
+						$alterDefs = ORMapper::getModelPropertyDefs($argDBO, $argTblName, array($feldKey=>$propary));
+						$downAlterDef .= str_replace('$this->describes = array(); ', '', $alterDefs['describeDef']);
+						$downAlterDef .= '$alter["'.$feldKey.'"]["alter"] = "' . $alter . '"; ';
 					}
 				}
 				// alter指示を生成
-				$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function up($argDBO){' . PHP_EOL . PHP_TAB . PHP_TAB . $upAlterDef . PHP_EOL . PHP_TAB . PHP_TAB . 'return $this->alter($argDBO, $alter);' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
-				$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function down($argDBO){' . PHP_EOL . PHP_TAB . PHP_TAB . $downAlterDef . PHP_EOL . PHP_TAB . PHP_TAB . 'return $this->alter($argDBO, $alter);' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
+				$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function up($argDBO){' . PHP_EOL . PHP_TAB . PHP_TAB . str_replace('$this->describes', '$alter', str_replace('; ', ';' . PHP_EOL . PHP_TAB . PHP_TAB, $upAlterDef)) . PHP_EOL . PHP_TAB . PHP_TAB . 'return $this->alter($argDBO, $alter);' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
+				$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function down($argDBO){' . PHP_EOL . PHP_TAB . PHP_TAB . str_replace('$this->describes', '$alter', str_replace('; ', ';' . PHP_EOL . PHP_TAB . PHP_TAB, $downAlterDef)) . PHP_EOL . PHP_TAB . PHP_TAB . 'return $this->alter($argDBO, $alter);' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
 			}
 
 			// 現在の定義でマイグレーションファイルを生成する
@@ -157,7 +186,6 @@ class GenericMigrationManager {
 			@chmod($path, 0777);
 
 			// 生成した場合は、生成環境のマイグレーションが最新で、適用済みと言う事になるので
-
 			// マイグレーション済みファイルを生成し、新たにマイグレーション一覧に追記する
 			@file_put_contents_e(getAutoMigrationPath().$argDBO->dbidentifykey.'.all.migrations', $migrationClassName.PHP_EOL, FILE_APPEND);
 			@file_put_contents_e(getAutoMigrationPath().$argDBO->dbidentifykey.'.dispatched.migrations', $migrationClassName.PHP_EOL, FILE_APPEND);
@@ -281,7 +309,7 @@ class GenericMigrationManager {
 	 * @param unknown $argDBO
 	 * @param unknown $argTable
 	 * @return mixied 正常終了時はint、以上の場合はFALSEを返す
-	*/
+	 */
 	public static function is($argDBO, $argTable){
 		if(class_exists('Configure') && NULL !== Configure::constant('LIB_DIR')){
 			$dirPath = Configure::LIB_DIR . 'automigrate/' . $argTable;
