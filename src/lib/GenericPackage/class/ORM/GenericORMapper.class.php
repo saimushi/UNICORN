@@ -165,6 +165,9 @@ class GenericORMapper {
 				if(isset($describe["length"])){
 					$describeDef .= "\$this->describes[\"" . $colName . "\"][\"length\"] = \"" . $describe["length"] . "\"; ";
 				}
+				if(isset($describe["min-length"])){
+					$describeDef .= "\$this->describes[\"" . $colName . "\"][\"min-length\"] = \"" . $describe["min-length"] . "\"; ";
+				}
 				$describeDef .= "\$this->describes[\"" . $colName . "\"][\"autoincrement\"] = " . $describe["autoincrement"] . "; ";
 				$varDef .= "public \$" . $colName;
 				if(isset($describe["default"]) && strlen($describe["default"]) > 0){

@@ -381,7 +381,7 @@ function loadModule($argHint, $argClassExistsCalled = FALSE){
 						$mapClass[] = 'class ' . $maptoClassName[$mapIndex] . ' extends ' . $mapfromClassName[$mapIndex].'{}';
 					}
 					$mapClass = implode('', $mapClass);
-					$classCheck = ' && !class_exists(\'' . $maptoClassName[0] . '\', FALSE) && !interface_exists(\'' . $maptoClassName . '\', FALSE)';
+					$classCheck = ' && !class_exists(\'' . $maptoClassName[0] . '\', FALSE) && !interface_exists(\'' . $maptoClassName[0] . '\', FALSE)';
 				}
 				else{
 					$mapClass = 'class ' . $maptoClassName . ' extends ' . $mapfromClassName . '{}';
@@ -1439,7 +1439,7 @@ function generateIncCache($argGeneratedPath, $argIncludePath){
 function generateClassCache($argGeneratedPath, $argIncludePath, $argClassBuffer, $argClassName=''){
 	$classCheck = $argClassName;
 	if('' !== $argClassName){
-		$classCheck = ' && !class_exists(\'' . $argClassName . '\', FALSE) && !interface_exists(\'' . $maptoClassName . '\', FALSE)';
+		$classCheck = ' && !class_exists(\'' . $argClassName . '\', FALSE) && !interface_exists(\'' . $argClassName . '\', FALSE)';
 	}
 	// 先ず先頭に条件文を追加
 	@file_put_contents_e($argGeneratedPath, '<?php' . sprintf(_getAutoGenerateIncPHPMainBase(), $argIncludePath) . '?>', FILE_PREPEND);

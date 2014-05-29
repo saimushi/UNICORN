@@ -1,3 +1,3 @@
 -- MySQL --
-CREATE DATABASE IF NOT EXISTS `fwm`;
-GRANT ALL ON `fwm`.* TO 'fwm'@'localhost' INDENTIFIED BY 'fwmpass'; 
+-- users --
+CREATE TABLE IF NOT EXISTS `users` (`id` int(10) NOT NULL AUTO_INCREMENT COMMENT 'PKey', `mail` VARCHAR(255) NOT NULL COMMENT 'メールアドレス', `pass` VARCHAR(255) NOT NULL COMMENT 'パスワード', PRIMARY KEY(`id`), UNIQUE(`mail`, `pass`));

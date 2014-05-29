@@ -247,6 +247,7 @@ class GenericDBO {
 				for($baseDescribeNum=0; count($baseDescribes) > $baseDescribeNum; $baseDescribeNum++){
 					$describes[$baseDescribes[$baseDescribeNum]["Field"]] = array();
 					$describes[$baseDescribes[$baseDescribeNum]["Field"]]["type"] = $baseDescribes[$baseDescribeNum]["Type"];
+					$describes[$baseDescribes[$baseDescribeNum]["Field"]]["min-length"] = 1;
 
 					if("NO" === $baseDescribes[$baseDescribeNum]["Null"]){
 						$describes[$baseDescribes[$baseDescribeNum]["Field"]]["null"] = FALSE;
@@ -266,6 +267,10 @@ class GenericDBO {
 						$matches = NULL;
 						preg_match("/\(([0-9\,]+)\)/", $baseDescribes[$baseDescribeNum]["Type"], $matches);
 						$describes[$baseDescribes[$baseDescribeNum]["Field"]]["length"] = $matches[1];
+						if(0 === strpos($baseDescribes[$baseDescribeNum]["Type"], "char")){
+							// char型は固定長なのでmin-lengthは要らない
+							unset($describes[$baseDescribes[$baseDescribeNum]["Field"]]["min-length"]);
+						}
 					}
 					elseif(FALSE !== strpos($baseDescribes[$baseDescribeNum]["Type"], "blob")){
 						$describes[$baseDescribes[$baseDescribeNum]["Field"]]["type"] = "blob";

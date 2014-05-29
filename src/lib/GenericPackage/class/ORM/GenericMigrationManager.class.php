@@ -10,23 +10,31 @@ class GenericMigrationManager {
 	 * @return boolean
 	 */
 	public static function dispatchAll($argDBO, $argTblName=NULL){
-		// 適用差分を見つける
-		self::$_lastMigrationHash = NULL;
-		$diff = self::_getDiff($argDBO, $argTblName);
-		if(count($diff) > 0){
-			// 差分の数だけマイグレーションを適用
-			for($diffIdx=0; $diffIdx < count($diff); $diffIdx++){
-				$migrationFilePath = getAutoMigrationPath().$argDBO->dbidentifykey.'.'.$diff[$diffIdx].'.migration.php';
-				if(TRUE === file_exists($migrationFilePath) && TRUE === is_file($migrationFilePath)){
-					@include_once $migrationFilePath;
-					// migrationの実行
-					$migration = $diff[$diffIdx]();
-					$migration->up($argDBO);
+		static $executed = FALSE;
+		// 1プロセス内で2度も処理しない
+		if(FALSE === $executed){
+			// 適用差分を見つける
+			self::$_lastMigrationHash = NULL;
+			$diff = self::_getDiff($argDBO, $argTblName);
+			if(count($diff) > 0){
+				// 差分の数だけマイグレーションを適用
+				for($diffIdx=0; $diffIdx < count($diff); $diffIdx++){
+					$migrationFilePath = getAutoMigrationPath().$argDBO->dbidentifykey.'.'.$diff[$diffIdx].'.migration.php';
+					if(TRUE === file_exists($migrationFilePath) && TRUE === is_file($migrationFilePath)){
+						@include_once $migrationFilePath;
+						// migrationの実行
+						$migration = new $diff[$diffIdx]();
+						if(TRUE === $migration->up($argDBO)){
+							// マイグレーション済みに追加
+							@file_put_contents_e(getAutoMigrationPath().$argDBO->dbidentifykey.'.dispatched.migrations', $diff[$diffIdx].PHP_EOL, FILE_APPEND);
+						}
+					}
 				}
 			}
-		}
-		if(NULL !== self::$_lastMigrationHash){
-			return self::$_lastMigrationHash;
+			if(NULL !== self::$_lastMigrationHash){
+				return self::$_lastMigrationHash;
+			}
+			$executed = TRUE;
 		}
 		return TRUE;
 	}
@@ -38,112 +46,123 @@ class GenericMigrationManager {
 	 * @return boolean
 	 */
 	public static function resolve($argDBO, $argTblName, $argLastMigrationHash=NULL){
-		$firstMigration = TRUE;
-		if(!isset(ORMapper::$modelHashs[$argTblName])){
-			// コンソールから強制マイグレーションされる時に恐らくココを通る
-			$nowModel = ORMapper::getModel($argDBO, $argTblName);
-		}
-		// XXX ORMapperとMigrationManagerは循環しているのでいじる時は気をつけて！
-		$modelHash = ORMapper::$modelHashs[$argTblName];
-		$migrationHash = $argLastMigrationHash;
-		if(NULL === $migrationHash){
-			// 既に見つけているマイグレーションハッシュから定義を取得する
-			$diff = self::_getDiff($argDBO, $argTblName);
-			if(NULL !== self::$_lastMigrationHash){
-				$migrationHash = self::$_lastMigrationHash;
+		static $executed = array();
+		// 1プロセス内で同じテーブルに対してのマイグレーションを2度も処理しない
+		if(FALSE === (isset($executed[$argTblName]) && TRUE === $executed[$argTblName])){
+			$firstMigration = TRUE;
+			if(!isset(ORMapper::$modelHashs[$argTblName])){
+				// コンソールから強制マイグレーションされる時に恐らくココを通る
+				$nowModel = ORMapper::getModel($argDBO, $argTblName);
 			}
-		}
-
-		if(NULL !== $migrationHash){
-			$migrationFilePath = getAutoMigrationPath().$argDBO->dbidentifykey.'.'.$migrationHash.'.migration.php';
-			if(TRUE === file_exists($migrationFilePath) && TRUE === is_file($migrationFilePath)){
-				// 既にテーブルはあるとココで断定
-				$firstMigration = FALSE;
-				// 直前のマイグレーションファイルを取得する
-				@include_once $migrationFilePath;
-				debug($migrationHash::$migrationHash);
-				if($modelHash == $migrationHash::$migrationHash){
+			// XXX ORMapperとMigrationManagerは循環しているのでいじる時は気をつけて！
+			$modelHash = ORMapper::$modelHashs[$argTblName];
+			// modelハッシュがmigrationハッシュに含まれていないかどうか
+			$migrationHash = $argLastMigrationHash;
+			if(NULL === $migrationHash){
+				// 既に見つけているマイグレーションハッシュから定義を取得する
+				$diff = self::_getDiff($argDBO, $argTblName);
+				if(NULL !== self::$_lastMigrationHash){
+					$migrationHash = self::$_lastMigrationHash;
+				}
+			}
+			// マイグレーションハッシュがある場合は
+			if(NULL !== $migrationHash){
+				if(FALSE !== strpos($migrationHash, $modelHash)){
+					// このテーブルはマイグレーション済み
+					$executed[$argTblName] = TRUE;
 					// 現在のテーブル定義と最新のマイグレーションファイル上のテーブルハッシュに差分が無いので何もしない
-					debug('hash match');
 					return TRUE;
 				}
-
-			}
-		}
-
-		debug('hash not match');
-
-		// テーブル定義を取得
-		$tableDefs = ORMapper::getModelPropertyDefs($argDBO, $argTblName);
-		$describeDef = $tableDefs['describeDef'];
-
-		$migrationClassDef = PHP_EOL;
-		$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function __construct(){' . PHP_EOL . PHP_TAB . PHP_TAB . str_replace('; ', ';' . PHP_EOL . PHP_TAB . PHP_TAB, $describeDef) . 'return;' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
-		if(TRUE === $firstMigration){
-			// create指示を生成
-			$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function up($argDBO){' . PHP_EOL . PHP_TAB . PHP_TAB . 'return $this->create($argDBO);' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
-			// drop指示を生成
-			$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function down($argDBO){' . PHP_EOL . PHP_TAB . PHP_TAB . 'return $this->drop($argDBO);' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
-		}
-		else {
-			// ALTERかDROP指示を生成
-			$upAlterDef = '$alter = array();';
-			$downAlterDef = '$alter = array();';
-			// 差分をフィールドを走査して特定する
-			$lastModel = new $migrationHash();
-			$beforeDescribes = $migrationHash->describes;
-			$describes = array();
-			eval(str_replace('$this->', '$', $describeDef));
-			// 増えてる減ってるでループの起点を切り替え
-			if(count($describes) >= count($beforeDescribes)) {
-				// フィールドが増えている もしくは数は変わらない
-				foreach($describes as $feldKey => $propary){
-					// 最新のテーブル定義に合わせて
-					if($describes){
-						// 増えてるフィールドを単純に増やす
-						$feldKey;
-						// 処理をスキップして次のループへ
-						continue;
-					}
-					// 新旧フィールドのハッシュ値比較
-					if($describes){
-						// ハッシュ値が違うので新しいフィールド情報でAlterする
+				// 最後に適用している該当テーブルに対してのマイグレーションクラスを読み込んでmodelハッシュを比較する
+				$migrationFilePath = getAutoMigrationPath().$argDBO->dbidentifykey.'.'.$migrationHash.'.migration.php';
+				if(TRUE === file_exists($migrationFilePath) && TRUE === is_file($migrationFilePath)){
+					// 既にテーブルはあるとココで断定
+					$firstMigration = FALSE;
+					// 直前のマイグレーションクラスをインスタンス化
+					@include_once $migrationFilePath;
+					// モデルハッシュが変わっているかどうかを比較
+					if($modelHash == $migrationHash::$migrationHash){
+						// このテーブルはマイグレーション済み
+						$executed[$argTblName] = TRUE;
+						// 現在のテーブル定義と最新のマイグレーションファイル上のテーブルハッシュに差分が無いので何もしない
+						return TRUE;
 					}
 				}
 			}
-			else{
-				// フィールドが減っている
-				foreach($beforeDescribes as $feldKey => $propary){
-					// 前のテーブル定義に合わせて
-					if($beforeDescribes){
-						// 減ってるフィールドを単純にARTER DROPする
-						$feldKey;
-						// 処理をスキップして次のループへ
-						continue;
-					}
-					// 新旧フィールドのハッシュ値比較
-					if($describes){
-						// ハッシュ値が違うので新しいフィールド情報でAlterする
+
+			// テーブル定義を取得
+			$tableDefs = ORMapper::getModelPropertyDefs($argDBO, $argTblName);
+			$describeDef = $tableDefs['describeDef'];
+
+			$migrationClassDef = PHP_EOL;
+			$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function __construct(){' . PHP_EOL . PHP_TAB . PHP_TAB . str_replace('; ', ';' . PHP_EOL . PHP_TAB . PHP_TAB, $describeDef) . 'return;' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
+			if(TRUE === $firstMigration){
+				// create指示を生成
+				$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function up($argDBO){' . PHP_EOL . PHP_TAB . PHP_TAB . 'return $this->create($argDBO);' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
+				// drop指示を生成
+				$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function down($argDBO){' . PHP_EOL . PHP_TAB . PHP_TAB . 'return $this->drop($argDBO);' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
+			}
+			else {
+				// ALTERかDROP指示を生成
+				$upAlterDef = '$alter = array();';
+				$downAlterDef = '$alter = array();';
+				// 差分をフィールドを走査して特定する
+				$lastModel = new $migrationHash();
+				$beforeDescribes = $migrationHash->describes;
+				$describes = array();
+				eval(str_replace('$this->', '$', $describeDef));
+				// 増えてる減ってるでループの起点を切り替え
+				if(count($describes) >= count($beforeDescribes)) {
+					// フィールドが増えている もしくは数は変わらない
+					foreach($describes as $feldKey => $propary){
+						// 最新のテーブル定義に合わせて
+						if($describes){
+							// 増えてるフィールドを単純に増やす
+							$feldKey;
+							// 処理をスキップして次のループへ
+							continue;
+						}
+						// 新旧フィールドのハッシュ値比較
+						if($describes){
+							// ハッシュ値が違うので新しいフィールド情報でAlterする
+						}
 					}
 				}
+				else{
+					// フィールドが減っている
+					foreach($beforeDescribes as $feldKey => $propary){
+						// 前のテーブル定義に合わせて
+						if($beforeDescribes){
+							// 減ってるフィールドを単純にARTER DROPする
+							$feldKey;
+							// 処理をスキップして次のループへ
+							continue;
+						}
+						// 新旧フィールドのハッシュ値比較
+						if($describes){
+							// ハッシュ値が違うので新しいフィールド情報でAlterする
+						}
+					}
+				}
+				// alter指示を生成
+				$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function up($argDBO){' . PHP_EOL . PHP_TAB . PHP_TAB . $upAlterDef . PHP_EOL . PHP_TAB . PHP_TAB . 'return $this->alter($argDBO, $alter);' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
+				$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function down($argDBO){' . PHP_EOL . PHP_TAB . PHP_TAB . $downAlterDef . PHP_EOL . PHP_TAB . PHP_TAB . 'return $this->alter($argDBO, $alter);' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
 			}
-			// alter指示を生成
-			$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function up($argDBO){' . PHP_EOL . PHP_TAB . PHP_TAB . $upAlterDef . PHP_EOL . PHP_TAB . PHP_TAB . 'return $this->alter($argDBO, $alter);' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
-			$migrationClassDef .= PHP_EOL . PHP_TAB . 'public function down($argDBO){' . PHP_EOL . PHP_TAB . PHP_TAB . $downAlterDef . PHP_EOL . PHP_TAB . PHP_TAB . 'return $this->alter($argDBO, $alter);' . PHP_EOL . PHP_TAB . '}'. PHP_EOL;
+
+			// 現在の定義でマイグレーションファイルを生成する
+			$migrationClassName = self::_createMigrationClassName($argTblName).'_'.$modelHash;
+			$migrationClassDef = 'class '.$migrationClassName.' extends MigrationBase {' . PHP_EOL . PHP_EOL . PHP_TAB . 'public $tableName = "' . $argTblName . '";' . PHP_EOL . PHP_EOL . PHP_TAB . 'public static $migrationHash = "' . $modelHash . '";' . $migrationClassDef . '}';
+			$path = getAutoMigrationPath().$argDBO->dbidentifykey.'.'.$migrationClassName.'.migration.php';
+			@file_put_contents($path, '<?php' . PHP_EOL . PHP_EOL . $migrationClassDef . PHP_EOL . PHP_EOL . '?>');
+			@chmod($path, 0777);
+
+			// 生成した場合は、生成環境のマイグレーションが最新で、適用済みと言う事になるので
+
+			// マイグレーション済みファイルを生成し、新たにマイグレーション一覧に追記する
+			@file_put_contents_e(getAutoMigrationPath().$argDBO->dbidentifykey.'.all.migrations', $migrationClassName.PHP_EOL, FILE_APPEND);
+			@file_put_contents_e(getAutoMigrationPath().$argDBO->dbidentifykey.'.dispatched.migrations', $migrationClassName.PHP_EOL, FILE_APPEND);
+			$executed[$argTblName] = TRUE;
 		}
-
-		// 現在の定義でマイグレーションファイルを生成する
-		$migrationClassName = self::_createMigrationClassName($argTblName).'_'.$modelHash;
-		$migrationClassDef = 'class '.$migrationClassName.' extends MigrationBase {' . PHP_EOL . PHP_EOL . PHP_TAB . 'public $tableName = "' . $argTblName . '";' . PHP_EOL . PHP_EOL . PHP_TAB . 'public static $migrationHash = "' . $modelHash . '";' . $migrationClassDef . '}';
-		$path = getAutoMigrationPath().$argDBO->dbidentifykey.'.'.$migrationClassName.'.migration.php';
-		@file_put_contents($path, '<?php' . PHP_EOL . PHP_EOL . $migrationClassDef . PHP_EOL . PHP_EOL . '?>');
-		@chmod($path, 0777);
-
-		// 生成した場合は、生成環境のマイグレーションが最新で、適用済みと言う事になるので
-
-		// マイグレーション済みファイルを生成し、新たにマイグレーション一覧に追記する
-		@file_put_contents_e(getAutoMigrationPath().$argDBO->dbidentifykey.'.all.migrations', $migrationClassName.PHP_EOL, FILE_APPEND);
-		@file_put_contents_e(getAutoMigrationPath().$argDBO->dbidentifykey.'.dispatched.migrations', $migrationClassName.PHP_EOL, FILE_APPEND);
 		return TRUE;
 	}
 
@@ -262,7 +281,7 @@ class GenericMigrationManager {
 	 * @param unknown $argDBO
 	 * @param unknown $argTable
 	 * @return mixied 正常終了時はint、以上の場合はFALSEを返す
-	 */
+	*/
 	public static function is($argDBO, $argTable){
 		if(class_exists('Configure') && NULL !== Configure::constant('LIB_DIR')){
 			$dirPath = Configure::LIB_DIR . 'automigrate/' . $argTable;
