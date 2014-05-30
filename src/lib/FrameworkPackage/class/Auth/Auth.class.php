@@ -9,28 +9,28 @@ class Auth
 	public static $authPassEncrypted = 'SHA256';
 
 	private static function _init(){
-		if(class_exists("Configure") && NULL !== Configure::constant('AUTH_TBL_NAME')){
+		if(class_exists('Configure') && NULL !== Configure::constant('AUTH_TBL_NAME')){
 			// 定義からuserTable名を特定
 			self::$authTable = Configure::AUTH_TBL_NAME;
 		}
-		if(class_exists("Configure") && NULL !== Configure::constant('AUTH_ID_FIELD_NAME')){
+		if(class_exists('Configure') && NULL !== Configure::constant('AUTH_ID_FIELD_NAME')){
 			// 定義からuserTable名を特定
 			self::$authIDField = Configure::AUTH_ID_FIELD_NAME;
 		}
-		if(class_exists("Configure") && NULL !== Configure::constant('AUTH_PASS_FIELD_NAME')){
+		if(class_exists('Configure') && NULL !== Configure::constant('AUTH_PASS_FIELD_NAME')){
 			// 定義からuserTable名を特定
 			self::$authPassField = Configure::AUTH_PASS_FIELD_NAME;
 		}
-		if(class_exists("Configure") && NULL !== Configure::constant('AUTH_ID_ENCRYPTED')){
+		if(class_exists('Configure') && NULL !== Configure::constant('AUTH_ID_ENCRYPTED')){
 			// 定義からuserTable名を特定
 			self::$authIDEncrypted = Configure::AUTH_ID_ENCRYPTED;
 		}
-		if(class_exists("Configure") && NULL !== Configure::constant('AUTH_PASS_ENCRYPTED')){
+		if(class_exists('Configure') && NULL !== Configure::constant('AUTH_PASS_ENCRYPTED')){
 			// 定義からuserTable名を特定
 			self::$authPassEncrypted = Configure::AUTH_PASS_ENCRYPTED;
 		}
-		if(defined('PROJECT_NAME') && strlen(PROJECT_NAME) > 0 && class_exists(PROJECT_NAME . "Configure")){
-			$ProjectConfigure = PROJECT_NAME . "Configure";
+		if(defined('PROJECT_NAME') && strlen(PROJECT_NAME) > 0 && class_exists(PROJECT_NAME . 'Configure')){
+			$ProjectConfigure = PROJECT_NAME . 'Configure';
 			if(NULL !== $ProjectConfigure::constant(PROJECT_NAME . 'AUTH_TBL_NAME')){
 				// 定義からuserTable名を特定
 				self::$authTable = $ProjectConfigure::AUTH_TBL_NAME;
