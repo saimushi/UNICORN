@@ -26,6 +26,7 @@ $fwmgrPath = dirname(__FILE__)."/lib/FrameworkManager";
 // CLI実行かどうかのフラグの初期化
 $useCLI = false;
 
+// 以下メイン処理の振り分け
 if (isset($_GET["phpinfo"])){
 	phpinfo();
 	exit;
