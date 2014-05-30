@@ -8,7 +8,8 @@
 Interface SessionIO {
 
 	/**
-	 * システム毎に書き換え推奨
+	 * セッションを開始する
+	 * @param string cookieの対象ドメイン指定
 	 */
 	public static function start($argDomain=NULL, $argExpiredtime=NULL, $argDSN=NULL);
 
