@@ -10,7 +10,7 @@ class SessionDB extends SessionData implements SessionIO {
 	private static $_sessionData = array();
 	private static $_tokenKeyName = 'token';
 	private static $_token = NULL;
-	private static $_UUID = NULL;
+	private static $_identifier = NULL;
 	private static $_domain = NULL;
 	private static $_path = '/';
 	private static $_expiredtime = 3600;// 60分
@@ -80,13 +80,13 @@ class SessionDB extends SessionData implements SessionIO {
 	}
 
 	/**
-	 * トークンをUUIDまで分解する
+	 * トークンを固有識別子まで分解する
 	 * 分解したトークンの有効期限チェックを自動で行います
 	 * XXX 各システム毎に、Tokenの仕様が違う場合はこのメソッドをオーバーライドして実装を変更して下さい
 	 * @param string トークン文字列
-	 * @return mixed パースに失敗したらFALSE 成功した場合はstring UUIDを返す
+	 * @return mixed パースに失敗したらFALSE 成功した場合はstring 固有識別子を返す
 	 */
-	private static function _tokenToUUID($argToken){
+	private static function _tokenToIdentifier($argToken){
 		$token = $argToken;
 		// 暗号化されたトークンの本体を取得
 		$encryptedToken = substr($token, 0, 128);
@@ -95,7 +95,7 @@ class SessionDB extends SessionData implements SessionIO {
 		// トークンを複合
 		$decryptToken = Utilities::doHexDecryptAES($encryptedToken, Configure::NETWORK_CRYPT_KEY, Configure::NETWORK_CRYPT_IV);
 		// XXXデフォルトのUUIDはSHA256
-		$UUID = substr($decryptToken, 0, 64);
+		$identifier = substr($decryptToken, 0, 64);
 		// トークンの中に含まれていた、トークンが発行された日時分秒文字列
 		$tokenTRUEExpierd = substr($decryptToken, 36, 14);
 
@@ -123,34 +123,34 @@ class SessionDB extends SessionData implements SessionIO {
 			return FALSE;
 		}
 
-		return $UUID;
+		return $identifier;
 	}
 
 	/**
-	 * UUIDからトークンを生成する
+	 * 固有識別子からトークンを生成する
 	 * XXX 各システム毎に、Tokenの仕様が違う場合はこのメソッドをオーバーライドして実装を変更して下さい
-	 * @param string UUID
+	 * @param string identifier
 	 * @return string token
 	 */
-	private static function _UUIDToToken($argUUID){
-		$UUID = $argUUID;
+	private static function _identifierToToken($argIdentifier){
+		$identifier = $argIdentifier;
 		$newExpiredDatetime = Utilities::modifyDate('+'.(string)self::$_expiredtime . 'sec', 'YmdHis', NULL, NULL, 'GMT');
-		$token = Utilities::doHexEncryptAES($UUID.$newExpiredDatetime, Configure::NETWORK_CRYPT_KEY, Configure::NETWORK_CRYPT_IV).$newExpiredDatetime;
+		$token = Utilities::doHexEncryptAES($identifier.$newExpiredDatetime, Configure::NETWORK_CRYPT_KEY, Configure::NETWORK_CRYPT_IV).$newExpiredDatetime;
 		return $token;
 	}
 
 	/**
-	 * システム毎に書き換え推奨
+	 * トークンの初期化
 	 */
 	private static function _initializeToken(){
 		if(NULL === self::$_token){
 			if(isset($_COOKIE[self::$_tokenKeyName])){
 				$token = $_COOKIE[self::$_tokenKeyName];
-				$UUID = self::_parseToken($token);
-				if(FALSE !== $UUID){
+				$identifier = self::_parseToken($token);
+				if(FALSE !== $identifier){
 					// tokenとして認める
 					self::$_token = $token;
-					self::$_UUID = $UUID;
+					self::$_identifier = $identifier;
 					return TRUE;
 				}
 			}
@@ -160,11 +160,11 @@ class SessionDB extends SessionData implements SessionIO {
 	}
 
 	/**
-	 * システム毎に書き換え推奨
+	 * 新しいトークンを払い出しcookieにセットする
 	 */
 	private static function _finalizeToken(){
 		// 新しいtokenを発行する
-		self::$_token = self::_UUIDToToken(self::$_UUID);
+		self::$_token = self::_identifierToToken(self::$_identifier);
 		// クッキーを書き換える
 		setcookie(self::$_tokenKeyName, self::$_token, 0, self::$_path, self::$_domain);
 	}
