@@ -5,6 +5,12 @@
 		<TEMPLATEHTML_PATH code="TRUE"><![CDATA[Configure::LIB_PATH.'FrameworkManager/template/tooldocs/']]></TEMPLATEHTML_PATH>
 		<FLOWXML_PATH code="TRUE"><![CDATA[Configure::LIB_PATH.'FrameworkManager/class/MVC/controller/']]></FLOWXML_PATH>
 		<DB_DSN>mysqlt://fwm:fwmpass@localhost/fwm</DB_DSN>
+		<!-- 汎用Authの定義 -->
+		<AUTH_TBL_NAME>users</AUTH_TBL_NAME>
+		<AUTH_ID_FIELD_NAME>mail</AUTH_ID_FIELD_NAME>
+		<AUTH_PASS_FIELD_NAME>pass</AUTH_PASS_FIELD_NAME>
+		<AUTH_ID_ENCRYPTED>AES128CBC</AUTH_ID_ENCRYPTED>
+		<AUTH_PASS_ENCRYPTED>SHA256</AUTH_PASS_ENCRYPTED>
 		<SESSION_EXPIRED_TIME>10800</SESSION_EXPIRED_TIME>
 	</FrameworkManager>
 </xml>

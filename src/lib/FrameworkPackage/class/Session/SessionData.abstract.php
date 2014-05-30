@@ -5,7 +5,7 @@
  * PHP標準のPHPSESSIDは使わず、tokenをCookieに書き込む方式によるSessionの実現の為のクラス
  * @author saimushi
  */
-class SessionDB extends SessionData implements SessionIO {
+abstract class SessionData {
 
 	private static $_initialized = FALSE;
 	private static $_sessionData = array();
@@ -17,79 +17,11 @@ class SessionDB extends SessionData implements SessionIO {
 	// 60分
 	private static $_expiredtime = 3600;
 
-	private static $_tableName = 't_session_tmp';
-	private static $_pkeyName = 'token';
+	private static $_tableName = 'session_data';
+	private static $_pkeyName = 'uid';
 	private static $_serializeKeyName = 'data';
 	private static $_dateKeyName = 'created';
 	private static $_DBO;
-
-	/**
-	 * システム毎に書き換え推奨
-	 */
-	private static function _initializeToken(){
-		if(NULL === self::$_token){
-			if(isset($_COOKIE[self::$_tokenKeyName])){
-				$token = $_COOKIE[self::$_tokenKeyName];
-				// tokenをパース
-				$encryptedToken = substr($token, 0, 128);
-				$tokenExpierd = substr($token, 128, 14);
-				$decryptToken = Utilities::doHexDecryptAES($encryptedToken, Configure::NETWORK_CRYPT_KEY, Configure::NETWORK_CRYPT_IV);
-				$UUID = substr($decryptToken, 0, 36);
-				$tokenTRUEExpierd = substr($decryptToken, 36, 14);
-				debug('$tokenTRUEExpierd=' . $tokenTRUEExpierd . '&$decryptToken=' . $decryptToken);
-				// expierdの正当性チェック
-				if(strlen($tokenExpierd) == 14 && $tokenExpierd == $tokenTRUEExpierd){
-					// tokenの有効期限のチェック
-					$year = substr($tokenTRUEExpierd, 0, 4);
-					$month = substr($tokenTRUEExpierd, 4, 2);
-					$day = substr($tokenTRUEExpierd, 6, 2);
-					$hour = substr($tokenTRUEExpierd, 8, 2);
-					$minute = substr($tokenTRUEExpierd, 10, 2);
-					$second = substr($tokenTRUEExpierd, 12, 2);
-					$tokenexpiredatetime = (int)Utilities::date('U', $year . '-' . $month . '-'. $day . ' ' . $hour . ':' . $minute . ':' . $second, 'GMT');
-					$expiredatetime = (int)Utilities::modifyDate("-".(string)self::$_expiredtime . 'sec', 'U', NULL, NULL, 'GMT');
-					debug('$tokenTRUEExpierd='.$tokenTRUEExpierd.'&$tokenexpiredatetime=' . $tokenexpiredatetime . '&$expiredatetime=' . $expiredatetime);
-					if($tokenexpiredatetime >= $expiredatetime){
-						// tokenとして認める
-						self::$_token = $token;
-						self::$_parseToken['UUID'] = $UUID;
-						return TRUE;
-					}
-				}
-				else{
-					// XXX ペナルティーレベルのクラッキングアクセス行為に該当
-					logging(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__, "hack");
-				}
-			}
-			return FALSE;
-		}
-		return TRUE;
-	}
-
-	/**
-	 * システム毎に書き換え推奨
-	 */
-	private static function _finalizeToken(){
-		if(FALSE === self::$_initialized){
-			self::start();
-		}
-		if(NULL === self::$_token){
-			if(FALSE === self::_initializeToken()){
-				// エラー
-				throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.Utilities::getBacktraceExceptionLine());
-			}
-			if(FALSE === self::_initializeData()){
-				// エラー
-				throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.Utilities::getBacktraceExceptionLine());
-			}
-		}
-		// 新しいtokenを発行する
-		$UUID = self::$_parseToken['UUID'];
-		$newExpiredDatetime = Utilities::modifyDate('+'.(string)self::$_expiredtime . 'sec', 'YmdHis', NULL, NULL, 'GMT');
-		self::$_token = Utilities::doHexEncryptAES($UUID.$newExpiredDatetime, Configure::NETWORK_CRYPT_KEY, Configure::NETWORK_CRYPT_IV).$newExpiredDatetime;
-		// クッキーを書き換える
-		setcookie(self::$_tokenKeyName, self::$_token, 0, self::$_path, self::$_domain);
-	}
 
 	/**
 	 * システム毎に書き換え推奨
@@ -170,27 +102,6 @@ class SessionDB extends SessionData implements SessionIO {
 			return FALSE;
 		}
 		return TRUE;
-	}
-
-	/**
-	 * システム毎に書き換え推奨
-	 */
-	public static function start($argDomain=NULL, $argExpiredtime=NULL, $argDSN=NULL){
-		self::$_domain = $_SERVER['SERVER_NAME'];
-		if(NULL !== $argDomain){
-			self::$_domain = $argDomain;
-		}
-		if(NULL !== $argExpiredtime){
-			self::$_expiredtime = $argExpiredtime;
-		}
-		// DBOをセットしておく
-		if(FALSE === self::$_initialized){
-			if(NULL === $argDSN){
-				$argDSN = Configure::DB_DSN;
-			}
-			self::$_DBO = new DBO($argDSN);
-		}
-		self::$_initialized = TRUE;
 	}
 
 	public static function count(){

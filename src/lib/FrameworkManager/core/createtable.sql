@@ -1,3 +1,6 @@
 -- MySQL --
 -- users --
-CREATE TABLE IF NOT EXISTS `users` (`id` int(10) NOT NULL AUTO_INCREMENT COMMENT 'PKey', `mail` VARCHAR(255) NOT NULL COMMENT 'メールアドレス', `pass` VARCHAR(255) NOT NULL COMMENT 'パスワード', PRIMARY KEY(`id`), UNIQUE(`mail`, `pass`));
+CREATE TABLE IF NOT EXISTS `user` (`id` int(10) NOT NULL AUTO_INCREMENT COMMENT 'pkey', `mail` VARCHAR(255) NOT NULL COMMENT 'メールアドレス', `pass` VARCHAR(255) NOT NULL COMMENT 'パスワード', PRIMARY KEY(`id`), UNIQUE(`mail`, `pass`));
+-- session --
+CREATE TABLE IF NOT EXISTS `session` (`token` VARCHAR(255) NOT NULL COMMENT 'ワンタイムトークン', `created` TIMESTAMP NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT 'トークン作成日時', PRIMARY KEY(`token`)) ENGINE = MYISAM;
+CREATE TABLE IF NOT EXISTS `sessiondata` (`uid` CHAR(64) NOT NULL COMMENT 'user_idから算出したUID', `data` TEXT DEFAULT '' COMMENT 'jsonシリアライズされたセッションデータ', `created` TIMESTAMP NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT '作成日時', `modified` TIMESTAMP NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT '更新日時', PRIMARY KEY(`uid`)) ENGINE = MYISAM;
