@@ -23,7 +23,6 @@ $frameworkPath = dirname(__FILE__)."/lib/FrameworkPackage";
 // XXX インストーラによって変更されます。(予定)
 $fwmgrPath = dirname(__FILE__)."/lib/FrameworkManager";
 
-
 // CLI実行かどうかのフラグの初期化
 $useCLI = false;
 
