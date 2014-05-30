@@ -146,7 +146,7 @@ class SessionDB extends SessionData implements SessionIO {
 		if(NULL === self::$_token){
 			if(isset($_COOKIE[self::$_tokenKeyName])){
 				$token = $_COOKIE[self::$_tokenKeyName];
-				$identifier = self::_parseToken($token);
+				$identifier = self::_tokenToIdentifier($token);
 				if(FALSE !== $identifier){
 					// tokenとして認める
 					self::$_token = $token;
