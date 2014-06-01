@@ -4,10 +4,10 @@
  * Sessionクラス(DB版)
  * @author saimushi
  */
-class SessionDB extends SessionData implements SessionIO {
+class SessionDB extends SessionDataDB implements SessionIO {
 
-	private static $_started = FALSE;
-	private static $_sessionData = array();
+	private static $_initialized = FALSE;
+	private static $_replaced = FALSE;
 	private static $_tokenKeyName = 'token';
 	private static $_token = NULL;
 	private static $_identifier = NULL;
@@ -15,67 +15,104 @@ class SessionDB extends SessionData implements SessionIO {
 	private static $_path = '/';
 	private static $_expiredtime = 3600;// 60分
 	private static $_sessionTblName = 'session_table';
-	private static $_sessionDataTblName = 'session_table';
 	private static $_sessionTblPkeyName = 'token';
-	private static $_sessionDataTblPkeyName = 'token';
-	private static $_serializeKeyName = 'data';
-	private static $_dateKeyName = 'created';
-	private static $_DBO;
+	private static $_sessionDateKeyName = 'created';
+	private static $_DBO = NULL;
 
 	/**
 	 * Sessionクラスの初期化
 	 */
-	private static function _init(){
-		if(class_exists('Configure') && NULL !== Configure::constant('SESSION_TBL_NAME')){
-			// 定義からセッションテーブル名を特定
-			self::$_sessionTblName = Configure::SESSION_TBL_NAME;
-		}
-		if(class_exists('Configure') && NULL !== Configure::constant('SESSION_TBL_NAME')){
-			// 定義からセッションデータテーブル名を特定
-			self::$_sessionDataTblName = Configure::SESSION_DATA_TBL_NAME;
-		}
-		if(class_exists('Configure') && NULL !== Configure::constant('SESSION_TBL_PKEY_NAME')){
-			// 定義からセッションテーブルのPkey名を特定
-			self::$_sessionTblPkeyName = Configure::SESSION_TBL_PKEY_NAME;
-		}
-		if(class_exists('Configure') && NULL !== Configure::constant('SESSION_DATA_TBL_PKEY_NAME')){
-			// 定義からセッションデータテーブルのPkey名を特定
-			self::$_sessionDataTblPkeyName = Configure::SESSION_DATA_TBL_PKEY_NAME;
-		}
-		if(class_exists('Configure') && NULL !== Configure::constant('SERIALIZE_KEY_NAME')){
-			// 定義からuserTable名を特定
-			self::$_serializeKeyName = Configure::SERIALIZE_KEY_NAME;
-		}
-		if(class_exists('Configure') && NULL !== Configure::constant('DATE_KEY_NAME')){
-			// 定義からuserTable名を特定
-			self::$_dateKeyName = Configure::DATE_KEY_NAME;
-		}
-		if(defined('PROJECT_NAME') && strlen(PROJECT_NAME) > 0 && class_exists(PROJECT_NAME . 'Configure')){
-			$ProjectConfigure = PROJECT_NAME . 'Configure';
-			if(NULL !== $ProjectConfigure::constant('SESSION_TBL_NAME')){
+	private static function _init($argDomain=NULL, $argExpiredtime=NULL, $argDSN=NULL){
+		if(FALSE === self::$_initialized){
+
+			// セッションの有効ドメインを設定
+			self::$_domain = $argDomain;
+			if(NULL === $argDomain){
+				self::$_domain = $_SERVER['SERVER_NAME'];
+			}
+
+			$DSN = NULL;
+			$expiredtime = self::$_expiredtime;
+
+			if(class_exists('Configure') && NULL !== Configure::constant('DB_DSN')){
+				// 定義からセッションDBの接続情報を特定
+				$DSN = Configure::DB_DSN;
+			}
+			if(class_exists('Configure') && NULL !== Configure::constant('SESSION_DB_DSN')){
+				// 定義からセッションDBの接続情報を特定
+				$DSN = Configure::DB_DSN;
+			}
+			if(class_exists('Configure') && NULL !== Configure::constant('SESSION_EXPIRED_TIME')){
+				// 定義からセッションの有効期限を設定
+				$expiredtime = Configure::SESSION_EXPIRED_TIME;
+			}
+			if(class_exists('Configure') && NULL !== Configure::constant('SESSION_TBL_NAME')){
 				// 定義からセッションテーブル名を特定
-				self::$_sessionTblName = $ProjectConfigure::SESSION_TBL_NAME;
+				self::$_sessionTblName = Configure::SESSION_TBL_NAME;
 			}
-			if(NULL !== $ProjectConfigure::constant('SESSION_TBL_NAME')){
-				// 定義からセッションデータテーブル名を特定
-				self::$_sessionDataTblName = $ProjectConfigure::SESSION_DATA_TBL_NAME;
-			}
-			if(NULL !== $ProjectConfigure::constant('SESSION_TBL_PKEY_NAME')){
+			if(class_exists('Configure') && NULL !== Configure::constant('SESSION_TBL_PKEY_NAME')){
 				// 定義からセッションテーブルのPkey名を特定
-				self::$_sessionTblPkeyName = $ProjectConfigure::SESSION_TBL_PKEY_NAME;
+				self::$_sessionTblPkeyName = Configure::SESSION_TBL_PKEY_NAME;
 			}
-			if(NULL !== $ProjectConfigure::constant('SESSION_DATA_TBL_PKEY_NAME')){
-				// 定義からセッションデータテーブルのPkey名を特定
-				self::$_sessionDataTblPkeyName = $ProjectConfigure::SESSION_DATA_TBL_PKEY_NAME;
+			if(class_exists('Configure') && NULL !== Configure::constant('SESSION_DATE_KEY_NAME')){
+				// 定義から日時フィールド名を特定
+				self::$_sessionDateKeyName = Configure::SESSION_DATE_KEY_NAME;
 			}
-			if(NULL !== $ProjectConfigure::constant('SERIALIZE_KEY_NAME')){
-				// 定義からuserTable名を特定
-				self::$_serializeKeyName = $ProjectConfigure::SERIALIZE_KEY_NAME;
+			if(defined('PROJECT_NAME') && strlen(PROJECT_NAME) > 0 && class_exists(PROJECT_NAME . 'Configure')){
+				$ProjectConfigure = PROJECT_NAME . 'Configure';
+				if(NULL !== $ProjectConfigure::constant('DB_DSN')){
+					// 定義からセッションDBの接続情報を特定
+					$DSN = $ProjectConfigure::DB_DSN;
+				}
+				if(NULL !== $ProjectConfigure::constant('SESSION_DB_DSN')){
+					// 定義からセッションDBの接続情報を特定
+					$DSN = $ProjectConfigure::SESSION_DB_DSN;
+				}
+				if(NULL !== $ProjectConfigure::constant('SESSION_EXPIRED_TIME')){
+					// 定義からセッションの有効期限を設定
+					$expiredtime = $ProjectConfigure::SESSION_EXPIRED_TIME;
+				}
+				if(NULL !== $ProjectConfigure::constant('SESSION_TBL_NAME')){
+					// 定義からセッションテーブル名を特定
+					self::$_sessionTblName = $ProjectConfigure::SESSION_TBL_NAME;
+				}
+				if(NULL !== $ProjectConfigure::constant('SESSION_TBL_PKEY_NAME')){
+					// 定義からセッションテーブルのPkey名を特定
+					self::$_sessionTblPkeyName = $ProjectConfigure::SESSION_TBL_PKEY_NAME;
+				}
+				if(NULL !== $ProjectConfigure::constant('SESSION_DATE_KEY_NAME')){
+					// 定義から日時フィールド名を特定
+					self::$_sessionDateKeyName = $ProjectConfigure::SESSION_DATE_KEY_NAME;
+				}
 			}
-			if(NULL !== $ProjectConfigure::constant('DATE_KEY_NAME')){
-				// 定義からuserTable名を特定
-				self::$_dateKeyName = $ProjectConfigure::DATE_KEY_NAME;
+
+			// DBOを初期化
+			if(NULL === self::$_DBO){
+				if(NULL !== $argDSN){
+					// セッションDBの接続情報を直指定
+					$DSN = $argDSN;
+				}
+				self::$_DBO = new DBO($DSN);
 			}
+
+			// セッションの有効期限を設定
+			if(NULL !== $argExpiredtime){
+				// セッションの有効期限を直指定
+				$expiredtime = $argExpiredtime;
+			}
+			self::$_expiredtime = $expiredtime;
+
+			// セッションデータクラスの初期化
+			parent::_init($expiredtime, $DSN);
+
+			// トークンの初期化
+			if(FALSE === self::_initializeToken()){
+				// エラー
+				throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.Utilities::getBacktraceExceptionLine());
+			}
+
+			// 初期化済み
+			self::$_initialized = TRUE;
 		}
 	}
 
@@ -145,185 +182,115 @@ class SessionDB extends SessionData implements SessionIO {
 	private static function _initializeToken(){
 		if(NULL === self::$_token){
 			if(isset($_COOKIE[self::$_tokenKeyName])){
+				// Cookieが在る場合はCookieからトークンと固有識別子を初期化する
 				$token = $_COOKIE[self::$_tokenKeyName];
 				$identifier = self::_tokenToIdentifier($token);
 				if(FALSE !== $identifier){
+					// XXX SESSIONレコードを走査
 					// tokenとして認める
 					self::$_token = $token;
 					self::$_identifier = $identifier;
 					return TRUE;
 				}
 			}
+			else{
+				// 固有識別子をセットする
+				self::sessionID(self::$_identifier);
+				// トークンがまだ無いので、最初のトークンとして空文字を入れておく
+				self::$_token = "";
+			}
+			// セッションは存在したが、一致特定出来なかった時はエラー終了
 			return FALSE;
 		}
 		return TRUE;
 	}
 
 	/**
-	 * 新しいトークンを払い出しcookieにセットする
+	 * Cookieからトークンを出し入れする時のキー名を変えられるようにする為のアクセサ
+	 * @param string トークンキー名
 	 */
-	private static function _finalizeToken(){
+	public static function setTokenKey($argTokenKey){
+		self::$_tokenKeyName = $argTokenKey;
+	}
+
+	/**
+	 * 新しいトークンを指定のトークンキー名で払い出しcookieにセットする
+	 * @param string トークンキー名
+	 */
+	public static function setTokenToCookie($argTokenKey){
 		// 新しいtokenを発行する
 		self::$_token = self::_identifierToToken(self::$_identifier);
 		// クッキーを書き換える
-		setcookie(self::$_tokenKeyName, self::$_token, 0, self::$_path, self::$_domain);
+		setcookie($argTokenKey, self::$_token, 0, self::$_path, self::$_domain);
+		// XXX SESSHONレコードを更新
 	}
 
 	/**
-	 * システム毎に書き換え推奨
+	 * セッションIDを明示的に指定する
 	 */
-	private static function _initializeData(){
-		if(is_array(self::$_sessionData) && count(self::$_sessionData) === 0){
-			$query = 'SELECT `' . self::$_serializeKeyName . '` FROM `' . self::$_tableName . '` WHERE `' . self::$_pkeyName . '` = :' . self::$_pkeyName . ' AND `' . self::$_dateKeyName . '` >= :expierddate ORDER BY `' . self::$_dateKeyName . '` DESC limit 1';
-			$date = Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT');
-			$binds = array(self::$_pkeyName => self::$_token, 'expierddate' => $date);
-			$response = self::$_DBO->execute($query, $binds);
-			if(is_object($response)){
-				if(0 < $response->RecordCount()){
-					$tmp = $response->GetArray();
-					self::$_sessionData = json_decode($tmp[0][self::$_serializeKeyName], TRUE);
-				}
-			}
-			// まだUUIDがsessionテーブルに入っていなければ追加する
-			if(!isset(self::$_sessionData['UUID'])){
-				self::$_sessionData['UUID'] = self::$_UUID;
-				if(FALSE === self::_finalizeData()){
-					// エラー
-					throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.Utilities::getBacktraceExceptionLine());
-				}
-				return TRUE;
-			}
+	public static function sessionID($argIdentifier=NULL){
+		if(NULL === self::$_identifier && NULL === $argIdentifier){
+			// idetifierが未セットの場合は自動生成
+			self::$_identifier = sha256(uniqid());
 		}
-		return TRUE;
+		if(NULL === $argIdentifier){
+			// 現在設定されている固有識別子をセッションIDとして返却
+			return self::$_identifier;
+		}
+		else{
+			// 渡された値を固有識別子に書き換える
+			self::$_identifier = $argIdentifier;
+		}
 	}
 
 	/**
-	 * システム毎に書き換え推奨
+	 * セッションの開始する(_initのアクセサ)
+	 * @param string セッションの範囲となるドメイン
+	 * @param string セッションの有効期限
+	 * @param string DBDSN情報
+	 * @throws Exception
 	 */
-	private static function _finalizeData(){
-		if(is_array(self::$_sessionData) && count(self::$_sessionData) > 0){
-			$query = 'SELECT `' . self::$_serializeKeyName . '` FROM `' . self::$_tableName . '` WHERE `' . self::$_pkeyName . '` = :' . self::$_pkeyName . ' ORDER BY `' . self::$_dateKeyName . '` DESC limit 1';
-			$date = Utilities::modifyDate('+' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT');
-			$data = json_encode(self::$_sessionData);
-			$binds = array(self::$_serializeKeyName => $data, self::$_pkeyName => self::$_token, self::$_dateKeyName => $date);
-			$response = self::$_DBO->execute($query, array(self::$_pkeyName => self::$_token));
-			if(is_object($response) && 0 < $response->RecordCount()){
-				$res = $response->GetAll();
-				if($data !== $res[0][self::$_serializeKeyName]){
-					// update
-					$query = 'UPDATE `' . self::$_tableName . '` SET `' . self::$_serializeKeyName . '` = :' . self::$_serializeKeyName . ' , `' . self::$_dateKeyName . '` = :' . self::$_dateKeyName . ' WHERE `' . self::$_pkeyName . '` = :' . self::$_pkeyName . ' ';
-					$response = self::$_DBO->execute($query, $binds);
-					if ($response) {
-						return TRUE;
-					}
-				}
-				return TRUE;
-			}
-			else{
-				// insert
-				$query = 'INSERT INTO `' . self::$_tableName . '` (`' . self::$_serializeKeyName . '`, `' . self::$_pkeyName . '`, `' . self::$_dateKeyName . '`) VALUES ( :' . self::$_serializeKeyName . ' , :' . self::$_pkeyName . ' , :' . self::$_dateKeyName . ' )';
-				try{
-					$response = self::$_DBO->execute($query, $binds);
-					if ($response) {
-						return TRUE;
-					}
-				}
-				catch (exception $Exception){
-					// update
-					$query = 'UPDATE `' . self::$_tableName . '` SET `' . self::$_serializeKeyName . '` = :' . self::$_serializeKeyName . ' , `' . self::$_dateKeyName . '` = :' . self::$_dateKeyName . ' WHERE `' . self::$_pkeyName . '` = :' . self::$_pkeyName . ' ';
-					$response = self::$_DBO->execute($query, $binds);
-					if ($response) {
-						return TRUE;
-					}
-				}
-			}
-			// XXX
-			logging(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.self::$_DBO->getLastErrorMessage(), 'exception');
-			return FALSE;
-		}
-		return TRUE;
-	}
-
 	public static function start($argDomain=NULL, $argExpiredtime=NULL, $argDSN=NULL){
-		self::$_domain = $_SERVER['SERVER_NAME'];
-		if(NULL !== $argDomain){
-			self::$_domain = $argDomain;
+		if(FALSE === self::$_initialized){
+			self::_init($argDomain, $argExpiredtime, $argDSN);
 		}
-		if(NULL !== $argExpiredtime){
-			self::$_expiredtime = $argExpiredtime;
-		}
-		// DBOをセットしておく
-		if(FALSE === self::$_started){
-			if(NULL === $argDSN){
-				$argDSN = Configure::DB_DSN;
-			}
-			self::$_DBO = new DBO($argDSN);
-		}
-		self::$_started = TRUE;
-	}
-
-	public static function count(){
-		count(self::$_sessionData);
-	}
-
-	public static function keys(){
-		return array_keys(self::$_sessionData);
-	}
-
-	public static function get($argKey = NULL){
-		if(FALSE === self::$_started){
-			self::start();
-		}
-		if(FALSE === self::_initializeToken()){
-			// エラー
-			throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.Utilities::getBacktraceExceptionLine());
-		}
-		if(FALSE === self::_initializeData()){
-			// エラー
-			throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.Utilities::getBacktraceExceptionLine());
-		}
-		if(isset(self::$_sessionData[$argKey])){
-			return self::$_sessionData[$argKey];
-		}
-		return NULL;
-	}
-
-	public static function set($argKey, $argment){
-		if(FALSE === self::$_started){
-			self::start();
-		}
-		if(FALSE === self::_initializeToken()){
-			// エラー
-			throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.Utilities::getBacktraceExceptionLine());
-		}
-		if(FALSE === self::_initializeData()){
-			// エラー
-			throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.Utilities::getBacktraceExceptionLine());
-		}
-		self::$_sessionData[$argKey] = $argment;
-		self::_finalizeToken();
-		if(FALSE === self::_finalizeData()){
-			// エラー
-			throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.Utilities::getBacktraceExceptionLine());
-		}
-		return TRUE;
 	}
 
 	/**
-	 * Expiredの切れたSessionレコードをDeleteする
+	 * セッションの指定のキー名で保存されたデータを返す
+	 * セッションが初期化されていなければ初期化する
+	 * @param string キー名
+	 * @param mixed 変数全て
 	 */
-	public static function clean(){
-		if(FALSE === self::$_started){
-			self::start();
+	public static function get($argKey = NULL){
+		if(FALSE === self::$_initialized){
+			// 自動セッションスタート
+			self::_init();
 		}
-		$query = 'DELETE FROM `' . self::$_tableName . '` WHERE `' . self::$_dateKeyName . '` <= :' . self::$_dateKeyName . ' ';
-		$date = Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT');
-		$response = self::$_DBO->execute($query, array(self::$_dateKeyName => $date));
-		if (!$response) {
-			// XXX
-			logging(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.self::$_DBO->getLastErrorMessage(), 'exception');
+		// XXX 標準ではセッションデータのPkeyはセッションの固有識別子
+		return parent::get(self::$_identifier);
+	}
+
+	/**
+	 * セッションに指定のキー名で指定のデータをしまう
+	 * セッションが初期化されていなければ初期化する
+	 * @param string キー名
+	 * @param mixed 変数全て(PHPオブジェクトは保存出来ない！)
+	 */
+	public static function set($argKey, $argment){
+		static $replaced = FALSE;
+		if(FALSE === self::$_initialized){
+			// 自動セッションスタート
+			self::_init();
 		}
-		return TRUE;
+		if(FALSE === $replaced){
+			// Cookieの書き換えがまだなら書き換える
+			self::setTokenToCookie(self::$_tokenKeyName);
+			// 2度はヘッダ出力しない為に処理終了を取っておく
+			$replaced = TRUE;
+		}
+		// XXX 標準ではセッションデータのPkeyはセッションの固有識別子
+		return parent::set(self::$_identifier, $argKey, $argment);
 	}
 }
 
