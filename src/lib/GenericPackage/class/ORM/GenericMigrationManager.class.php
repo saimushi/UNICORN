@@ -205,7 +205,6 @@ class GenericMigrationManager {
 				$migrationes[] = trim($line);
 			}
 		}
-		debug($migrationes);
 		$dispatchedMigrationesFilePath = getAutoMigrationPath().$argDBO->dbidentifykey.'.dispatched.migrations';
 		$dispatchedMigrationes = array();
 		if(TRUE === file_exists($dispatchedMigrationesFilePath) && TRUE === is_file($dispatchedMigrationesFilePath)){

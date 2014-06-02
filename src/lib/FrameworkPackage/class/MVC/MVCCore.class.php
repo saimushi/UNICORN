@@ -356,6 +356,7 @@ class MVCCore {
 		else{
 			// コントロール対象を自動特定
 			$controlerClassName = 'Index';
+			debug('_c_='.$_GET['_c_']);
 			if(isset($_GET['_c_']) && strlen($_GET['_c_']) > 0){
 				$controlerClassName = ucfirst($_GET['_c_']);
 				if(FALSE !== strpos($_GET['_c_'], '/') && strlen($_GET['_c_']) > 1){
@@ -388,37 +389,45 @@ class MVCCore {
 
 		// htmlを読み込み
 		if(NULL !== $version){
-			if(TRUE === file_exists_ip($targetPath . $version . '/' . $controlerClassName . '.html')){
-				if(TRUE === $argFileExistsCalled){
-					return $targetPath . $version . '/' . $controlerClassName . '.html';
-				}
-				// Viewインスタンスの生成
-				$HtmlView = new HtmlViewAssignor($targetPath . $version . '/' . $controlerClassName . '.html');
+			$basePath = $targetPath . $version . '/';
+			if('' === $targetPath && '/' === $basePath){
+				$basePath = $targetPath;
 			}
-			elseif(TRUE === file_exists_ip($targetPath . $version . '/' . strtolower($controlerClassName) . '.html')){
+			if(TRUE === file_exists_ip($basePath . $controlerClassName . '.html')){
 				if(TRUE === $argFileExistsCalled){
-					return $targetPath . $version . '/' . strtolower($controlerClassName) . '.html';
+					return $basePath . $controlerClassName . '.html';
 				}
 				// Viewインスタンスの生成
-				$HtmlView = new HtmlViewAssignor($targetPath . $version . '/' . strtolower($controlerClassName) . '.html');
+				$HtmlView = new HtmlViewAssignor($basePath . $controlerClassName . '.html');
+			}
+			elseif(TRUE === file_exists_ip($basePath . strtolower($controlerClassName) . '.html')){
+				if(TRUE === $argFileExistsCalled){
+					return $basePath . strtolower($controlerClassName) . '.html';
+				}
+				// Viewインスタンスの生成
+				$HtmlView = new HtmlViewAssignor($basePath . strtolower($controlerClassName) . '.html');
 			}
 		}
 
 		if(NULL === $HtmlView){
-			// バージョンを抜いてインクルード
-			if(TRUE === file_exists_ip($targetPath . '/' . $controlerClassName . '.html')){
-				if(TRUE === $argFileExistsCalled){
-					return $targetPath . '/' . $controlerClassName . '.html';
-				}
-				// Viewインスタンスの生成
-				$HtmlView = new HtmlViewAssignor($targetPath . '/' . $controlerClassName . '.html');
+			$basePath = $targetPath . '/';
+			if('' === $targetPath && '/' === $basePath){
+				$basePath = $targetPath;
 			}
-			elseif(TRUE === file_exists_ip($targetPath . '/' . strtolower($controlerClassName) . '.html')){
+			// バージョンを抜いてインクルード
+			if(TRUE === file_exists_ip($basePath . $controlerClassName . '.html')){
 				if(TRUE === $argFileExistsCalled){
-					return $targetPath . '/' . strtolower($controlerClassName) . '.html';
+					return $basePath . $controlerClassName . '.html';
 				}
 				// Viewインスタンスの生成
-				$HtmlView = new HtmlViewAssignor($targetPath . '/' . strtolower($controlerClassName) . '.html');
+				$HtmlView = new HtmlViewAssignor($basePath . $controlerClassName . '.html');
+			}
+			elseif(TRUE === file_exists_ip($basePath . strtolower($controlerClassName) . '.html')){
+				if(TRUE === $argFileExistsCalled){
+					return $basePath . strtolower($controlerClassName) . '.html';
+				}
+				// Viewインスタンスの生成
+				$HtmlView = new HtmlViewAssignor($basePath . strtolower($controlerClassName) . '.html');
 			}
 			else{
 				// エラー終了

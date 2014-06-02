@@ -34,10 +34,14 @@
 		<link mapfrom="MVCCore" mapto="Core">default.implement.MVC/MVCCore</link>
 	</Core>
 	<Auth>
-		<link mapfrom="SessionDB" mapto="Session">default.implement.Session/SessionDB</link>
+		<package>DBO</package>
+		<package>Session</package>
 		<link>default.implement.Auth/Auth</link>
 	</Auth>
 	<Session>
+		<package>DBO</package>
+		<link>default.interface.Session/SessionIO</link>
+		<link>default.abstract.Session/SessionDataDB</link>
 		<link mapfrom="SessionDB" mapto="Session">default.implement.Session/SessionDB</link>
 	</Session>
 	<MVCControllerBase>
@@ -80,6 +84,7 @@
 		<link mapfrom="GenericORMapper" mapto="ORMapper">default.implement.ORM/GenericORMapper</link>
 	</ORMapper>
 	<MigrationManager>
+		<package>DBO</package>
 		<package>ORMapper</package>
 		<link mapfrom="GenericMigrationBase" mapto="MigrationBase">default.abstract.ORM/GenericMigrationBase</link>
 		<link mapfrom="GenericMigrationManager" mapto="MigrationManager">default.implement.ORM/GenericMigrationManager</link>
@@ -103,10 +108,7 @@
 		<simple_html_dom_node_get_dom targetclass="simple_html_dom_node"><![CDATA[function & getDOM(){ return $this->dom; }]]></simple_html_dom_node_get_dom>
 	</HtmlTemplate>
 	<HtmlViewAssignor>
-		<link addmethod="simple_html_dom_node_get_dom" renamefrom="simple_html_dom, simple_html_dom_node" renameto="simple_html_dom_org, simple_html_dom_node_org">simple/simple_html_dom.php</link>
-		<link>default.implement.TemplateEngine/simple_html_dom_wrapper.php</link>
-		<link mapfrom="PQuery" mapto="HtmlTemplate">default.implement.TemplateEngine/PQuery.class.php</link>
-		<simple_html_dom_node_get_dom targetclass="simple_html_dom_node"><![CDATA[function & getDOM(){ return $this->dom; }]]></simple_html_dom_node_get_dom>
+		<package>HtmlTemplate</package>
 		<link>default.implement.MVC/HtmlViewAssignor</link>
 	</HtmlViewAssignor>
 	<Image>

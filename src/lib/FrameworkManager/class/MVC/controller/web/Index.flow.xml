@@ -2,18 +2,18 @@
 <xml>
 	<section id="Index">
 		<execute>
-			<assign var="res" class="Session" method="isSession" arg1="FrameworkManagerConfigure::DB_DSN"/>
+			<assign var="res" class="Auth" method="isSession" arg1="FrameworkManagerConfigure::DB_DSN"/>
 			<if var="res" val="true">
 				<flow section="Index-authed"/>
 			</if>
 			<else>
 				<flow section="Login"/>
-		    </else>
+			</else>
 		</execute>
 	</section>
 	<section id="Index-authed" type="web">
 		<execute>
-	   		<view/>
+			<view/>
 		</execute>
 	</section>
 </xml>

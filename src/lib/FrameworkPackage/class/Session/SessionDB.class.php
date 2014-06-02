@@ -6,20 +6,20 @@
  */
 class SessionDB extends SessionDataDB implements SessionIO {
 
-	private static $_initialized = FALSE;
-	private static $_replaced = FALSE;
-	private static $_tokenKeyName = 'token';
-	private static $_token = NULL;
-	private static $_identifier = NULL;
-	private static $_domain = NULL;
-	private static $_path = '/';
-	private static $_expiredtime = 3600;// 60分
-	private static $_sessionTblName = 'session_table';
-	private static $_sessionPkeyName = 'token';
-	private static $_sessionDateKeyName = 'created';
-	private static $_cryptKey = NULL;
-	private static $_cryptIV = NULL;
-	private static $_DBO = NULL;
+	protected static $_DBO = NULL;
+	protected static $_initialized = FALSE;
+	protected static $_replaced = FALSE;
+	protected static $_tokenKeyName = 'token';
+	protected static $_token = NULL;
+	protected static $_identifier = NULL;
+	protected static $_domain = NULL;
+	protected static $_path = '/';
+	protected static $_expiredtime = 3600;// 60分
+	protected static $_sessionTblName = 'session_table';
+	protected static $_sessionPKeyName = 'token';
+	protected static $_sessionDateKeyName = 'created';
+	protected static $_cryptKey = NULL;
+	protected static $_cryptIV = NULL;
 
 	/**
 	 * Sessionクラスの初期化
@@ -27,7 +27,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 	 * @param string セッションの有効期限
 	 * @param string DBDSN情報
 	 */
-	private static function _init($argDomain=NULL, $argExpiredtime=NULL, $argDSN=NULL){
+	protected static function _init($argDomain=NULL, $argExpiredtime=NULL, $argDSN=NULL){
 		if(FALSE === self::$_initialized){
 
 			// セッションの有効ドメインを設定
@@ -45,7 +45,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 			}
 			if(class_exists('Configure') && NULL !== Configure::constant('SESSION_DB_DSN')){
 				// 定義からセッションDBの接続情報を特定
-				$DSN = Configure::DB_DSN;
+				$DSN = Configure::SESSION_DB_DSN;
 			}
 			if(class_exists('Configure') && NULL !== Configure::constant('SESSION_EXPIRED_TIME')){
 				// 定義からセッションの有効期限を設定
@@ -56,8 +56,8 @@ class SessionDB extends SessionDataDB implements SessionIO {
 				self::$_sessionTblName = Configure::SESSION_TBL_NAME;
 			}
 			if(class_exists('Configure') && NULL !== Configure::constant('SESSION_TBL_PKEY_NAME')){
-				// 定義からセッションテーブルのPkey名を特定
-				self::$_sessionPkeyName = Configure::SESSION_TBL_PKEY_NAME;
+				// 定義からセッションテーブルのPKey名を特定
+				self::$_sessionPKeyName = Configure::SESSION_TBL_PKEY_NAME;
 			}
 			if(class_exists('Configure') && NULL !== Configure::constant('SESSION_DATE_KEY_NAME')){
 				// 定義から日時フィールド名を特定
@@ -106,8 +106,8 @@ class SessionDB extends SessionDataDB implements SessionIO {
 					self::$_sessionTblName = $ProjectConfigure::SESSION_TBL_NAME;
 				}
 				if(NULL !== $ProjectConfigure::constant('SESSION_TBL_PKEY_NAME')){
-					// 定義からセッションテーブルのPkey名を特定
-					self::$_sessionPkeyName = $ProjectConfigure::SESSION_TBL_PKEY_NAME;
+					// 定義からセッションテーブルのPKey名を特定
+					self::$_sessionPKeyName = $ProjectConfigure::SESSION_TBL_PKEY_NAME;
 				}
 				if(NULL !== $ProjectConfigure::constant('SESSION_DATE_KEY_NAME')){
 					// 定義から日時フィールド名を特定
@@ -115,27 +115,27 @@ class SessionDB extends SessionDataDB implements SessionIO {
 				}
 				if(NULL !== $ProjectConfigure::constant('CRYPT_KEY')){
 					// 定義から暗号化キーを設定
-					self::$_cryptKey = Configure::CRYPT_KEY;
+					self::$_cryptKey = $ProjectConfigure::CRYPT_KEY;
 				}
 				if(NULL !== $ProjectConfigure::constant('NETWORK_CRYPT_KEY')){
 					// 定義から暗号化キーを設定
-					self::$_cryptKey = Configure::NETWORK_CRYPT_KEY;
+					self::$_cryptKey = $ProjectConfigure::NETWORK_CRYPT_KEY;
 				}
 				if(NULL !== $ProjectConfigure::constant('SESSION_CRYPT_KEY')){
 					// 定義から暗号化キーを設定
-					self::$_cryptKey = Configure::SESSION_CRYPT_KEY;
+					self::$_cryptKey = $ProjectConfigure::SESSION_CRYPT_KEY;
 				}
 				if(NULL !== $ProjectConfigure::constant('CRYPT_IV')){
 					// 定義から暗号化IVを設定
-					self::$_cryptIV = Configure::CRYPT_IV;
+					self::$_cryptIV = $ProjectConfigure::CRYPT_IV;
 				}
 				if(NULL !== $ProjectConfigure::constant('NETWORK_CRYPT_IV')){
 					// 定義から暗号化IVを設定
-					self::$_cryptIV = Configure::NETWORK_CRYPT_IV;
+					self::$_cryptIV = $ProjectConfigure::NETWORK_CRYPT_IV;
 				}
 				if(NULL !== $ProjectConfigure::constant('SESSION_CRYPT_IV')){
 					// 定義から暗号化IVを設定
-					self::$_cryptIV = Configure::SESSION_CRYPT_IV;
+					self::$_cryptIV = $ProjectConfigure::SESSION_CRYPT_IV;
 				}
 			}
 
@@ -145,7 +145,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 					// セッションDBの接続情報を直指定
 					$DSN = $argDSN;
 				}
-				self::$_DBO = new DBO($DSN);
+				self::$_DBO = DBO::sharedInstance($DSN);
 			}
 
 			// セッションの有効期限を設定
@@ -176,7 +176,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 	 * @param string トークン文字列
 	 * @return mixed パースに失敗したらFALSE 成功した場合はstring 固有識別子を返す
 	 */
-	private static function _tokenToIdentifier($argToken){
+	protected static function _tokenToIdentifier($argToken){
 		$token = $argToken;
 		// 暗号化されたトークンの本体を取得
 		$encryptedToken = substr($token, 0, 128);
@@ -185,7 +185,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 		// トークンを複合
 		$decryptToken = Utilities::doHexDecryptAES($encryptedToken, self::$_cryptKey, self::$_cryptIV);
 		// XXXデフォルトのUUIDはSHA256
-		$identifier = substr($decryptToken, 0, 64);
+		$identifier = substr($decryptToken, 0, 32);
 		// トークンの中に含まれていた、トークンが発行された日時分秒文字列
 		$tokenTRUEExpierd = substr($decryptToken, 36, 14);
 
@@ -222,7 +222,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 	 * @param string identifier
 	 * @return string token
 	 */
-	private static function _identifierToToken($argIdentifier){
+	protected static function _identifierToToken($argIdentifier){
 		$identifier = $argIdentifier;
 		$newExpiredDatetime = Utilities::modifyDate('+'.(string)self::$_expiredtime . 'sec', 'YmdHis', NULL, NULL, 'GMT');
 		$token = Utilities::doHexEncryptAES($identifier.$newExpiredDatetime, self::$_cryptKey, self::$_cryptIV).$newExpiredDatetime;
@@ -232,7 +232,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 	/**
 	 * トークンの初期化
 	 */
-	private static function _initializeToken(){
+	protected static function _initializeToken(){
 		if(NULL === self::$_token){
 			if(isset($_COOKIE[self::$_tokenKeyName])){
 				// Cookieが在る場合はCookieからトークンと固有識別子を初期化する
@@ -240,9 +240,9 @@ class SessionDB extends SessionDataDB implements SessionIO {
 				$identifier = self::_tokenToIdentifier($token);
 				if(FALSE !== $identifier){
 					// SESSIONレコードを走査
-					$binds = array(self::$_sessionPkeyName => $token, 'expierddate' => Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
-					$Session = ORMapper::getModel(self::$_DBO, self::$_sessionTblName, '`' . self::$_sessionPkeyName . '` = :' . self::$_sessionPkeyName . ' AND `' . self::$_sessionDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDateKeyName . '` DESC limit 1', $binds);
-					if(strlen($Session->{self::$_sessionPkeyName}) > 0){
+					$binds = array(self::$_sessionPKeyName => $token, 'expierddate' => Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
+					$Session = ORMapper::getModel(self::$_DBO, self::$_sessionTblName, '`' . self::$_sessionPKeyName . '` = :' . self::$_sessionPKeyName . ' AND `' . self::$_sessionDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDateKeyName . '` DESC limit 1', $binds);
+					if(strlen($Session->{self::$_sessionPKeyName}) > 0){
 						// tokenとして認める
 						self::$_token = $token;
 						self::$_identifier = $identifier;
@@ -255,6 +255,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 				self::sessionID(self::$_identifier);
 				// トークンがまだ無いので、最初のトークンとして空文字を入れておく
 				self::$_token = "";
+				return TRUE;
 			}
 			// セッションは存在したが、一致特定出来なかった時はエラー終了
 			return FALSE;
@@ -280,9 +281,9 @@ class SessionDB extends SessionDataDB implements SessionIO {
 		// クッキーを書き換える
 		setcookie($argTokenKey, self::$_token, 0, self::$_path, self::$_domain);
 		// SESSHONレコードを更新
-		$binds = array(self::$_sessionPkeyName => $token, 'expierddate' => Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
+		$binds = array(self::$_sessionPKeyName => $token, 'expierddate' => Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
 		$Session = ORMapper::getModel(self::$_DBO, self::$_sessionTblName);
-		$Session->{'set'.ucfirst(self::$_sessionPkeyName)}(self::$_token);
+		$Session->{'set'.ucfirst(self::$_sessionPKeyName)}(self::$_token);
 		$Session->{'set'.ucfirst(self::$_sessionDateKeyName)}(Utilities::modifyDate('+' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
 		$Session->save();
 	}
@@ -294,7 +295,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 	public static function sessionID($argIdentifier=NULL){
 		if(NULL === self::$_identifier && NULL === $argIdentifier){
 			// idetifierが未セットの場合は自動生成
-			self::$_identifier = sha256(uniqid());
+			self::$_identifier = Utilities::doHexEncryptAES(uniqid(), self::$_cryptKey, self::$_cryptIV);
 		}
 		if(NULL === $argIdentifier){
 			// 現在設定されている固有識別子をセッションIDとして返却
@@ -330,7 +331,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 			// 自動セッションスタート
 			self::_init();
 		}
-		// XXX 標準ではセッションデータのPkeyはセッションの固有識別子
+		// XXX 標準ではセッションデータのPKeyはセッションの固有識別子
 		return parent::get(self::$_identifier);
 	}
 
@@ -352,7 +353,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 			// 2度はヘッダ出力しない為に処理終了を取っておく
 			$replaced = TRUE;
 		}
-		// XXX 標準ではセッションデータのPkeyはセッションの固有識別子
+		// XXX 標準ではセッションデータのPKeyはセッションの固有識別子
 		return parent::set(self::$_identifier, $argKey, $argment);
 	}
 }

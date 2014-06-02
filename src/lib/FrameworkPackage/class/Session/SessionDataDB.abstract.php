@@ -6,21 +6,21 @@
  */
 abstract class SessionDataDB {
 
-	private static $_initialized = FALSE;
-	private static $_expiredtime = 3600;// 60分
-	private static $_sessionDataTblName = 'session_table';
-	private static $_sessionDataPkeyName = 'uid';
-	private static $_serializeKeyName = 'data';
-	private static $_sessionDataDateKeyName = 'created';
-	private static $_sessionData = NULL;
-	private static $_DBO = NULL;
+	protected static $_initialized = FALSE;
+	protected static $_expiredtime = 3600;// 60分
+	protected static $_sessionDataTblName = 'session_table';
+	protected static $_sessionDataPKeyName = 'uid';
+	protected static $_serializeKeyName = 'data';
+	protected static $_sessionDataDateKeyName = 'created';
+	protected static $_sessionData = NULL;
+	protected static $_DBO = NULL;
 
 	/**
 	 * Sessionクラスの初期化
 	 * @param string セッションの有効期限
 	 * @param string DBDSN情報
 	 */
-	private static function _init($argExpiredtime=NULL, $argDSN=NULL){
+	protected static function _init($argExpiredtime=NULL, $argDSN=NULL){
 		if(FALSE === self::$_initialized){
 
 			$DSN = NULL;
@@ -43,8 +43,8 @@ abstract class SessionDataDB {
 				self::$_sessionDataTblName = $ProjectConfigure::SESSION_DATA_TBL_NAME;
 			}
 			if(class_exists('Configure') && NULL !== Configure::constant('SESSION_DATA_TBL_PKEY_NAME')){
-				// 定義からセッションデータテーブルのPkey名を特定
-				self::$_sessionDataPkeyName = Configure::SESSION_DATA_TBL_PKEY_NAME;
+				// 定義からセッションデータテーブルのPKey名を特定
+				self::$_sessionDataPKeyName = Configure::SESSION_DATA_TBL_PKEY_NAME;
 			}
 			if(class_exists('Configure') && NULL !== Configure::constant('SERIALIZE_KEY_NAME')){
 				// 定義からシリアライズデータのフィールド名を特定
@@ -73,8 +73,8 @@ abstract class SessionDataDB {
 					self::$_sessionDataTblName = $ProjectConfigure::SESSION_DATA_TBL_NAME;
 				}
 				if(NULL !== $ProjectConfigure::constant('SESSION_DATA_TBL_PKEY_NAME')){
-					// 定義からセッションデータテーブルのPkey名を特定
-					self::$_sessionDataPkeyName = $ProjectConfigure::SESSION_DATA_TBL_PKEY_NAME;
+					// 定義からセッションデータテーブルのPKey名を特定
+					self::$_sessionDataPKeyName = $ProjectConfigure::SESSION_DATA_TBL_PKEY_NAME;
 				}
 				if(NULL !== $ProjectConfigure::constant('SERIALIZE_KEY_NAME')){
 					// 定義からuserTable名を特定
@@ -92,7 +92,7 @@ abstract class SessionDataDB {
 					// セッションDBの接続情報を直指定
 					$DSN = $argDSN;
 				}
-				self::$_DBO = new DBO($DSN);
+				self::$_DBO = DBO::sharedInstance($DSN);
 			}
 
 			// セッションの有効期限を設定
@@ -111,11 +111,11 @@ abstract class SessionDataDB {
 	 * セッションデータデーブルからデータを取得し復元する
 	 * @param string セッションデータのプライマリーキー
 	 */
-	private static function _initializeData($argPkey){
+	protected static function _initializeData($argPKey){
 		if(NULL === self::$_sessionData){
-			$binds = array(self::$_sessionDataPkeyName => $argPkey, 'expierddate' => Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
-			$Session = ORMapper::getModel(self::$_DBO, self::$_sessionDataTblName, '`' . self::$_sessionDataPkeyName . '` = :' . self::$_sessionDataPkeyName . ' AND `' . self::$_sessionDataDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDataDateKeyName . '` DESC limit 1', $binds);
-			if(strlen($Session->{self::$_sessionDataPkeyName}) > 0){
+			$binds = array(self::$_sessionDataPKeyName => $argPKey, 'expierddate' => Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
+			$Session = ORMapper::getModel(self::$_DBO, self::$_sessionDataTblName, '`' . self::$_sessionDataPKeyName . '` = :' . self::$_sessionDataPKeyName . ' AND `' . self::$_sessionDataDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDataDateKeyName . '` DESC limit 1', $binds);
+			if(strlen($Session->{self::$_sessionDataPKeyName}) > 0){
 				self::$_sessionData = json_decode($Session->{self::$_serializeKeyName}, TRUE);
 			}
 			else{
@@ -130,11 +130,11 @@ abstract class SessionDataDB {
 	 * セッションデータテーブルにデータをしまう
 	 * @param string セッションデータのプライマリーキー
 	 */
-	private static function _finalizeData($argPkey){
+	protected static function _finalizeData($argPKey){
 		if(is_array(self::$_sessionData) && count(self::$_sessionData) > 0){
-			$Session = ORMapper::getModel(self::$_DBO, self::$_sessionDataTblName, '`' . self::$_sessionDataPkeyName . '` = :' . self::$_sessionDataPkeyName . ' AND `' . self::$_sessionDataDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDataDateKeyName . '` DESC limit 1', $binds);
+			$Session = ORMapper::getModel(self::$_DBO, self::$_sessionDataTblName, '`' . self::$_sessionDataPKeyName . '` = :' . self::$_sessionDataPKeyName . ' AND `' . self::$_sessionDataDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDataDateKeyName . '` DESC limit 1', $binds);
 			// XXX identifierが変えられたかもしれないので、もう一度セット
-			$Session->{'set'.ucfirst(self::$_sessionDataPkeyName)}($argPkey);
+			$Session->{'set'.ucfirst(self::$_sessionDataPKeyName)}($argPKey);
 			$Session->{'set'.ucfirst(self::$_sessionDataDateKeyName)}(Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
 			try{
 				$Session->save();
@@ -182,13 +182,13 @@ abstract class SessionDataDB {
 	 * @param int 有効期限の直指定
 	 * @param mixed DBDSN情報の直指定
 	 */
-	public static function get($argPkey, $argKey = NULL, $argExpiredtime=NULL, $argDSN=NULL){
+	public static function get($argPKey, $argKey = NULL, $argExpiredtime=NULL, $argDSN=NULL){
 		if(FALSE === self::$_initialized){
 			self::_init($argExpiredtime, $argDSN);
 		}
 		// データに実際にアクセスする時に、データの初期化は実行される
 		if(NULL === self::$_sessionData){
-			self::_initializeData($argPkey);
+			self::_initializeData($argPKey);
 		}
 		if(isset(self::$_sessionData[$argKey])){
 			return self::$_sessionData[$argKey];
@@ -205,18 +205,18 @@ abstract class SessionDataDB {
 	 * @param int 有効期限の直指定
 	 * @param mixed DBDSN情報の直指定
 	 */
-	public static function set($argPkey, $argKey, $argment, $argExpiredtime=NULL, $argDSN=NULL){
+	public static function set($argPKey, $argKey, $argment, $argExpiredtime=NULL, $argDSN=NULL){
 		if(FALSE === self::$_initialized){
 			self::_init($argExpiredtime, $argDSN);
 		}
 		// データに実際にアクセスする時に、データの初期化は実行される
 		if(NULL === self::$_sessionData){
-			self::_initializeData($argPkey);
+			self::_initializeData($argPKey);
 		}
 		// 配列にデータを追加
 		self::$_sessionData[$argKey] = $argment;
 		// セッションデータレコードの更新
-		if(FALSE === self::_finalizeData($argPkey)){
+		if(FALSE === self::_finalizeData($argPKey)){
 			// エラー
 			throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.Utilities::getBacktraceExceptionLine());
 		}

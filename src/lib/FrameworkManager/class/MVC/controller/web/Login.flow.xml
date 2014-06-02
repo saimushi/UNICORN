@@ -2,7 +2,7 @@
 <xml>
 	<section id="Login" type="web">
 		<execute>
-	   		<view/>
+			<view/>
 		</execute>
 	</section>
 </xml>
