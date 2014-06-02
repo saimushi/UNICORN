@@ -7,9 +7,27 @@
 Interface SessionIO {
 
 	/**
+	 * Cookieからトークンを出し入れする時のキー名を変えられるようにする為のアクセサ
+	 * @param string トークンキー名
+	 */
+	public static function setTokenKey($argTokenKey);
+
+	/**
+	 * 新しいトークンを指定のトークンキー名で払い出しcookieにセットする
+	 * @param string トークンキー名
+	*/
+	public static function setTokenToCookie($argTokenKey);
+
+	/**
+	 * セッションIDを明示的に指定する
+	 * @param string identifier
+	*/
+	public static function sessionID($argIdentifier=NULL);
+
+	/**
 	 * セッションを開始する
 	 * @param string cookieの対象ドメイン指定
-	 */
+	*/
 	public static function start($argDomain=NULL, $argExpiredtime=NULL, $argDSN=NULL);
 
 	/**

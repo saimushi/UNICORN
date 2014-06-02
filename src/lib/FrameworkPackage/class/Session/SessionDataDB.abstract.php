@@ -4,12 +4,12 @@
  * Sessionデータクラス(DB版)
  * @author saimushi
  */
-abstract class SessionDBData {
+abstract class SessionDataDB {
 
 	private static $_initialized = FALSE;
 	private static $_expiredtime = 3600;// 60分
 	private static $_sessionDataTblName = 'session_table';
-	private static $_sessionDataTblPkeyName = 'uid';
+	private static $_sessionDataPkeyName = 'uid';
 	private static $_serializeKeyName = 'data';
 	private static $_sessionDataDateKeyName = 'created';
 	private static $_sessionData = NULL;
@@ -17,6 +17,8 @@ abstract class SessionDBData {
 
 	/**
 	 * Sessionクラスの初期化
+	 * @param string セッションの有効期限
+	 * @param string DBDSN情報
 	 */
 	private static function _init($argExpiredtime=NULL, $argDSN=NULL){
 		if(FALSE === self::$_initialized){
@@ -42,7 +44,7 @@ abstract class SessionDBData {
 			}
 			if(class_exists('Configure') && NULL !== Configure::constant('SESSION_DATA_TBL_PKEY_NAME')){
 				// 定義からセッションデータテーブルのPkey名を特定
-				self::$_sessionDataTblPkeyName = Configure::SESSION_DATA_TBL_PKEY_NAME;
+				self::$_sessionDataPkeyName = Configure::SESSION_DATA_TBL_PKEY_NAME;
 			}
 			if(class_exists('Configure') && NULL !== Configure::constant('SERIALIZE_KEY_NAME')){
 				// 定義からシリアライズデータのフィールド名を特定
@@ -72,7 +74,7 @@ abstract class SessionDBData {
 				}
 				if(NULL !== $ProjectConfigure::constant('SESSION_DATA_TBL_PKEY_NAME')){
 					// 定義からセッションデータテーブルのPkey名を特定
-					self::$_sessionDataTblPkeyName = $ProjectConfigure::SESSION_DATA_TBL_PKEY_NAME;
+					self::$_sessionDataPkeyName = $ProjectConfigure::SESSION_DATA_TBL_PKEY_NAME;
 				}
 				if(NULL !== $ProjectConfigure::constant('SERIALIZE_KEY_NAME')){
 					// 定義からuserTable名を特定
@@ -107,68 +109,43 @@ abstract class SessionDBData {
 
 	/**
 	 * セッションデータデーブルからデータを取得し復元する
+	 * @param string セッションデータのプライマリーキー
 	 */
 	private static function _initializeData($argPkey){
 		if(NULL === self::$_sessionData){
-			$query = 'SELECT `' . self::$_serializeKeyName . '` FROM `' . self::$_sessionDataTblName . '` WHERE `' . self::$_sessionDataTblPkeyName . '` = :' . self::$_sessionDataTblPkeyName . ' AND `' . self::$_sessionDataDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDataDateKeyName . '` DESC limit 1';
-			$date = Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT');
-			$binds = array(self::$_sessionDataTblPkeyName => $argPkey, 'expierddate' => $date);
-			$response = self::$_DBO->execute($query, $binds);
-			if(is_object($response)){
-				if(0 < $response->RecordCount()){
-					$tmp = $response->GetArray();
-					self::$_sessionData = json_decode($tmp[0][self::$_serializeKeyName], TRUE);
-				}
-				else{
-					// 配列に初期化
-					self::$_sessionData = array();
-				}
+			$binds = array(self::$_sessionDataPkeyName => $argPkey, 'expierddate' => Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
+			$Session = ORMapper::getModel(self::$_DBO, self::$_sessionDataTblName, '`' . self::$_sessionDataPkeyName . '` = :' . self::$_sessionDataPkeyName . ' AND `' . self::$_sessionDataDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDataDateKeyName . '` DESC limit 1', $binds);
+			if(strlen($Session->{self::$_sessionDataPkeyName}) > 0){
+				self::$_sessionData = json_decode($Session->{self::$_serializeKeyName}, TRUE);
+			}
+			else{
+				// 配列に初期化
+				self::$_sessionData = array();
 			}
 		}
 		return TRUE;
 	}
 
 	/**
-	 * システム毎に書き換え推奨
+	 * セッションデータテーブルにデータをしまう
+	 * @param string セッションデータのプライマリーキー
 	 */
 	private static function _finalizeData($argPkey){
 		if(is_array(self::$_sessionData) && count(self::$_sessionData) > 0){
-			// XXX identifierが変えられたかもしれないので、もう一度セレクトから
-			$query = 'SELECT `' . self::$_serializeKeyName . '` FROM `' . self::$_sessionDataTblName . '` WHERE `' . self::$_sessionDataTblPkeyName . '` = :' . self::$_sessionDataTblPkeyName . ' ORDER BY `' . self::$_sessionDataDateKeyName . '` DESC limit 1';
-			$date = Utilities::modifyDate('+' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT');
-			$data = json_encode(self::$_sessionData);
-			$binds = array(self::$_serializeKeyName => $data, self::$_sessionDataTblPkeyName => $argPkey, self::$_sessionDataDateKeyName => $date);
-			$response = self::$_DBO->execute($query, array(self::$_sessionDataTblPkeyName => $argPkey));
-			if(is_object($response) && 0 < $response->RecordCount()){
-				$res = $response->GetAll();
-				if($data !== $res[0][self::$_serializeKeyName]){
-					// update
-					$query = 'UPDATE `' . self::$_sessionDataTblName . '` SET `' . self::$_serializeKeyName . '` = :' . self::$_serializeKeyName . ' , `' . self::$_sessionDataDateKeyName . '` = :' . self::$_sessionDataDateKeyName . ' WHERE `' . self::$_sessionDataTblPkeyName . '` = :' . self::$_sessionDataTblPkeyName . ' ';
-					$response = self::$_DBO->execute($query, $binds);
-					if ($response) {
-						return TRUE;
-					}
-				}
+			$Session = ORMapper::getModel(self::$_DBO, self::$_sessionDataTblName, '`' . self::$_sessionDataPkeyName . '` = :' . self::$_sessionDataPkeyName . ' AND `' . self::$_sessionDataDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDataDateKeyName . '` DESC limit 1', $binds);
+			// XXX identifierが変えられたかもしれないので、もう一度セット
+			$Session->{'set'.ucfirst(self::$_sessionDataPkeyName)}($argPkey);
+			$Session->{'set'.ucfirst(self::$_sessionDataDateKeyName)}(Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
+			try{
+				$Session->save();
+				// 正常終了
 				return TRUE;
 			}
-			else{
-				// insert
-				$query = 'INSERT INTO `' . self::$_sessionDataTblName . '` (`' . self::$_serializeKeyName . '`, `' . self::$_sessionDataTblPkeyName . '`, `' . self::$_sessionDataDateKeyName . '`) VALUES ( :' . self::$_serializeKeyName . ' , :' . self::$_sessionDataTblPkeyName . ' , :' . self::$_sessionDataDateKeyName . ' )';
-				try{
-					$response = self::$_DBO->execute($query, $binds);
-					if ($response) {
-						return TRUE;
-					}
-				}
-				catch (exception $Exception){
-					// update
-					// XXX この場合は、並列プロセス(Ajaxの非同期プロセス等)が先にinsertを走らせた場合に発生する
-					$query = 'UPDATE `' . self::$_sessionDataTblName . '` SET `' . self::$_serializeKeyName . '` = :' . self::$_serializeKeyName . ' , `' . self::$_sessionDataDateKeyName . '` = :' . self::$_sessionDataDateKeyName . ' WHERE `' . self::$_sessionDataTblPkeyName . '` = :' . self::$_sessionDataTblPkeyName . ' ';
-					$response = self::$_DBO->execute($query, $binds);
-					if ($response) {
-						return TRUE;
-					}
-				}
+			catch (exception $Exception){
+				// XXX この場合は、並列プロセス(Ajaxの非同期プロセス等)が先にinsertを走らせた場合に発生する
+				$Session->save();
+				// 正常終了
+				return TRUE;
 			}
 			// XXX SESSIONExceptionクラスを実装予定
 			logging(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.self::$_DBO->getLastErrorMessage(), 'exception');
@@ -177,14 +154,34 @@ abstract class SessionDBData {
 		return TRUE;
 	}
 
+	/**
+	 * セッションデータのキーの数を返す
+	 */
 	public static function count(){
-		count(self::$_sessionData);
+		if(NULL !== self::$_sessionData){
+			return count(self::$_sessionData);
+		}
+		return 0;
 	}
 
+	/**
+	 * セッションデータのキーの一覧を返す
+	 */
 	public static function keys(){
-		return array_keys(self::$_sessionData);
+		if(NULL !== self::$_sessionData){
+			return array_keys(self::$_sessionData);
+		}
+		return array();
 	}
 
+	/**
+	 * セッションデータの指定のキー名で保存されたデータを返す
+	 * @param string セッションデータのプライマリーキー
+	 * @param string キー名
+	 * @param mixed 変数全て(PHPオブジェクトは保存出来ない！)
+	 * @param int 有効期限の直指定
+	 * @param mixed DBDSN情報の直指定
+	 */
 	public static function get($argPkey, $argKey = NULL, $argExpiredtime=NULL, $argDSN=NULL){
 		if(FALSE === self::$_initialized){
 			self::_init($argExpiredtime, $argDSN);
@@ -196,9 +193,18 @@ abstract class SessionDBData {
 		if(isset(self::$_sessionData[$argKey])){
 			return self::$_sessionData[$argKey];
 		}
+		// 存在しないキーへのアクセスはNULL
 		return NULL;
 	}
 
+	/**
+	 * セッションデータに指定のキー名で指定のデータを追加する
+	 * @param string セッションデータのプライマリーキー
+	 * @param string キー名
+	 * @param mixed 変数全て(PHPオブジェクトは保存出来ない！)
+	 * @param int 有効期限の直指定
+	 * @param mixed DBDSN情報の直指定
+	 */
 	public static function set($argPkey, $argKey, $argment, $argExpiredtime=NULL, $argDSN=NULL){
 		if(FALSE === self::$_initialized){
 			self::_init($argExpiredtime, $argDSN);
@@ -209,6 +215,7 @@ abstract class SessionDBData {
 		}
 		// 配列にデータを追加
 		self::$_sessionData[$argKey] = $argment;
+		// セッションデータレコードの更新
 		if(FALSE === self::_finalizeData($argPkey)){
 			// エラー
 			throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.Utilities::getBacktraceExceptionLine());
@@ -218,8 +225,10 @@ abstract class SessionDBData {
 
 	/**
 	 * Expiredの切れたSessionレコードをDeleteする
+	 * @param int 有効期限の直指定
+	 * @param mixed DBDSN情報の直指定
 	 */
-	public static function clean(){
+	public static function clean($argExpiredtime=NULL, $argDSN=NULL){
 		if(FALSE === self::$_initialized){
 			self::_init($argExpiredtime, $argDSN);
 		}
@@ -227,7 +236,7 @@ abstract class SessionDBData {
 		$date = Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT');
 		$response = self::$_DBO->execute($query, array(self::$_sessionDataDateKeyName => $date));
 		if (!$response) {
-			// XXX
+			// XXX cleanの失敗は、エラーとはしない！
 			logging(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.self::$_DBO->getLastErrorMessage(), 'exception');
 		}
 		return TRUE;
