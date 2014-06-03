@@ -193,12 +193,16 @@ class FlowManager
 				$code .= $tab . 'return $res;';
 			}
 			elseif('view' === $codeType){
+				$section = 'str_replace(\'_\', \'-\', $this->controlerClassName)';
+				if(isset($tmpAttr['section']) && strlen($tmpAttr['section']) > 0){
+					$section = '\'' . $tmpAttr['section'] . '\'';
+				}
 				$target = '\'\'';
 				if(isset($tmpAttr['target']) && strlen($tmpAttr['target']) > 0){
 					$target = self::_resolveValue($tmpAttr['target']);
 				}
 				// Viewを表示する処理を生成
-				$code .= '$html = Core::loadView(str_replace(\'_\', \'-\', $this->controlerClassName), FALSE, ' . $target . ')->execute(NULL, Flow::$params);' . PHP_EOL;
+				$code .= '$html = Core::loadView(' . $section . ', FALSE, ' . $target . ')->execute(NULL, Flow::$params);' . PHP_EOL;
 				$code .= $tab . 'return $html;';
 			}
 			else{

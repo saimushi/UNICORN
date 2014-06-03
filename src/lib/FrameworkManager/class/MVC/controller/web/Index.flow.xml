@@ -13,7 +13,7 @@
 	</section>
 	<section id="Index-authed" type="web">
 		<execute>
-			<view/>
+			<view section="Index"/>
 		</execute>
 	</section>
 </xml>

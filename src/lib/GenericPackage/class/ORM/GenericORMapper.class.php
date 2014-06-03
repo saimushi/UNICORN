@@ -15,9 +15,17 @@ class GenericORMapper {
 	}
 
 	/**
-	 * モデルクラスの取得
+	 * エイリアス
 	 */
 	public static function getModel($argDBO, $argModelName, $argExtractionCondition=NULL, $argBinds=NULL, $argSeqQuery=NULL){
+		return self::getAutoGenerateModel($argDBO, $argModelName, $argExtractionCondition, $argBinds, $argSeqQuery);
+	}
+
+	/**
+	 * モデルクラスを自動生成して返す
+	 * 2.0よりオートマイグレーションが付きました！
+	 */
+	public static function getAutoGenerateModel($argDBO, $argModelName, $argExtractionCondition=NULL, $argBinds=NULL, $argSeqQuery=NULL){
 
 		// モデルクラス名とテーブル名を特定する
 		$tableName = $argModelName;

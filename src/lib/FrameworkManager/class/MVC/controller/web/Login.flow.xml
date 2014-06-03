@@ -2,7 +2,12 @@
 <xml>
 	<section id="Login" type="web">
 		<execute>
-			<view/>
+			<view flow-form-id="auth"/>
+		</execute>
+	</section>
+	<section id="Login-certfy" type="web">
+		<execute>
+			<assign var="res" class="Auth" method="isisRegistered" arg1="auth-form-email" arg2="auth-form-pass" arg3="FrameworkManagerConfigure::DB_DSN"/>
 		</execute>
 	</section>
 </xml>
