@@ -2,7 +2,7 @@
 <xml>
 	<section id="Index">
 		<execute>
-			<assign var="res" class="Auth" method="isSession" arg1="FrameworkManagerConfigure::DB_DSN"/>
+			<assign var="res" class="Auth" method="isCertification" arg1="FrameworkManagerConfigure::DB_DSN"/>
 			<if var="res" val="true">
 				<flow section="Index-authed"/>
 			</if>

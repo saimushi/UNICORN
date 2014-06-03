@@ -186,10 +186,10 @@ class Auth
 	}
 
 	/**
-	 * セッションが既にあるかどうか
-	 * @param string $argDSN
+	 * 認証が証明済みのユーザーモデルを返す
+	 * @param string DB接続情報
 	 */
-	public static function isSession($argDSN = NULL){
+	public static function getCertifiedUser($argDSN = NULL){
 		if(FALSE === self::$_initialized){
 			self::_init($argDSN);
 		}
@@ -198,7 +198,7 @@ class Auth
 		$sessionIdentifier = Session::sessionID();
 		debug( self::$_sessionCryptKey . ':' . self::$_sessionCryptIV);
 		debug("session identifier".$sessionIdentifier);
-		$userID = Utilities::doHexDecryptAES($sessionIdentifier, self::$_sessionCryptKey, self::$_authCryptIV);
+		$userID = Utilities::doHexDecryptAES($sessionIdentifier, self::$_sessionCryptKey, self::$_sessionCryptIV);
 		debug("userID=".$userID);
 		if(strlen($userID) > 0){
 			$User = ORMapper::getModel(self::$_DBO, self::$authTable, $userID);
@@ -206,7 +206,7 @@ class Auth
 			if(isset($User->{self::$authPKey}) && NULL !== $User->{self::$authPKey} && FALSE === is_object($User->{self::$authPKey}) && strlen((string)$User->{self::$authPKey}) > 0){
 				// UserIDが特定出来た
 				debug("Authlized");
-				return TRUE;
+				return $User;
 			}
 		}
 		// 認証出来ない！
@@ -215,10 +215,109 @@ class Auth
 	}
 
 	/**
+	 * 認証が証明済みかどうか(セッションが既にあるかどうか)
+	 * @param string DB接続情報
+	 */
+	public static function isCertification($argDSN = NULL){
+		if(FALSE === self::$_initialized){
+			self::_init($argDSN);
+		}
+		if(FALSE === self::getCertifiedUser($argDSN)){
+			return FALSE;
+		}
+		return TRUE;
+	}
+
+	/**
+	 * 認証を証明する(ログインしてセッションを発行する)
+	 * @param string DB接続情報
+	 */
+	public static function certify($argID, $argPass, $argDSN = NULL){
+		if(FALSE === self::$_initialized){
+			self::_init($argDSN);
+		}
+		// ユーザーモデルを取得
+		$User = self::getRegisteredUser($argID, $argPass, $argDSN);
+		if(FALSE === $User){
+			// 証明失敗
+			return FALSE;
+		}
+		// セッションを発行
+		Session::start();
+		$userID = Utilities::doHexEncryptAES($User->{self::$authPKey}, self::$_sessionCryptKey, self::$_sessionCryptIV);
+		debug('new identifier='.$userID);
+		Session::sessionID();
+		return TRUE;
+	}
+
+	/**
 	 * 登録済みかどうか
 	 * @param string $argDSN
 	 */
-	public static function isRegistered($argDSN = NULL){
+	public static function getRegisteredUser($argID, $argPass, $argDSN = NULL){
+		if(FALSE === self::$_initialized){
+			self::_init($argDSN);
+		}
+		$query = '`' . self::$authIDField . '` = :' . self::$authIDField . ' AND `' . self::$authPassField . '` = ' . self::$authPassField . ' ';
+		$binds = array(self::$authIDField => self::_resolveEncrypted($argID, self::$authIDEncrypted), self::$authPassField => self::_resolveEncrypted($argPass, self::$authPassEncrypted));
+		$User = ORMapper::getModel(self::$_DBO, self::$authTable, $query, $binds);
+		if(isset($User->{self::$authPKey}) && NULL !== $User->{self::$authPKey} && FALSE === is_object($User->{self::$authPKey}) && strlen((string)$User->{self::$authPKey}) > 0){
+			// 登録済みのユーザーIDを返す
+			return $User;
+		}
+		// ユーザー未登録
+		return FALSE;
+	}
+
+	/**
+	 * 登録済みかどうか
+	 * @param string $argDSN
+	 */
+	public static function isRegistered($argID, $argPass, $argDSN = NULL){
+		if(FALSE === self::$_initialized){
+			self::_init($argDSN);
+		}
+		if(FALSE === self::getRegisteredUser($argID, $argPass, $argDSN)){
+			return FALSE;
+		}
+		return TRUE;
+	}
+
+	/**
+	 * 登録する
+	 * @param string DB接続情報
+	 */
+	public static function registration($argID, $argPass, $argDSN = NULL){
+		if(FALSE === self::$_initialized){
+			self::_init($argDSN);
+		}
+		$id = self::_resolveEncrypted($argID, self::$authIDEncrypted);
+		$pas = self::_resolveEncrypted($argPass, self::$authPassEncrypted);
+		$query = '`' . self::$authIDField . '` = :' . self::$authIDField . ' AND `' . self::$authPassField . '` = ' . self::$authPassField . ' ';
+		$binds = array(self::$authIDField => $id, self::$authPassField => $pass);
+		$User = ORMapper::getModel(self::$_DBO, self::$authTable, $query, $binds);
+		$User->{'set'.ucfirst(self::$authIDField)}($id);
+		$User->{'set'.ucfirst(self::$authPassField)}($pass);
+		$User->save();
+		return $User;
+	}
+
+	/**
+	 * 登録済みかどうか
+	 * @param string $argDSN
+	 */
+	protected static function _resolveEncrypted($argString, $argAlgorism = NULL){
+		$string = $argString;
+		if('sha1' === strtolower($argAlgorism)){
+			$string = sha1($argString);
+		}
+		elseif('sha256' === strtolower($argAlgorism)){
+			$string = sha256($argString);
+		}
+		elseif(FALSE !== strpos(strtolower($argAlgorism), 'aes')){
+			$string = Utilities::doHexEncryptAES($argString, self::$_authCryptKey, self::$_authCryptIV);;
+		}
+		return $string;
 	}
 }
 ?>
