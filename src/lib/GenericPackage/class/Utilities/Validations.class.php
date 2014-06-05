@@ -80,7 +80,7 @@ class Validations {
 			self::$_message .= 'part';
 			throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.$Exception->__toString());
 		}
-		// domain name のチェック
+
 		return TRUE;
 	}
 

@@ -104,7 +104,7 @@ class Auth
 					// 定義からセッションDBの接続情報を特定
 					$DSN = $ProjectConfigure::AUTH_DB_DSN;
 				}
-				if(NULL !== $ProjectConfigure::constant(PROJECT_NAME . 'AUTH_TBL_NAME')){
+				if(NULL !== $ProjectConfigure::constant('AUTH_TBL_NAME')){
 					// 定義からuserTable名を特定
 					self::$authTable = $ProjectConfigure::AUTH_TBL_NAME;
 				}
@@ -201,9 +201,10 @@ class Auth
 		$userID = Utilities::doHexDecryptAES($sessionIdentifier, self::$_sessionCryptKey, self::$_sessionCryptIV);
 		debug("userID=".$userID);
 		if(strlen($userID) > 0){
+			debug(self::$authTable);
 			$User = ORMapper::getModel(self::$_DBO, self::$authTable, $userID);
-			debug("userID=".$User->{self::$authPKey});
-			if(isset($User->{self::$authPKey}) && NULL !== $User->{self::$authPKey} && FALSE === is_object($User->{self::$authPKey}) && strlen((string)$User->{self::$authPKey}) > 0){
+			debug("userID=".$User->{self::$authPKeyField});
+			if(isset($User->{self::$authPKeyField}) && NULL !== $User->{self::$authPKeyField} && FALSE === is_object($User->{self::$authPKeyField}) && strlen((string)$User->{self::$authPKeyField}) > 0){
 				// UserIDが特定出来た
 				debug("Authlized");
 				return $User;
@@ -222,7 +223,7 @@ class Auth
 		if(FALSE === self::$_initialized){
 			self::_init($argDSN);
 		}
-		if(FALSE === self::getCertifiedUser($argDSN)){
+		if(FALSE === self::getCertifiedUser()){
 			return FALSE;
 		}
 		return TRUE;
@@ -232,19 +233,41 @@ class Auth
 	 * 認証を証明する(ログインしてセッションを発行する)
 	 * @param string DB接続情報
 	 */
-	public static function certify($argID, $argPass, $argDSN = NULL){
+	public static function certify($argID = NULL, $argPass = NULL, $argDSN = NULL){
 		if(FALSE === self::$_initialized){
 			self::_init($argDSN);
 		}
+		$id = $argID;
+		$pass = $argPass;
+		if(NULL === $id){
+			if(TRUE === class_exists('Flow', FALSE) && isset(Flow::$params) && isset(Flow::$params['post']) && TRUE === is_array(Flow::$params['post']) && isset(Flow::$params['post'][self::$authIDField])){
+				// Flowに格納されているPOSTパラメータを自動で使う
+				$id = Flow::$params['post'][self::$authIDField];
+			}
+			if(isset($_REQUEST) && isset($_REQUEST[self::$authIDField])){
+				// リクエストパラメータから直接受け取る
+				$id = $_REQUEST[self::$authIDField];
+			}
+		}
+		if(NULL === $pass){
+			if(TRUE === class_exists('Flow', FALSE) && isset(Flow::$params) && isset(Flow::$params['post']) && TRUE === is_array(Flow::$params['post']) && isset(Flow::$params['post'][self::$authPassField])){
+				// Flowに格納されているPOSTパラメータを自動で使う
+				$pass = Flow::$params['post'][self::$authPassField];
+			}
+			if(isset($_REQUEST) && isset($_REQUEST[self::$authPassField])){
+				// リクエストパラメータから直接受け取る
+				$pass = $_REQUEST[self::$authPassField];
+			}
+		}
 		// ユーザーモデルを取得
-		$User = self::getRegisteredUser($argID, $argPass, $argDSN);
+		$User = self::getRegisteredUser($id, $pass);
 		if(FALSE === $User){
 			// 証明失敗
 			return FALSE;
 		}
 		// セッションを発行
 		Session::start();
-		$userID = Utilities::doHexEncryptAES($User->{self::$authPKey}, self::$_sessionCryptKey, self::$_sessionCryptIV);
+		$userID = Utilities::doHexEncryptAES($User->{self::$authPKeyField}, self::$_sessionCryptKey, self::$_sessionCryptIV);
 		debug('new identifier='.$userID);
 		Session::sessionID();
 		return TRUE;
@@ -254,14 +277,37 @@ class Auth
 	 * 登録済みかどうか
 	 * @param string $argDSN
 	 */
-	public static function getRegisteredUser($argID, $argPass, $argDSN = NULL){
+	public static function getRegisteredUser($argID = NULL, $argPass = NULL, $argDSN = NULL){
 		if(FALSE === self::$_initialized){
 			self::_init($argDSN);
 		}
+		$id = $argID;
+		$pass = $argPass;
+		if(NULL === $id){
+			if(TRUE === class_exists('Flow', FALSE) && isset(Flow::$params) && isset(Flow::$params['post']) && TRUE === is_array(Flow::$params['post']) && isset(Flow::$params['post'][self::$authIDField])){
+				// Flowに格納されているPOSTパラメータを自動で使う
+				$id = Flow::$params['post'][self::$authIDField];
+			}
+			if(isset($_REQUEST) && isset($_REQUEST[self::$authIDField])){
+				// リクエストパラメータから直接受け取る
+				$id = $_REQUEST[self::$authIDField];
+			}
+		}
+		if(NULL === $pass){
+			if(TRUE === class_exists('Flow', FALSE) && isset(Flow::$params) && isset(Flow::$params['post']) && TRUE === is_array(Flow::$params['post']) && isset(Flow::$params['post'][self::$authPassField])){
+				// Flowに格納されているPOSTパラメータを自動で使う
+				$pass = Flow::$params['post'][self::$authPassField];
+			}
+			if(isset($_REQUEST) && isset($_REQUEST[self::$authPassField])){
+				// リクエストパラメータから直接受け取る
+				$pass = $_REQUEST[self::$authPassField];
+			}
+		}
+		debug($id.':'.$pass);
 		$query = '`' . self::$authIDField . '` = :' . self::$authIDField . ' AND `' . self::$authPassField . '` = ' . self::$authPassField . ' ';
-		$binds = array(self::$authIDField => self::_resolveEncrypted($argID, self::$authIDEncrypted), self::$authPassField => self::_resolveEncrypted($argPass, self::$authPassEncrypted));
+		$binds = array(self::$authIDField => self::_resolveEncrypted($id, self::$authIDEncrypted), self::$authPassField => self::_resolveEncrypted($pass, self::$authPassEncrypted));
 		$User = ORMapper::getModel(self::$_DBO, self::$authTable, $query, $binds);
-		if(isset($User->{self::$authPKey}) && NULL !== $User->{self::$authPKey} && FALSE === is_object($User->{self::$authPKey}) && strlen((string)$User->{self::$authPKey}) > 0){
+		if(isset($User->{self::$authPKeyField}) && NULL !== $User->{self::$authPKeyField} && FALSE === is_object($User->{self::$authPKeyField}) && strlen((string)$User->{self::$authPKeyField}) > 0){
 			// 登録済みのユーザーIDを返す
 			return $User;
 		}
@@ -273,11 +319,11 @@ class Auth
 	 * 登録済みかどうか
 	 * @param string $argDSN
 	 */
-	public static function isRegistered($argID, $argPass, $argDSN = NULL){
+	public static function isRegistered($argID = NULL, $argPass = NULL, $argDSN = NULL){
 		if(FALSE === self::$_initialized){
 			self::_init($argDSN);
 		}
-		if(FALSE === self::getRegisteredUser($argID, $argPass, $argDSN)){
+		if(FALSE === self::getRegisteredUser($argID, $argPass)){
 			return FALSE;
 		}
 		return TRUE;
@@ -287,12 +333,34 @@ class Auth
 	 * 登録する
 	 * @param string DB接続情報
 	 */
-	public static function registration($argID, $argPass, $argDSN = NULL){
+	public static function registration($argID = NULL, $argPass = NULL, $argDSN = NULL){
 		if(FALSE === self::$_initialized){
 			self::_init($argDSN);
 		}
-		$id = self::_resolveEncrypted($argID, self::$authIDEncrypted);
-		$pas = self::_resolveEncrypted($argPass, self::$authPassEncrypted);
+		$id = $argID;
+		$pass = $argPass;
+		if(NULL === $id){
+			if(TRUE === class_exists('Flow', FALSE) && isset(Flow::$params) && isset(Flow::$params['post']) && TRUE === is_array(Flow::$params['post']) && isset(Flow::$params['post'][self::$authIDField])){
+				// Flowに格納されているPOSTパラメータを自動で使う
+				$id = Flow::$params['post'][self::$authIDField];
+			}
+			if(isset($_REQUEST) && isset($_REQUEST[self::$authIDField])){
+				// リクエストパラメータから直接受け取る
+				$id = $_REQUEST[self::$authIDField];
+			}
+		}
+		if(NULL === $pass){
+			if(TRUE === class_exists('Flow', FALSE) && isset(Flow::$params) && isset(Flow::$params['post']) && TRUE === is_array(Flow::$params['post']) && isset(Flow::$params['post'][self::$authPassField])){
+				// Flowに格納されているPOSTパラメータを自動で使う
+				$pass = Flow::$params['post'][self::$authPassField];
+			}
+			if(isset($_REQUEST) && isset($_REQUEST[self::$authPassField])){
+				// リクエストパラメータから直接受け取る
+				$pass = $_REQUEST[self::$authPassField];
+			}
+		}
+		$id = self::_resolveEncrypted($id, self::$authIDEncrypted);
+		$pass = self::_resolveEncrypted($pass, self::$authPassEncrypted);
 		$query = '`' . self::$authIDField . '` = :' . self::$authIDField . ' AND `' . self::$authPassField . '` = ' . self::$authPassField . ' ';
 		$binds = array(self::$authIDField => $id, self::$authPassField => $pass);
 		$User = ORMapper::getModel(self::$_DBO, self::$authTable, $query, $binds);
@@ -315,7 +383,7 @@ class Auth
 			$string = sha256($argString);
 		}
 		elseif(FALSE !== strpos(strtolower($argAlgorism), 'aes')){
-			$string = Utilities::doHexEncryptAES($argString, self::$_authCryptKey, self::$_authCryptIV);;
+			$string = Utilities::doHexEncryptAES($argString, self::$_authCryptKey, self::$_authCryptIV);
 		}
 		return $string;
 	}

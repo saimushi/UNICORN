@@ -1,7 +1,8 @@
 <?php
 
+// 4行目と5行目はインストーラによって自動で書き換えられる事に注意して下さい！
 $fwmpkgName = "FrameworkManager";
-$fwpath = dirname(dirname(dirname(dirname(__FILE__))))."/FrameworkPackage/core";
+$fwpath = dirname(dirname(dirname(dirname(__FILE__))))."/FrameworkPackage";
 // ※ココより上はインストーラーから自動で書き換えられるので、行を移動しないで下さい！内容は変えてもいいです。
 
 
@@ -16,7 +17,7 @@ mb_internal_encoding("UTF-8");
 // コレの値とプロジェクト用のメインConfigureの名前を合わせておくと、色々な設定の自動走査・解決をしてくれる
 define("PROJECT_NAME", "FrameworkManager");
 // フレームワークのコアファイルを読み込み
-require_once $fwpath."/HBOP.php";
+require_once $fwpath."/core/HBOP.php";
 
 // プロジェクト専用のコンフィグを読み込む
 loadConfig(Configure::ROOT_PATH."lib/".$fwmpkgName."/core/fwmproject.config.xml");

@@ -123,7 +123,7 @@ class MVCCore {
 				}
 				else{
 					// エラー
-					throw new Exception("is?? controller class faild.");
+					throw new Exception("controller class faild.");
 				}
 			}
 			else{
@@ -243,11 +243,11 @@ class MVCCore {
 			// コントロール対象を自動特定
 			$controlerClassName = 'Index';
 			if(isset($_GET['_c_']) && strlen($_GET['_c_']) > 0){
-				$controlerClassName = ucfirst($_GET['_c_']);
+				$controlerClassName = str_replace('-', '_', ucfirst($_GET['_c_']));
 				if(FALSE !== strpos($_GET['_c_'], '/') && strlen($_GET['_c_']) > 1){
 					$matches = NULL;
 					if(preg_match('/(.*)\/([^\/]*)$/', $_GET['_c_'], $matches) && is_array($matches) && isset($matches[2])){
-						$controlerClassName = ucfirst($matches[2]);
+						$controlerClassName = str_replace('-', '_', ucfirst($matches[2]));
 						if(isset($matches[1]) && strlen($matches[1]) > 0){
 							$targetPath = $matches[1].'/';
 							if('' === $currentTargetPath){
@@ -264,11 +264,12 @@ class MVCCore {
 		if('' === $targetPath){
 			$targetPath = $currentTargetPath;
 		}
-
 		$version = '';
 		if(isset($_GET['_v_']) && strlen($_GET['_v_']) > 0){
 			$version = $_GET['_v_'];
 		}
+		debug('path='.$targetPath);
+		debug('class='.$controlerClassName);
 
 		if(!class_exists($controlerClassName, FALSE)){
 			// コントローラを読み込み
@@ -303,7 +304,10 @@ class MVCCore {
 				// XML定義の存在チェック
 				// クラス名は分解しておく
 				$classHint  = explode('_', $controlerClassName);
+				debug($targetPath);
+				debug($classHint);
 				$classXMLName = $classHint[0];
+				debug($classXMLName);
 				$flowXMLPath = '';
 				if('' !== $version){
 					// バージョン一致のファイルを先ず走査する
@@ -317,6 +321,7 @@ class MVCCore {
 						$flowXMLPath = self::$flowXMLBasePath . '/' . $targetPath . $classXMLName . '.flow.xml';
 					}
 				}
+				debug($flowXMLPath);
 				if('' === $flowXMLPath){
 					// エラー終了
 					return FALSE;

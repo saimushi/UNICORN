@@ -7,7 +7,7 @@
 	<CORE_PATH code="TRUE"><![CDATA[dirname(__FILE__).'/']]></CORE_PATH>
 	<TMP_PATH code="TRUE"><![CDATA[%ROOT_PATH%.'tmp/']]></TMP_PATH>
 	<LIB_PATH code="TRUE"><![CDATA[%ROOT_PATH%.'lib/']]></LIB_PATH>
-	<LOG_PATH code="TRUE"><![CDATA[%ROOT_PATH%.'/log/']]></LOG_PATH>
+	<LOG_PATH code="TRUE"><![CDATA[%ROOT_PATH%.'log/']]></LOG_PATH>
 	<LOCALE_PATH code="TRUE"><![CDATA[%ROOT_PATH%.'locale/']]></LOCALE_PATH>
 	<FLOWXML_PATH>ProjectPackage/MVC/controller/</FLOWXML_PATH>
 	<PCHART_PATH code="TRUE"><![CDATA[%ROOT_PATH%.'lib/VendorPackage/pChart2.1.4/']]></PCHART_PATH>

@@ -28,8 +28,14 @@
 	<!-- classマッピング定義ココから -->
 	<!-- 上記のdefault節で定義されてるパス配下で、且つ依存関係の無い単独動作のファイルは以下の個別定義追加は不要です -->
 	<Flow>
-		<link mapfrom="FlowManager" mapto="Flow">default.implement.AOP/FlowManager</link>
+		<link mapfrom="FlowManager" mapto="Flow">default.implement.Flow/FlowManager</link>
 	</Flow>
+	<WebFlowControllerBase>
+		<link>default.interface.MVC/MVCController</link>
+		<link>default.abstract.MVC/MVCControllerBase</link>
+		<link>default.implement.MVC/WebControllerBase</link>
+		<link>default.implement.Flow/WebFlowControllerBase</link>
+	</WebFlowControllerBase>
 	<Core>
 		<link mapfrom="MVCCore" mapto="Core">default.implement.MVC/MVCCore</link>
 	</Core>

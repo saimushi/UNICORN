@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xml>
 	<FrameworkManager>
-		<PACKAGE_CONFIG_XML_PATH code="TRUE"><![CDATA[Configure::LIB_PATH.'FrameworkManager/fwmproject.package.xml']]></PACKAGE_CONFIG_XML_PATH>
-		<TEMPLATEHTML_PATH code="TRUE"><![CDATA[Configure::LIB_PATH.'FrameworkManager/template/tooldocs/']]></TEMPLATEHTML_PATH>
-		<FLOWXML_PATH code="TRUE"><![CDATA[Configure::LIB_PATH.'FrameworkManager/class/MVC/controller/']]></FLOWXML_PATH>
+		<PROJECT_ROOT_PATH code="TRUE"><![CDATA[dirname(dirname(__FILE__)).'/']]></PROJECT_ROOT_PATH>
+		<PACKAGE_CONFIG_XML_PATH code="TRUE"><![CDATA[%PROJECT_ROOT_PATH%core/fwmproject.package.xml]]></PACKAGE_CONFIG_XML_PATH>
+		<TEMPLATEHTML_PATH code="TRUE"><![CDATA[%PROJECT_ROOT_PATH%template/tooldocs/]]></TEMPLATEHTML_PATH>
+		<FLOWXML_PATH code="TRUE"><![CDATA[%PROJECT_ROOT_PATH%class/MVC/controller/]]></FLOWXML_PATH>
 		<DB_DSN>mysqlt://fwm:fwmpass@localhost/fwm</DB_DSN>
 		<!-- 汎用Authの定義 -->
 		<AUTH_TBL_NAME>user</AUTH_TBL_NAME>

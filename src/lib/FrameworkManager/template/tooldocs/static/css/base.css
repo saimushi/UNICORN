@@ -286,13 +286,6 @@ dl.page_sub_body {
 	color: #666;
 }
 
-/* デフォルトでは非表示にしていく要素の定義 */
-#page1,#page2,#page3,#page4,#page5,#nextstep,#execute,#apply,#endstep,#page1_sub_title4,.errormsg,#page2_body2,#page2_body3,#page2_body5
-	{
-	/* box setting */
-	display: none;
-}
-
 .text-input-form {
 	/* style setting */
 	border: 1px solid #999;

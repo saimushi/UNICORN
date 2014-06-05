@@ -10,23 +10,27 @@
 	href="./static/css/reset-plus.css" />
 <link id="base-css" rel="stylesheet" href="./static/css/base.css" />
 <link id="base-sp-css" rel="stylesheet" href="./static/css/base-sp.css" />
-<script id="base-js" src="./static/js/jquery.min.js">
+<script id="jquery" src="./static/js/jquery.min.js"></script>
+<script id="base-js" type="text/javascript">
 $(document).ready(function() {
 });
 </script>
 </head>
 <body>
 	<section>
-		<p>フレームワークマネージャー ログイン</p>
-		<br />
-		<br />
-		<form flow-form-id="auth">
-			<p>mail:<input type="text" name="email"/></p>
+		<div>
+			<p>フレームワークマネージャー ログイン</p>
 			<br />
-			<p>pass:<input type="password" name="pass"/></p>
 			<br />
-			<input type="submit"/>
-		</form>
+			<form flowpostformsection="web/login-certfy">
+				<p>mail:<input type="text" name="mail" value=""/></p>
+				<br />
+				<p>pass:<input type="password" name="pass" value=""/></p>
+				<br />
+				<input type="submit"/>
+			</form>
+		</div>
+		<div flowpostformsectionerror="web/login-certfy" class="red errormsg"></div>
 	</section>
 </body>
 </html>
