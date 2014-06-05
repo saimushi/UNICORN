@@ -54,15 +54,15 @@ function _autoloadFramework($className){
 		}
 		// バックトレースは重いのでとっとと捨てる
 		unset($dbg);
-// 		$res = FALSE;
-// 		if(class_exists('MVCCore', FALSE)){
-// 			// フレームワークの'MVCCore'クラスが読み込まれていたらMVCのloadを先ず実行してみる
-// 			$res = MVCCore::loadMVCModule($className, TRUE);
-// 		}
-// 		// クラスファイルの読み込み
-// 		if(FALSE === $res){
-			loadModule($className, $class_exists_called);
-// 		}
+		// 		$res = FALSE;
+		// 		if(class_exists('MVCCore', FALSE)){
+		// 			// フレームワークの'MVCCore'クラスが読み込まれていたらMVCのloadを先ず実行してみる
+		// 			$res = MVCCore::loadMVCModule($className, TRUE);
+		// 		}
+		// 		// クラスファイルの読み込み
+		// 		if(FALSE === $res){
+		loadModule($className, $class_exists_called);
+		// 		}
 	}
 }
 
@@ -139,31 +139,31 @@ function loadModule($argHint, $argClassExistsCalled = FALSE){
 			return TRUE;
 		}
 
-// 		if(is_file($generatedIncFileName)){
-// 			$unlink=TRUE;
-// 			if(filemtime($generatedIncFileName) >= filemtime(__FILE__)){
-// 				// フレームワークコアの変更が見当たらない場合は、コンフィグと比較
-// 				for($pkConfXMLCnt = 0, $timecheckNum = 0; count($pkConfXMLs) > $pkConfXMLCnt; $pkConfXMLCnt++){
-// 					// XXX 時間チェック(タイムゾーン変えてもちゃんと動く？？)
-// 					if(filemtime($generatedIncFileName) >= $pkConfXMLs[$pkConfXMLCnt]['time']){
-// 						$timecheckNum++;
-// 					}
-// 				}
-// 				if($timecheckNum === $pkConfXMLCnt){
-// 					$unlink=FALSE;
-// 					// 静的ファイル化されたrequire群ファイルを読み込んで終了
-// 					// fatal errorがいいのでrequireする
-// 					require_once $generatedIncFileName;
-// 				}
-// 			}
-// 			if(FALSE === $unlink){
-// 				// ジェネレートされたファイルを読み込んで終了
-// 				return TRUE;
-// 			}
-// 			// ここまで来たら再ジェネレートが走るのでジェネレート済みの古いファイルを削除しておく
-// 			@file_put_contents($generatedIncFileName, '');
-// 			@unlink($generatedIncFileName);
-// 		}
+		// 		if(is_file($generatedIncFileName)){
+		// 			$unlink=TRUE;
+		// 			if(filemtime($generatedIncFileName) >= filemtime(__FILE__)){
+		// 				// フレームワークコアの変更が見当たらない場合は、コンフィグと比較
+		// 				for($pkConfXMLCnt = 0, $timecheckNum = 0; count($pkConfXMLs) > $pkConfXMLCnt; $pkConfXMLCnt++){
+		// 					// XXX 時間チェック(タイムゾーン変えてもちゃんと動く？？)
+		// 					if(filemtime($generatedIncFileName) >= $pkConfXMLs[$pkConfXMLCnt]['time']){
+		// 						$timecheckNum++;
+		// 					}
+		// 				}
+		// 				if($timecheckNum === $pkConfXMLCnt){
+		// 					$unlink=FALSE;
+		// 					// 静的ファイル化されたrequire群ファイルを読み込んで終了
+		// 					// fatal errorがいいのでrequireする
+		// 					require_once $generatedIncFileName;
+		// 				}
+		// 			}
+		// 			if(FALSE === $unlink){
+		// 				// ジェネレートされたファイルを読み込んで終了
+		// 				return TRUE;
+		// 			}
+		// 			// ここまで来たら再ジェネレートが走るのでジェネレート済みの古いファイルを削除しておく
+		// 			@file_put_contents($generatedIncFileName, '');
+		// 			@unlink($generatedIncFileName);
+		// 		}
 	}
 
 	// パッケージ名に該当するノードが格納されたパッケージXML格納用
@@ -809,6 +809,10 @@ function loadConfig($argConfigPath){
 						}
 					}
 					if(TRUE === $evalFlag){
+						if(FALSE !== strpos($val2, '__FILE__')){
+							debug('is2??'.$val2);
+							$val2 = str_replace('__FILE__', '\'' . realpath($argConfigPath) .'\'', $val2);
+						}
 						@eval('$val2 = '.$val2.';');
 						$configure->{$key}->{$key2} = $val2;
 						$configs[$key.'Configure'] .= "\t".'const '.$key2.' = \''.$val2.'\';'.PHP_EOL;
@@ -874,6 +878,10 @@ function loadConfig($argConfigPath){
 				}
 
 				if(TRUE === $evalFlag){
+					if(FALSE !== strpos($val, '__FILE__')){
+						debug('is??'.$val);
+						$val = str_replace('__FILE__', '\'' . realpath($argConfigPath) .'\'', $val);
+					}
 					eval('$val = '.$val.';');
 					if(!isset($configs['Configure'])){
 						$configs['Configure'] = '';
@@ -1252,7 +1260,7 @@ function logging($arglog, $argLogName = NULL, $argConsolEchoFlag = FALSE){
 	}
 
 	// XXX ログローテートの実行
-	
+
 	if(NULL === $argLogName){
 		$argLogName = 'process';
 	}

@@ -1,19 +1,19 @@
 <?xml version="1.0" ?>
 <xml>
-	<section id="Index">
+	<section id="Test">
 		<execute>
 			<assign var="res" class="Auth" method="isCertification"/>
 			<if var="res" val="true">
-				<flow section="Index-authed" target="web"/>
+				<flow section="Test-authed" target="web"/>
 			</if>
 			<else>
 				<flow section="web/login"/>
 			</else>
 		</execute>
 	</section>
-	<section id="Index-authed" type="web">
+	<section id="Test-authed" type="web">
 		<execute>
-			<view section="Index"/>
+			<view section="Test"/>
 		</execute>
 	</section>
 </xml>

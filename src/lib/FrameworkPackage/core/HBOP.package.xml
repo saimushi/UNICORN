@@ -76,7 +76,7 @@
 		<link>default.implement.Utilities/Utilities</link>
 	</Utilities>
 	<Validations>
-		<link>default.implement.Utilities/Validations</link>
+		<link mapfrom="GenericValidations" mapto="Validations">default.implement.Utilities/GenericValidations</link>
 	</Validations>
 	<DBO>
 		<link>default.adodb5/adodb-exceptions.inc.php</link>

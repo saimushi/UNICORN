@@ -17,7 +17,7 @@
  *
  * @author saimushi
  */
-class Validations {
+class GenericValidations {
 
 	/**
 	 * 直前のエラーのメッセージを格納しておく

@@ -1996,7 +1996,7 @@ $(document).ready(function(){
 					<br>
 					ID: <strong class="green">admin@myserver.myadmin</strong>
 					<br>
-					パスワード: <strong class="green">abcd1244</strong>
+					パスワード: <strong class="green">abcd1234</strong>
 					<br>
 					<br>
 					と、なります。<strong class="orange">(※次のステップで、デフォルトのIDとパスワードを変更することが出来ます。)</strong>
