@@ -2,7 +2,7 @@
 
 // 4行目と5行目はインストーラによって自動で書き換えられる事に注意して下さい！
 $fwmpkgName = "FrameworkManager";
-$fwpath = dirname(dirname(dirname(__FILE__)))."/";
+$fwpath = dirname(dirname(dirname(dirname(__FILE__))))."/FrameworkPackage";
 // ※ココより上はインストーラーから自動で書き換えられるので、行を移動しないで下さい！内容は変えてもいいです。
 
 
