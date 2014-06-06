@@ -9,9 +9,9 @@ abstract class SessionDataDB {
 	protected static $_initialized = FALSE;
 	protected static $_expiredtime = 3600;// 60分
 	protected static $_sessionDataTblName = 'session_table';
-	protected static $_sessionDataPKeyName = 'uid';
+	protected static $_sessionDataPKeyName = 'identifier';
 	protected static $_serializeKeyName = 'data';
-	protected static $_sessionDataDateKeyName = 'created';
+	protected static $_sessionDataDateKeyName = 'modified';
 	protected static $_sessionData = NULL;
 	protected static $_DBO = NULL;
 
@@ -132,10 +132,12 @@ abstract class SessionDataDB {
 	 */
 	protected static function _finalizeData($argPKey){
 		if(is_array(self::$_sessionData) && count(self::$_sessionData) > 0){
+			$binds = array(self::$_sessionDataPKeyName => $argPKey, 'expierddate' => Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
 			$Session = ORMapper::getModel(self::$_DBO, self::$_sessionDataTblName, '`' . self::$_sessionDataPKeyName . '` = :' . self::$_sessionDataPKeyName . ' AND `' . self::$_sessionDataDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDataDateKeyName . '` DESC limit 1', $binds);
 			// XXX identifierが変えられたかもしれないので、もう一度セット
 			$Session->{'set'.ucfirst(self::$_sessionDataPKeyName)}($argPKey);
-			$Session->{'set'.ucfirst(self::$_sessionDataDateKeyName)}(Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
+			$Session->{'set'.ucfirst(self::$_serializeKeyName)}(json_encode(self::$_sessionData));
+			$Session->{'set'.ucfirst(self::$_sessionDataDateKeyName)}(Utilities::date('Y-m-d H:i:s', NULL, NULL, 'GMT'));
 			try{
 				$Session->save();
 				// 正常終了

@@ -193,6 +193,7 @@ class Auth
 		if(FALSE === self::$_initialized){
 			self::_init($argDSN);
 		}
+		debug('is??');
 		Session::start();
 		debug('is???');
 		$sessionIdentifier = Session::sessionID();
@@ -267,9 +268,14 @@ class Auth
 		}
 		// セッションを発行
 		Session::start();
-		$userID = Utilities::doHexEncryptAES($User->{self::$authPKeyField}, self::$_sessionCryptKey, self::$_sessionCryptIV);
-		debug('new identifier='.$userID);
-		Session::sessionID();
+		debug(self::$authPKeyField);
+		$sessionIdentifier = Utilities::doHexEncryptAES($User->{self::$authPKeyField}, self::$_sessionCryptKey, self::$_sessionCryptIV);
+		debug('new identifier='.$sessionIdentifier);
+		Session::sessionID($sessionIdentifier);
+		debug('set?');
+		// ログインした固有識別子をSessionに保存して、Cookieの発行を行う
+		Session::set('identifier', $User->{self::$authPKeyField});
+		debug('set!');
 		return TRUE;
 	}
 
