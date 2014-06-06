@@ -1476,6 +1476,48 @@ function generateClassCache($argGeneratedPath, $argIncludePath, $argClassBuffer,
 	@chmod($argGeneratedPath, 0777);
 }
 
+/**
+ * 現在設定されている自動最適化キャッシュ生成フラグを返す
+ */
+function getAutoMigrationEnabled(){
+	static $autoMigrationEnabled = NULL;
+	if(NULL === $autoMigrationEnabled){
+		if(NULL !== constant('PROJECT_NAME')){
+			// 併設されている事を前提とする！
+			$autoMigrationEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.automigration';
+		}
+		else{
+			$corefilename = corefilename();
+			$autoMigrationEnabledFilepath = dirname(dirname(__FILE__)).'/.automigration';
+			if(defined($corefilename . '_AUTO_MIGRATION_ENABLED')){
+				$autoMigrationEnabledFilepath = constant($corefilename . '_AUTO_MIGRATION_ENABLED');
+			}
+		}
+		// 自動マイグレーションフラグのセット
+		$autoMigrationEnabled = file_exists($autoMigrationEnabledFilepath);
+	}
+	return $autoMigrationEnabled;
+}
+
+/**
+ * 現在設定されている自動最適化キャッシュファイル保存先パス情報を返す
+ */
+function getAutoMigrationPath(){
+	static $migrationPath = NULL;
+	if(NULL === $migrationPath){
+		$migrationPath = dirname(dirname(__FILE__)).'/automigration/';
+		if(NULL !== constant('PROJECT_NAME')){
+			// 併設されている事を前提とする！
+			$tmpMigrationPath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/automigration';
+			if(TRUE === is_dir($tmpMigrationPath)){
+				// パスとして認める
+				$migrationPath = $tmpMigrationPath.'/';
+			}
+		}
+	}
+	return $migrationPath;
+}
+
 /*------------------------------ 根幹関数定義 ココから ------------------------------*/
 
 

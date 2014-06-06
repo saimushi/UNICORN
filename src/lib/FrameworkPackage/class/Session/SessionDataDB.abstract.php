@@ -226,6 +226,47 @@ abstract class SessionDataDB {
 	}
 
 	/**
+	 * セッションデータに指定のキー名の値を削除する
+	 * @param string セッションデータのプライマリーキー
+	 * @param string キー名
+	 * @param mixed 変数全て(PHPオブジェクトは保存出来ない！)
+	 * @param int 有効期限の直指定
+	 * @param mixed DBDSN情報の直指定
+	 */
+	public static function remove($argPKey, $argKey, $argExpiredtime=NULL, $argDSN=NULL){
+		if(FALSE === self::$_initialized){
+			self::_init($argExpiredtime, $argDSN);
+		}
+		// データに実際にアクセスする時に、データの初期化は実行される
+		if(NULL === self::$_sessionData){
+			self::_initializeData($argPKey);
+		}
+		// 配列にデータから抹消
+		unset(self::$_sessionData[$argKey]);
+		// セッションデータレコードの更新
+		if(FALSE === self::_finalizeData($argPKey)){
+			// エラー
+			throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__.PATH_SEPARATOR.Utilities::getBacktraceExceptionLine());
+		}
+		return TRUE;
+	}
+
+	/**
+	 * identifierに紐づくセッションデータレコードをクリアする
+	 * @param string セッションデータのプライマリーキー
+	 * @param int 有効期限の直指定
+	 * @param mixed DBDSN情報の直指定
+	 */
+	public static function clear($argPKey=NULL, $argExpiredtime=NULL, $argDSN=NULL){
+		if(FALSE === self::$_initialized){
+			self::_init($argExpiredtime, $argDSN);
+		}
+		$binds = array(self::$_sessionDataPKeyName => $argPKey);
+		$Session = ORMapper::getModel(self::$_DBO, self::$_sessionDataTblName, '`' . self::$_sessionDataPKeyName . '` = :' . self::$_sessionDataPKeyName . ' limit 1', $binds);
+		$Session->remove();
+	}
+
+	/**
 	 * Expiredの切れたSessionレコードをDeleteする
 	 * @param int 有効期限の直指定
 	 * @param mixed DBDSN情報の直指定

@@ -193,9 +193,7 @@ class Auth
 		if(FALSE === self::$_initialized){
 			self::_init($argDSN);
 		}
-		debug('is??');
 		Session::start();
-		debug('is???');
 		$sessionIdentifier = Session::sessionID();
 		debug( self::$_sessionCryptKey . ':' . self::$_sessionCryptIV);
 		debug("session identifier".$sessionIdentifier);
@@ -232,6 +230,8 @@ class Auth
 
 	/**
 	 * 認証を証明する(ログインしてセッションを発行する)
+	 * @param string 認証ID
+	 * @param string 認証パスワード
 	 * @param string DB接続情報
 	 */
 	public static function certify($argID = NULL, $argPass = NULL, $argDSN = NULL){
@@ -276,6 +276,18 @@ class Auth
 		// ログインした固有識別子をSessionに保存して、Cookieの発行を行う
 		Session::set('identifier', $User->{self::$authPKeyField});
 		debug('set!');
+		return TRUE;
+	}
+
+	/**
+	 * 認証を非証明する(ログアウトする)
+	 * @param string DB接続情報
+	 */
+	public static function unCertify($argDSN = NULL){
+		if(FALSE === self::$_initialized){
+			self::_init($argDSN);
+		}
+		Session::clear();
 		return TRUE;
 	}
 
