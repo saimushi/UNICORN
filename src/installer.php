@@ -1936,7 +1936,9 @@ $(document).ready(function(){
 					<br>
 					<strong>「フレームワークマネージャーの公開ディレクトリのURL」を入力して下さい。</strong>
 					<br>
-					<strong class="red">※<p id="fwmdocpath3"></p>をURLに含めないで下さい！</strong>
+					<strong class="red">※</strong>
+					<strong id="fwmdocpath3" class="orange"></strong>
+					<strong class="red">をURLに含めないで下さい！</strong>
 					<br>
 					<br>
 					フレームワークマネージャーの公開ディレクトリを移動する場合は以下の<strong>「フレームワークマネージャーの公開ディレクトリの実パス」</strong>フォームに、<strong>移動先となるパスを入力して下さい。</strong>
@@ -1985,7 +1987,7 @@ $(document).ready(function(){
 					<br>
 					<br>
 					<br>
-					<a id="fwmurl" href="./lib/FrameworkManager/template/tooldocs/" target="_blank"><strong class="green"><p id="fwmurldisp" class="green">./lib/FrameworkManager/template/tooldocs/</p>(新しいウィンドウ・タブで開きます)</strong></a>
+					<a id="fwmurl" href="./lib/FrameworkManager/template/tooldocs/" target="_blank" class="green"><strong id="fwmurldisp" class="green">./lib/FrameworkManager/template/tooldocs/</strong>&nbsp;&nbsp;(新しいウィンドウ・タブで開きます)</a>
 					<br>
 					<br>
 					<br>
@@ -2667,7 +2669,7 @@ elseif(isset($_GET["a"])){
 			}
 			// URL文字列を移動後を想定して作成して返しといて上げる
 			installerlog(str_replace("//", "/", str_replace("//", "/", $_POST["fwmbaseurl"]."/".basename($_POST["newfwmdocpath"])."/")));
-			exit("{\"ok\":true,\"fwmurl\":\"" . str_replace("//", "/", str_replace("//", "/", $_POST["fwmbaseurl"]."/".basename($_POST["newfwmdocpath"])."/")) . "\"}");
+			exit("{\"ok\":true,\"fwmurl\":\"" . str_replace(":///", "://",str_replace(":/", "://", str_replace("//", "/", str_replace("//", "/", $_POST["fwmbaseurl"]."/".basename($_POST["newfwmdocpath"])."/")))) . "\"}");
 		}
 		else if(isset($_GET["apply"]) && 10 === (int)$_GET["apply"]) {
 			if(10 <= filesize(dirname(__FILE__)."/clog")){
