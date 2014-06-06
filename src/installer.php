@@ -17,13 +17,13 @@ mb_http_output("UTF-8");
 
 // ダウンロード直後のデフォルトのフレームワークパスを定義しておく
 // XXX インストーラによって変更されます。
-$frameworkPath = dirname(__FILE__)."/test/lib/FrameworkPackages";
+$frameworkPath = dirname(__FILE__)."/lib/FrameworkPackage";
 // org
 //$frameworkPath = dirname(__FILE__)."/lib/FrameworkPackage";
 
 // ダウンロード直後のデフォルトのフレームワーク管理機能のパスを定義しておく
 // XXX インストーラによって変更されます。
-$fwmgrPath = dirname(__FILE__)."/test/lib/FrameworkManagers";
+$fwmgrPath = dirname(__FILE__)."/lib/FrameworkManager";
 // org
 //$fwmgrPath = dirname(__FILE__)."/lib/FrameworkManager";
 
