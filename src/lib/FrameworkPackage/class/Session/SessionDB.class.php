@@ -395,8 +395,8 @@ class SessionDB extends SessionDataDB implements SessionIO {
 			// Cookieが在る場合はCookieからトークンと固有識別子を初期化する
 			$token = $_COOKIE[self::$_tokenKeyName];
 			// SESSIONレコードを走査
-			$binds = array(self::$_sessionPKeyName => $token, 'expierddate' => Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
-			$Session = ORMapper::getModel(self::$_DBO, self::$_sessionTblName, '`' . self::$_sessionPKeyName . '` = :' . self::$_sessionPKeyName . ' AND `' . self::$_sessionDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDateKeyName . '` DESC limit 1', $binds);
+			$binds = array(self::$_sessionPKeyName => $token);
+			$Session = ORMapper::getModel(self::$_DBO, self::$_sessionTblName, '`' . self::$_sessionPKeyName . '` = :' . self::$_sessionPKeyName. ' limit 1', $binds);
 			if(strlen($Session->{self::$_sessionPKeyName}) > 0){
 				// 該当レコードを削除
 				$Session->remove();

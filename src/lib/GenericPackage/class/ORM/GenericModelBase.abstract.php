@@ -60,7 +60,7 @@ abstract class GenericModelBase {
 
 	/**
 	 * レコードの読み込みを行ったかどうか
-	 */
+	*/
 	public $loaded = FALSE;
 
 	/**
@@ -478,17 +478,22 @@ abstract class GenericModelBase {
 	}
 
 	public function remove(){
-		$sql = "DELETE FROM " . $this->tableName . " WHERE 1=1 ";
+		$sql = "DELETE FROM `" . $this->tableName . "` WHERE 1=1 ";
+		$binds = array();
 		for($pkeyNum=0; count($this->pkeys) > $pkeyNum; $pkeyNum++){
-			$sql .= " AND `" . $this->pkeys[$pkeyNum] . "` = " . $this->{$this->pkeys[$pkeyNum]};
+			$sql .= " AND `" . $this->pkeys[$pkeyNum] . "` = :" .  $this->pkeys[$pkeyNum] . " ";
+			$binds[$this->pkeys[$pkeyNum]] = $this->{$this->pkeys[$pkeyNum]};
 		}
-		// DB操作実行
-		$response = $this->_DBO->execute($sql);
-		if(FALSE === $response){
-			throw new Exception("");
+		if(count($binds) > 0){
+			// DB操作実行
+			$response = $this->_DBO->execute($sql, $binds);
+			if(FALSE === $response){
+				// XXX イレギュラー
+				throw new Exception("");
+			}
 		}
 	}
-	
+
 	public function next(){
 		if(NULL !== $this->recodes && !$this->recodes->EOF && $this->count > $this->index){
 			$this->index++;

@@ -287,7 +287,9 @@ class Auth
 		if(FALSE === self::$_initialized){
 			self::_init($argDSN);
 		}
+		debug('is logout??');
 		Session::clear();
+		debug('is logout!!');
 		return TRUE;
 	}
 
