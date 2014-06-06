@@ -198,11 +198,10 @@ class Auth
 		debug( self::$_sessionCryptKey . ':' . self::$_sessionCryptIV);
 		debug("session identifier".$sessionIdentifier);
 		$userID = Utilities::doHexDecryptAES($sessionIdentifier, self::$_sessionCryptKey, self::$_sessionCryptIV);
-		debug("userID=".$userID);
+		debug("decrypted userID=".$userID);
 		if(strlen($userID) > 0){
-			debug(self::$authTable);
 			$User = ORMapper::getModel(self::$_DBO, self::$authTable, $userID);
-			debug("userID=".$User->{self::$authPKeyField});
+			debug("DBGet userID=".$User->{self::$authPKeyField});
 			if(isset($User->{self::$authPKeyField}) && NULL !== $User->{self::$authPKeyField} && FALSE === is_object($User->{self::$authPKeyField}) && strlen((string)$User->{self::$authPKeyField}) > 0){
 				// UserIDが特定出来た
 				debug("Authlized");

@@ -235,7 +235,6 @@ class SessionDB extends SessionDataDB implements SessionIO {
 			if(NULL === self::$_token){
 				// 8バイト以下の$_COOKIE[self::$_tokenKeyName]はセットされていてもTOKENとして認めない
 				if(isset($_COOKIE[self::$_tokenKeyName]) && strlen($_COOKIE[self::$_tokenKeyName]) > 8){
-					debug($_COOKIE[self::$_tokenKeyName]);
 					// Cookieが在る場合はCookieからトークンと固有識別子を初期化する
 					$token = $_COOKIE[self::$_tokenKeyName];
 					$identifier = self::_tokenToIdentifier($token);
@@ -263,7 +262,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 					return TRUE;
 				}
 				// セッションは存在したが、一致特定出来なかった時はエラー終了
-				debug('session ecpired!');
+				debug('session expired!');
 				return FALSE;
 			}
 		}
@@ -391,7 +390,6 @@ class SessionDB extends SessionDataDB implements SessionIO {
 		}
 		// 8バイト以下の$_COOKIE[self::$_tokenKeyName]はセットされていてもTOKENとして認めない
 		if(isset($_COOKIE[self::$_tokenKeyName]) && strlen($_COOKIE[self::$_tokenKeyName]) > 8){
-			debug($_COOKIE[self::$_tokenKeyName]);
 			// Cookieが在る場合はCookieからトークンと固有識別子を初期化する
 			$token = $_COOKIE[self::$_tokenKeyName];
 			// SESSIONレコードを走査

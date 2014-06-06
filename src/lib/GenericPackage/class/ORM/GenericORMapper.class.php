@@ -52,10 +52,12 @@ class GenericORMapper {
 
 		// オートマイグレートその1
 		$lastMigrationHash = NULL;
-		debug(getAutoMigrationEnabled());
 		if(function_exists('getAutoMigrationEnabled') && TRUE === getAutoMigrationEnabled()){
 			// 未適用のmigrationがあれば、実行する
 			$lastMigrationHash = MigrationManager::dispatchAll($argDBO, $tableName);
+			if(TRUE === $lastMigrationHash){
+				$lastMigrationHash = NULL;
+			}
 		}
 
 		// モデルがまだ未生成ならモデルをテーブル定義から生成する

@@ -25,43 +25,11 @@ class SessionMigration_02d1f6e76c2b8ab51036ba0482b7efa806b37e8f extends Migratio
 	}
 
 	public function up($argDBO){
-		$alter = array();
-		$alter["uid"] = array();
-		$alter["uid"]["alter"] = "DROP";
-		$alter["data"] = array();
-		$alter["data"]["alter"] = "DROP";
-		$alter["modified"] = array();
-		$alter["modified"]["alter"] = "DROP";
-		
-		return $this->alter($argDBO, $alter);
+		return $this->create($argDBO);
 	}
 
 	public function down($argDBO){
-		$alter = array();
-		$alter["uid"] = array();
-		$alter["uid"]["type"] = "string";
-		$alter["uid"]["null"] = FALSE;
-		$alter["uid"]["pkey"] = TRUE;
-		$alter["uid"]["length"] = 32;
-		$alter["uid"]["autoincrement"] = FALSE;
-		$alter["uid"]["alter"] = "ADD";
-		$alter["data"] = array();
-		$alter["data"]["type"] = "text";
-		$alter["data"]["null"] = TRUE;
-		$alter["data"]["pkey"] = FALSE;
-		$alter["data"]["length"] = 65535;
-		$alter["data"]["min-length"] = 1;
-		$alter["data"]["autoincrement"] = FALSE;
-		$alter["data"]["alter"] = "ADD";
-		$alter["modified"] = array();
-		$alter["modified"]["type"] = "date";
-		$alter["modified"]["null"] = FALSE;
-		$alter["modified"]["pkey"] = FALSE;
-		$alter["modified"]["min-length"] = 1;
-		$alter["modified"]["autoincrement"] = FALSE;
-		$alter["modified"]["alter"] = "ADD";
-		
-		return $this->alter($argDBO, $alter);
+		return $this->drop($argDBO);
 	}
 }
 

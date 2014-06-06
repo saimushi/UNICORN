@@ -5,7 +5,7 @@
 		<PACKAGE_CONFIG_XML_PATH code="TRUE"><![CDATA[%PROJECT_ROOT_PATH%core/fwmproject.package.xml]]></PACKAGE_CONFIG_XML_PATH>
 		<TEMPLATEHTML_PATH code="TRUE"><![CDATA[%PROJECT_ROOT_PATH%template/tooldocs/]]></TEMPLATEHTML_PATH>
 		<FLOWXML_PATH code="TRUE"><![CDATA[%PROJECT_ROOT_PATH%class/MVC/controller/]]></FLOWXML_PATH>
-		<DB_DSN>mysqlt://fwm:fwmpass@localhost/fwm</DB_DSN>
+		<DB_DSN>mysqli://fwm:fwmpass@localhost/fwm</DB_DSN>
 		<!-- 汎用Authの定義 -->
 		<AUTH_TBL_NAME>user</AUTH_TBL_NAME>
 		<AUTH_PKEY_FIELD_NAME>id</AUTH_PKEY_FIELD_NAME>

@@ -6,7 +6,7 @@ abstract class GenericMigrationBase {
 	public $tableName = '';
 	public $describes = array();
 
-	private function _getFielPropatyQuery($argDescribe){
+	private function _getFieldPropatyQuery($argDescribe){
 		// create文を生成する
 		$fieldDef = '';
 		$pkeyDef = '';
@@ -65,7 +65,7 @@ abstract class GenericMigrationBase {
 	 */
 	public function create($argDBO){
 		$sql = '';
-		$fielPropatyQuerys = $this->_getFielPropatyQuery($this->describes);
+		$fielPropatyQuerys = $this->_getFieldPropatyQuery($this->describes);
 		$pkeyDef = $fielPropatyQuerys['pkeyDef'];
 		$fieldDef = $fielPropatyQuerys['fieldDef'];
 		if(strlen($fieldDef) > 0){
@@ -102,7 +102,7 @@ abstract class GenericMigrationBase {
 				$sql = 'ALTER TABLE `' . $this->tableName . '` DROP COLUMN `' . $field . '`';
 			}
 			else{
-				$fielPropatyQuerys = $this->_getFielPropatyQuery(array($field => $propaty));
+				$fielPropatyQuerys = $this->_getFieldPropatyQuery(array($field => $propaty));
 				$fieldDef = $fielPropatyQuerys['fieldDef'];
 				if(strlen($fieldDef) > 0){
 					$sql = 'ALTER TABLE `' . $this->tableName . '` ' . $propaty['alter'] . ' COLUMN ' . $fieldDef;

@@ -25,16 +25,17 @@ class GenericMigrationManager {
 						// migrationの実行
 						$migration = new $diff[$diffIdx]();
 						if(TRUE === $migration->up($argDBO)){
+							debug('migration up! '.$diff[$diffIdx]);
 							// マイグレーション済みに追加
 							@file_put_contents_e(getAutoMigrationPath().$argDBO->dbidentifykey.'.dispatched.migrations', $diff[$diffIdx].PHP_EOL, FILE_APPEND);
 						}
 					}
 				}
 			}
+			$executed = TRUE;
 			if(NULL !== self::$_lastMigrationHash){
 				return self::$_lastMigrationHash;
 			}
-			$executed = TRUE;
 		}
 		return TRUE;
 	}
@@ -71,6 +72,7 @@ class GenericMigrationManager {
 					// このテーブルはマイグレーション済み
 					$executed[$argTblName] = TRUE;
 					// 現在のテーブル定義と最新のマイグレーションファイル上のテーブルハッシュに差分が無いので何もしない
+					debug('exists migration! '.$migrationHash);
 					return TRUE;
 				}
 				// 最後に適用している該当テーブルに対してのマイグレーションクラスを読み込んでmodelハッシュを比較する
@@ -190,6 +192,7 @@ class GenericMigrationManager {
 			@file_put_contents_e(getAutoMigrationPath().$argDBO->dbidentifykey.'.all.migrations', $migrationClassName.PHP_EOL, FILE_APPEND);
 			@file_put_contents_e(getAutoMigrationPath().$argDBO->dbidentifykey.'.dispatched.migrations', $migrationClassName.PHP_EOL, FILE_APPEND);
 			$executed[$argTblName] = TRUE;
+			debug('migration! '.$migrationClassName);
 		}
 		return TRUE;
 	}
@@ -214,18 +217,24 @@ class GenericMigrationManager {
 				$dispatchedMigrationes[] = trim($line);
 			}
 		}
+		$dispatchedMigrationesStr = implode(':', $dispatchedMigrationes);
 		self::$_lastMigrationHash = NULL;
 		$diff = array();
 		// 未適用の差分を探す
 		for($migIdx=0; $migIdx < count($migrationes); $migIdx++){
-			if(FALSE === in_array($migrationes[$migIdx], $dispatchedMigrationes)){
-				// 数が足りていないので、実行対象
-				$diff[] = $migrationes[$migIdx];
-			}
-			// テーブル指定があった場合は、最後の該当テーブルに対するマイグレーションファイルを特定しておく
-			if(NULL !== $argTblName){
-				if(FALSE !== strpos(strtolower($migrationes[$migIdx]), strtolower($argTblName))){
-					self::$_lastMigrationHash = $migrationes[$migIdx];
+			if(strlen($migrationes[$migIdx]) > 0){
+				if('' === $dispatchedMigrationesStr){
+					$diff[] = $migrationes[$migIdx];
+				}
+				elseif(FALSE === strpos($dispatchedMigrationesStr, $migrationes[$migIdx])){
+					// 数が足りていないので、実行対象
+					$diff[] = $migrationes[$migIdx];
+				}
+				// テーブル指定があった場合は、最後の該当テーブルに対するマイグレーションファイルを特定しておく
+				if(NULL !== $argTblName){
+					if(FALSE !== strpos(strtolower($migrationes[$migIdx]), strtolower($argTblName).'migration_')){
+						self::$_lastMigrationHash = $migrationes[$migIdx];
+					}
 				}
 			}
 		}
@@ -246,61 +255,6 @@ class GenericMigrationManager {
 		}
 		return $migrationName;
 	}
-
-	// 	/**
-	// 	 * DBインスタンス上の全てのテーブルマイグレートを自動解決する
-	// 	 * @param unknown $argDBO
-	// 	 * @param unknown $argTable
-	// 	 * @return boolean
-	// 	 */
-	// 	public static function resolveAll($argDBO){
-	// 		// テーブル一覧を取得
-	// 		$tables = $argDBO->getTables();
-	// 		// すべてのテーブルでマイグレート判定を実行
-	// 		for ($idx=0; $idx < count($tables); $idx++) {
-	// 			if (FALSE === self::resolve($argDBO, $tables[$idx])) {
-	// 				// 処理を強制終了
-	// 				BREAK;
-	// 			}
-	// 		}
-	// 		return FALSE;
-	// 	}
-
-	// 	/**
-	// 	 * テーブルマイグレートを自動解決する
-	// 	 * @param unknown $argDBO
-	// 	 * @param unknown $argTable
-	// 	 * @return boolean
-	// 	 */
-	// 	public static function resolve($argDBO, $argModel){
-
-	// 		$automigrate = FALSE;
-	// 		$newVersion = 1;
-
-	// 		// 存在チェック
-	// 		$version = self::is($argDBO, $argTable);
-	// 		if (FALSE === $version) {
-	// 			// 問答無用で新規作成
-	// 			// 自動適用しようも無いのでこのまま終了
-	// 			return self::create($argDBO, $argTable);
-	// 		}
-	// 		else {
-	// 			// 更新
-	// 			$newVersion = self::modify($argDBO, $argTable, $version);
-	// 		}
-
-	// 		if(class_exists('Configure') && NULL !== Configure::constant('AUTO_MIGRATE_FLAG')){
-	// 			$automigrate = Configure::AUTO_MIGRATE_FLAG;
-	// 		}
-
-	// 		// 自動適用を判定
-	// 		if ($automigrate && FALSE === $version && $version < $newVersion){
-	// 			// 自動適用
-	// 			return self::apply($argDBO, $argTable, $newVersion);
-	// 		}
-
-	// 		return FALSE;
-	// 	}
 
 	/**
 	 * 定義の存在チェック

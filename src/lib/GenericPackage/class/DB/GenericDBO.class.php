@@ -169,6 +169,10 @@ class GenericDBO {
 			self::begin();
 		}
 		self::$_DBInstance[$instanceIndex]->SetFetchMode(ADODB_FETCH_ASSOC);
+		if(NULL === $argBinds){
+			// 新ADODB用の対応
+			$argBinds = FALSE;
+		}
 		$response = self::$_DBInstance[$instanceIndex]->Execute($argQuery, $argBinds);
 		$responseBool = FALSE;
 		if(FALSE !== $response){

@@ -810,7 +810,6 @@ function loadConfig($argConfigPath){
 					}
 					if(TRUE === $evalFlag){
 						if(FALSE !== strpos($val2, '__FILE__')){
-							debug('is2??'.$val2);
 							$val2 = str_replace('__FILE__', '\'' . realpath($argConfigPath) .'\'', $val2);
 						}
 						@eval('$val2 = '.$val2.';');
@@ -879,7 +878,6 @@ function loadConfig($argConfigPath){
 
 				if(TRUE === $evalFlag){
 					if(FALSE !== strpos($val, '__FILE__')){
-						debug('is??'.$val);
 						$val = str_replace('__FILE__', '\'' . realpath($argConfigPath) .'\'', $val);
 					}
 					eval('$val = '.$val.';');
