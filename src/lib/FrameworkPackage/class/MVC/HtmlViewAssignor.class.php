@@ -72,16 +72,13 @@ class HtmlViewAssignor {
 			}
 			if('base' === $key){
 				$html = $tmpHtml;
-				debug($html);
 			}
 			else {
-				debug($tmpHtml);
 				$htmls[$key] = $tmpHtml;
 			}
 			// リセットしておく
 			self::assign(self::ASSIGN_RESET);
 		}
-		debug($htmls);
 		unset($templates);
 
 		// 複数のテンプレートhtmlをガッチャンコ

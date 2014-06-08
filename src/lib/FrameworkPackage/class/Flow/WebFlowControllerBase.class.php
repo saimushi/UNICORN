@@ -3,6 +3,21 @@
 class WebFlowControllerBase extends WebControllerBase {
 
 	public $section = '';
+	public $action = '';
+
+	protected function _reverseRewriteURL(){
+		debug('ReverseRewriteRule='.$_SERVER['ReverseRewriteRule']);
+		$reverseRules = explode(' ', $_SERVER['ReverseRewriteRule']);
+		$action = $this->action;
+		if(count($reverseRules) == 2){
+			$reverseAction = preg_replace('/' . $reverseRules[0] . '/', $reverseRules[1], $action);
+			debug('$reverseAction='.$reverseAction);
+			if(NULL !== $reverseAction && strlen($reverseAction) > 0){
+				$action = $reverseAction;
+			}
+		}
+		return $action;
+	}
 
 	protected function _initWebFlow(){
 		// Flowパラムの初期化
@@ -10,20 +25,20 @@ class WebFlowControllerBase extends WebControllerBase {
 			Flow::$params = array();
 		}
 		// flowFormでPOSTされていたら自動的にバリデートする
-		if(isset($_GET['flowpostformsection']) && $_GET['_c_'] === $_GET['flowpostformsection'] && count($_POST) > 0){
+		if(isset($_POST['flowpostformsection']) && $_GET['_c_'] === $_POST['flowpostformsection'] && count($_POST) > 0){
 			Flow::$params['post'] = array();
 			foreach($_POST as $key => $val){
+				// Flow用としてPOSTパラメータをしまっておく
 				Flow::$params['post'][$key] = $val;
-
+				// backflowがポストされてきたらそれをviewのformに自動APPEND
 				if(0 !== strpos($key, 'flowpostformsection-backflow-section')){
 					Flow::$params['view']['form[flowpostformsection]'] = array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="flowpostformsection-backflow-section" value="' . $val . '"/>');
 				}
-
+				// パスワード以外はREPLACE ATTRIBUTEを自動でして上げる
 				if(0 !== strpos($key, 'pass')){
 					if(NULL === Flow::$params['view']){
 						Flow::$params['view'] = array();
 					}
-					// パスワード以外はREPLACE ATTRIBUTEを自動でして上げる
 					Flow::$params['view'][] = array('input[name=' . $key . ']' => array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('value'=>$val)));
 				}
 				// auto validate
@@ -39,7 +54,7 @@ class WebFlowControllerBase extends WebControllerBase {
 					if(NULL === Flow::$params['view']){
 						Flow::$params['view'] = array();
 					}
-					Flow::$params['view'][] = array('div[flowpostformsectionerror=' . $_GET['flowpostformsection'] . ']' => 'メールアドレスの形式が違います');
+					Flow::$params['view'][] = array('div[flowpostformsectionerror=' . $_POST['flowpostformsection'] . ']' => 'メールアドレスの形式が違います');
 				}
 			}
 			if(isset($validateError)){
