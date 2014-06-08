@@ -6,14 +6,14 @@ class WebFlowControllerBase extends WebControllerBase {
 	public $action = '';
 
 	protected function _reverseRewriteURL(){
-		debug('ReverseRewriteRule='.$_SERVER['ReverseRewriteRule']);
-		$reverseRules = explode(' ', $_SERVER['ReverseRewriteRule']);
 		$action = $this->action;
-		if(count($reverseRules) == 2){
-			$reverseAction = preg_replace('/' . $reverseRules[0] . '/', $reverseRules[1], $action);
-			debug('$reverseAction='.$reverseAction);
-			if(NULL !== $reverseAction && strlen($reverseAction) > 0){
-				$action = $reverseAction;
+		if(isset($_SERVER['ReverseRewriteRule'])){
+			$reverseRules = explode(' ', $_SERVER['ReverseRewriteRule']);
+			if(count($reverseRules) == 2){
+				$reverseAction = preg_replace('/' . $reverseRules[0] . '/', $reverseRules[1], $action);
+				if(NULL !== $reverseAction && strlen($reverseAction) > 0){
+					$action = $reverseAction;
+				}
 			}
 		}
 		return $action;
