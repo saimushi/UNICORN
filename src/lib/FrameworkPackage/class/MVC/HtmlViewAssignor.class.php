@@ -7,16 +7,19 @@ class HtmlViewAssignor {
 	const PART_REPLACE_ATTR_KEY = 'part-replace-attribute';
 	const LOOP_NODE_KEY = 'loop-node';
 	const PART_REPLACE__NODE_KEY = 'part-replace-node';
+	const ASSIGN_RESET = 'initialize and reset';
 
 	protected $_orgHtmlHint;
+	protected $_orgHtmlKey;
 	public $Templates = array();
 
-	public function __construct($argHtmlHint=NULL){
+	public function __construct($argHtmlHint=NULL, $argKey='main'){
 		// コンストラクタですっ飛ばさない為に一旦しまってそれでコンストラクタは終わり
 		$this->_orgHtmlHint = $argHtmlHint;
+		$this->_orgHtmlKey = $argKey;
 	}
 
-	public function addTemplate($argHtmlHinst, $argKey="base"){
+	public function addTemplate($argHtmlHinst, $argKey='main'){
 		if(is_object($argHtmlHinst)){
 			// テンプレートエンジンインスタンスが渡ってきていると判定
 			$this->Templates[$argKey] = $argHtmlHinst;
@@ -28,31 +31,32 @@ class HtmlViewAssignor {
 		}
 	}
 
-	public function addTemplateAndAssign($argHtmlHinst, $argKey, $argParams){
-		// assignの実行
-		$html = HtmlViewAssignor::assign($Template, $argParams);
-		// assignを実行した結果のhtmlをaddTemplateする
-		$this->addTemplate($html, $argKey);
-	}
+	public function execute($argHtmlHint=NULL, $argParams=NULL, $argKey=NULL){
 
-	public function execute($argHtmlHint=NULL, $argParams=NULL){
+		if(NULL === $argKey){
+			$argKey = $this->_orgHtmlKey;
+			// 一度使ったら不要
+			$this->_orgHtmlKey = NULL;
+		}
 
 		// ベースとなるテンプレートエンジンインスタンスを生成
 		if(NULL !== $this->_orgHtmlHint){
-			$this->addTemplate($this->_orgHtmlHint);
+			$this->addTemplate($this->_orgHtmlHint, $argKey);
 			// 一度使ったら不要
 			$this->_orgHtmlHint = NULL;
 		}
 		if(NULL !== $argHtmlHint){
-			$this->addTemplate($argHtmlHint);
+			$this->addTemplate($argHtmlHint, $argKey);
 		}
 
 		// assignの実行
-		$html = "";
+		$html = '<html templatepartsid=\'main\'></html>';
 		$htmls = array();
 		foreach($this->Templates as $key => $val){
-			$tmpHtml = HtmlViewAssignor::assign($val, $argParams);
-			if("base" === $key){
+			$tmpHtml = self::assign($val, $argParams);
+			// リセットしておく
+			self::assign(self::ASSIGN_RESET);
+			if('base' === $key){
 				$html = $tmpHtml;
 			}
 			else {
@@ -64,7 +68,10 @@ class HtmlViewAssignor {
 		if(count($htmls) >0){
 			$BaseTemplate = new HtmlTemplate($html);
 			foreach($htmls as $key => $val){
-				$BaseTemplate->addSource($key, $val);
+				$key = '[templatepartsid=' . $key . ']';
+				// XXX アウターで置き換える！！
+				// TODO 文字コードの変換指定はそのうちちゃんとやる
+				$BaseTemplate->addSource($key, $val, NULL, NULL, TRUE);
 			}
 			// 書き戻し
 			$html = $BaseTemplate->flush();
@@ -76,6 +83,11 @@ class HtmlViewAssignor {
 
 	public static function assign($argTemplateHint, $argParams=NULL, $argKey=NULL, $argDepth = 0){
 		static $Template = array();
+		if(self::ASSIGN_RESET === $argTemplateHint){
+			// staticを初期化
+			$Template = array();
+			return;
+		}
 		if (null !== $argTemplateHint && !isset($Template[$argDepth])){
 			if(is_object($argTemplateHint)){
 				// テンプレートエンジンインスタンスが渡ってきていると判定
@@ -153,7 +165,7 @@ class HtmlViewAssignor {
 				// 同じタグを繰り返し処理して描画する
 				elseif(NULL !== $argKey && self::LOOP_NODE_KEY === $key){
 					if(is_array($val)){
-						$newDomHtml = "";
+						$newDomHtml = '';
 						$dom = $Template[$argDepth]->find($argKey);
 						$outerhtml = $dom[0]->outertext();
 						foreach($val as $lKey => $lval){
@@ -168,7 +180,7 @@ class HtmlViewAssignor {
 				// 再帰処理
 				elseif(is_array($val)){
 					if(NULL !== $argKey){
-						$key = $argKey . "-" . $key;
+						$key = $argKey . '-' . $key;
 					}
 					self::assign(null, $val, $key, $argDepth);
 				}
@@ -176,13 +188,13 @@ class HtmlViewAssignor {
 				else {
 					// ただのキーに紐づく値(innerHTML)の置換
 					if(NULL !== $argKey){
-						$key = $argKey . "-" . $key;
+						$key = $argKey . '-' . $key;
 					}
 					// ループの時用のkey自動走査対象の追加処理
-					if(0 < $argDepth && FALSE === strpos($key, "#") && FALSE === strpos($key, ".") && !is_object($Template[$argDepth]->find($key))){
+					if(0 < $argDepth && FALSE === strpos($key, '#') && FALSE === strpos($key, '.') && !is_object($Template[$argDepth]->find($key))){
 						// 対応のキーに値が無い時、自動でclass扱いしてみる
 						// XXX class以外は対象外！理由は書くのが面倒くさい
-						$key = "." . $key;
+						$key = '.' . $key;
 					}
 					$Template[$argDepth]->assignHtml($key, $val);
 				}

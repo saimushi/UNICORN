@@ -234,47 +234,47 @@ class Auth
 	 * @param string DB接続情報
 	 */
 	public static function certify($argID = NULL, $argPass = NULL, $argDSN = NULL){
-		if(FALSE === self::$_initialized){
-			self::_init($argDSN);
-		}
-		$id = $argID;
-		$pass = $argPass;
-		if(NULL === $id){
-			if(TRUE === class_exists('Flow', FALSE) && isset(Flow::$params) && isset(Flow::$params['post']) && TRUE === is_array(Flow::$params['post']) && isset(Flow::$params['post'][self::$authIDField])){
-				// Flowに格納されているPOSTパラメータを自動で使う
-				$id = Flow::$params['post'][self::$authIDField];
+		debug('start certify auth');
+		if(FALSE === self::isCertification($argDSN)){
+			// ログインセッションが無かった場合に処理を実行
+			$id = $argID;
+			$pass = $argPass;
+			if(NULL === $id){
+				if(TRUE === class_exists('Flow', FALSE) && isset(Flow::$params) && isset(Flow::$params['post']) && TRUE === is_array(Flow::$params['post']) && isset(Flow::$params['post'][self::$authIDField])){
+					// Flowに格納されているPOSTパラメータを自動で使う
+					$id = Flow::$params['post'][self::$authIDField];
+				}
+				if(isset($_REQUEST) && isset($_REQUEST[self::$authIDField])){
+					// リクエストパラメータから直接受け取る
+					$id = $_REQUEST[self::$authIDField];
+				}
 			}
-			if(isset($_REQUEST) && isset($_REQUEST[self::$authIDField])){
-				// リクエストパラメータから直接受け取る
-				$id = $_REQUEST[self::$authIDField];
+			if(NULL === $pass){
+				if(TRUE === class_exists('Flow', FALSE) && isset(Flow::$params) && isset(Flow::$params['post']) && TRUE === is_array(Flow::$params['post']) && isset(Flow::$params['post'][self::$authPassField])){
+					// Flowに格納されているPOSTパラメータを自動で使う
+					$pass = Flow::$params['post'][self::$authPassField];
+				}
+				if(isset($_REQUEST) && isset($_REQUEST[self::$authPassField])){
+					// リクエストパラメータから直接受け取る
+					$pass = $_REQUEST[self::$authPassField];
+				}
 			}
-		}
-		if(NULL === $pass){
-			if(TRUE === class_exists('Flow', FALSE) && isset(Flow::$params) && isset(Flow::$params['post']) && TRUE === is_array(Flow::$params['post']) && isset(Flow::$params['post'][self::$authPassField])){
-				// Flowに格納されているPOSTパラメータを自動で使う
-				$pass = Flow::$params['post'][self::$authPassField];
+			// ユーザーモデルを取得
+			$User = self::getRegisteredUser($id, $pass);
+			if(FALSE === $User){
+				// 証明失敗
+				return FALSE;
 			}
-			if(isset($_REQUEST) && isset($_REQUEST[self::$authPassField])){
-				// リクエストパラメータから直接受け取る
-				$pass = $_REQUEST[self::$authPassField];
-			}
+			// セッションを発行
+			Session::start();
+			debug(self::$authPKeyField);
+			$sessionIdentifier = Utilities::doHexEncryptAES($User->{self::$authPKeyField}, self::$_sessionCryptKey, self::$_sessionCryptIV);
+			debug('new identifier='.$sessionIdentifier);
+			Session::sessionID($sessionIdentifier);
+			// ログインした固有識別子をSessionに保存して、Cookieの発行を行う
+			Session::set('identifier', $User->{self::$authPKeyField});
 		}
-		// ユーザーモデルを取得
-		$User = self::getRegisteredUser($id, $pass);
-		if(FALSE === $User){
-			// 証明失敗
-			return FALSE;
-		}
-		// セッションを発行
-		Session::start();
-		debug(self::$authPKeyField);
-		$sessionIdentifier = Utilities::doHexEncryptAES($User->{self::$authPKeyField}, self::$_sessionCryptKey, self::$_sessionCryptIV);
-		debug('new identifier='.$sessionIdentifier);
-		Session::sessionID($sessionIdentifier);
-		debug('set?');
-		// ログインした固有識別子をSessionに保存して、Cookieの発行を行う
-		Session::set('identifier', $User->{self::$authPKeyField});
-		debug('set!');
+		debug('end certify auth');
 		return TRUE;
 	}
 

@@ -13,7 +13,7 @@
 	</section>
 	<section id="Test-authed" type="web">
 		<execute>
-			<view section="Test"/>
+			<view section="Test" baseview="base"/>
 		</execute>
 	</section>
 </xml>

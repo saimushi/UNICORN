@@ -133,19 +133,26 @@ abstract class SessionDataDB {
 	protected static function _finalizeData($argPKey){
 		if(is_array(self::$_sessionData) && count(self::$_sessionData) > 0){
 			$binds = array(self::$_sessionDataPKeyName => $argPKey, 'expierddate' => Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
-			$Session = ORMapper::getModel(self::$_DBO, self::$_sessionDataTblName, '`' . self::$_sessionDataPKeyName . '` = :' . self::$_sessionDataPKeyName . ' AND `' . self::$_sessionDataDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDataDateKeyName . '` DESC limit 1', $binds);
+			$Session = ORMapper::getModel(self::$_DBO, self::$_sessionDataTblName, $argPKey);
 			// XXX identifierが変えられたかもしれないので、もう一度セット
 			$Session->{'set'.ucfirst(self::$_sessionDataPKeyName)}($argPKey);
 			$Session->{'set'.ucfirst(self::$_serializeKeyName)}(json_encode(self::$_sessionData));
 			$Session->{'set'.ucfirst(self::$_sessionDataDateKeyName)}(Utilities::date('Y-m-d H:i:s', NULL, NULL, 'GMT'));
+			debug('session!');
+			debug($Session);
 			try{
+			debug('save???');
 				$Session->save();
+			debug('save!');
 				// 正常終了
 				return TRUE;
 			}
 			catch (exception $Exception){
 				// XXX この場合は、並列プロセス(Ajaxの非同期プロセス等)が先にinsertを走らせた場合に発生する
+				debug('throw msg='.$Exception->getMessage());
+				debug('throw save?');
 				$Session->save();
+			debug('throw save!');
 				// 正常終了
 				return TRUE;
 			}

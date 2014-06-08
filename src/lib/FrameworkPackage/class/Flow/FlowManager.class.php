@@ -231,6 +231,10 @@ class FlowManager
 				if(isset($tmpAttr['target']) && strlen($tmpAttr['target']) > 0){
 					$target = self::_resolveValue($tmpAttr['target']);
 				}
+				$base = NULL;
+				if(isset($tmpAttr['baseview']) && strlen($tmpAttr['baseview']) > 0){
+					$base = $tmpAttr['baseview'];
+				}
 				if(isset($tmpAttr['flowpostformsection']) && strlen($tmpAttr['flowpostformsection']) > 0){
 					$code .= 'if(NULL === Flow::$params[\'view\']){' . PHP_EOL;
 					$code .= $tab . PHP_TAB . 'Flow::$params[\'view\'] = array();' . PHP_EOL;
@@ -240,7 +244,12 @@ class FlowManager
 					$code .= $tab;
 				}
 				// Viewを表示する処理を生成
-				$code .= '$html = Core::loadView(' . $section . ', FALSE, ' . $target . ')->execute(NULL, Flow::$params[\'view\']);' . PHP_EOL;
+				$code .= '$HtmlView = Core::loadView(' . $section . ', FALSE, ' . $target . ');' . PHP_EOL;
+				if(NULL !== $base){
+					// baseになるhtmlをViewクラスに渡す
+					$code .= $tab . '$HtmlView->addTemplate(Core::loadTemplate(\'' . $base . '\', FALSE, \'\', \'.html\', \'HtmlTemplate\'), \'base\');' . PHP_EOL;
+				}
+				$code .= $tab . '$html = $HtmlView->execute(NULL, Flow::$params[\'view\']);' . PHP_EOL;
 				$code .= $tab . 'return $html;';
 			}
 			else{

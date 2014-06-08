@@ -61,11 +61,11 @@ class MVCCore {
 					debug(Configure::MUST_IOSAPP_VERSION_FLAG_FILE);
 					$mustVirsionStr = @file_get_contents(Configure::MUST_IOSAPP_VERSION_FLAG_FILE);
 					$matches = NULL;
-					if(preg_match("/([0-9\.]+)/", $mustVirsionStr, $matches)){
-						$mustVirsionNum = (int)str_replace(".","", $matches[1]);
-						debug("mustVirsionNum=". $mustVirsionNum);
-						debug("nowversion=" . (int)str_replace(".", "", $_GET['_v_']));
-						if($mustVirsionNum > (int)str_replace(".", "", $_GET['_v_'])){
+					if(preg_match('/([0-9.]+)/', $mustVirsionStr, $matches)){
+						$mustVirsionNum = (int)str_replace('.','', $matches[1]);
+						debug('mustVirsionNum='. $mustVirsionNum);
+						debug('nowversion=' . (int)str_replace('.', '', $_GET['_v_']));
+						if($mustVirsionNum > (int)str_replace('.', '', $_GET['_v_'])){
 							self::$mustAppVersioned = FALSE;
 						}
 					}
@@ -76,9 +76,9 @@ class MVCCore {
 					debug(Configure::MUST_ANDROIDAPP_VERSION_FLAG_FILE);
 					$mustVirsionStr = @file_get_contents(Configure::MUST_ANDROIDAPP_VERSION_FLAG_FILE);
 					$matches = null;
-					if(preg_match("/([0-9\.]+)/", $mustVirsionStr, $matches)){
-						$mustVirsionNum = (int)str_replace(".","", $matches[1]);
-						if($mustVirsionNum > (int)str_replace(".", "", $_GET['_v_'])){
+					if(preg_match('/([0-9.]+)/', $mustVirsionStr, $matches)){
+						$mustVirsionNum = (int)str_replace('.','', $matches[1]);
+						if($mustVirsionNum > (int)str_replace('.', '', $_GET['_v_'])){
 							self::$mustAppVersioned = FALSE;
 						}
 					}
@@ -123,7 +123,7 @@ class MVCCore {
 				}
 				else{
 					// エラー
-					throw new Exception("controller class faild.");
+					throw new Exception('controller class faild.');
 				}
 			}
 			else{
@@ -137,7 +137,7 @@ class MVCCore {
 				self::$CurrentController->mustAppVersioned = self::$mustAppVersioned;
 				$res = self::$CurrentController->$actionMethodName();
 				if(FALSE === $res){
-					throw new Exception($actionMethodName . " executed faild.");
+					throw new Exception($actionMethodName . ' executed faild.');
 				}
 			}
 		}
@@ -327,7 +327,7 @@ class MVCCore {
 					return FALSE;
 				}
 				// flowファイルの履歴を残しておく
-				self::$flowXMLPaths[] = array("class" => $controlerClassName, "xml" => $flowXMLPath);
+				self::$flowXMLPaths[] = array('class' => $controlerClassName, 'xml' => $flowXMLPath);
 				// Flowに応じたクラス定義の自動生成を委任
 				loadModule('Flow');
 				if(FALSE === Flow::generate($flowXMLPath, $controlerClassName)){
@@ -345,14 +345,22 @@ class MVCCore {
 	}
 
 	/**
-	 * MVCクラスモジュールの読み込み処理
+	 * クラス名に該当するhtmlを探しだして指定のテンプレートクラスに詰めて返す
 	 * @param string クラス名
 	 * @param string htmlの読み込事にエラーが在る場合にbooleanを返すかどうか
 	 * @return boolean
 	 */
-	public static function loadView($argClassName = NULL, $argFileExistsCalled = FALSE, $argTargetPath = ''){
+	public static function loadTemplate($argClassName = NULL, $argFileExistsCalled = FALSE, $argTargetPath = '', $argViewType = FALSE, $argTemplateEngine = 'HtmlViewAssignor'){
 
 		static $currentTargetPath = '';
+
+		if(FALSE === $argViewType){
+			$argViewType = '.html';
+		}
+		if(NULL === $argViewType){
+			// XXX 拡張子未指定と判断！
+			$argViewType = '';
+		}
 
 		$targetPath = '';
 		if(NULL !== $argClassName){
@@ -398,19 +406,19 @@ class MVCCore {
 			if('' === $targetPath && '/' === $basePath){
 				$basePath = $targetPath;
 			}
-			if(TRUE === file_exists_ip($basePath . $controlerClassName . '.html')){
+			if(TRUE === file_exists_ip($basePath . $controlerClassName . $argViewType)){
 				if(TRUE === $argFileExistsCalled){
-					return $basePath . $controlerClassName . '.html';
+					return $basePath . $controlerClassName . $argViewType;
 				}
 				// Viewインスタンスの生成
-				$HtmlView = new HtmlViewAssignor($basePath . $controlerClassName . '.html');
+				$HtmlView = new $argTemplateEngine($basePath . $controlerClassName . $argViewType);
 			}
-			elseif(TRUE === file_exists_ip($basePath . strtolower($controlerClassName) . '.html')){
+			elseif(TRUE === file_exists_ip($basePath . strtolower($controlerClassName) . $argViewType)){
 				if(TRUE === $argFileExistsCalled){
-					return $basePath . strtolower($controlerClassName) . '.html';
+					return $basePath . strtolower($controlerClassName) . $argViewType;
 				}
 				// Viewインスタンスの生成
-				$HtmlView = new HtmlViewAssignor($basePath . strtolower($controlerClassName) . '.html');
+				$HtmlView = new $argTemplateEngine($basePath . strtolower($controlerClassName) . $argViewType);
 			}
 		}
 
@@ -420,19 +428,19 @@ class MVCCore {
 				$basePath = $targetPath;
 			}
 			// バージョンを抜いてインクルード
-			if(TRUE === file_exists_ip($basePath . $controlerClassName . '.html')){
+			if(TRUE === file_exists_ip($basePath . $controlerClassName . $argViewType)){
 				if(TRUE === $argFileExistsCalled){
-					return $basePath . $controlerClassName . '.html';
+					return $basePath . $controlerClassName . $argViewType;
 				}
 				// Viewインスタンスの生成
-				$HtmlView = new HtmlViewAssignor($basePath . $controlerClassName . '.html');
+				$HtmlView = new $argTemplateEngine($basePath . $controlerClassName . $argViewType);
 			}
-			elseif(TRUE === file_exists_ip($basePath . strtolower($controlerClassName) . '.html')){
+			elseif(TRUE === file_exists_ip($basePath . strtolower($controlerClassName) . $argViewType)){
 				if(TRUE === $argFileExistsCalled){
-					return $basePath . strtolower($controlerClassName) . '.html';
+					return $basePath . strtolower($controlerClassName) . $argViewType;
 				}
 				// Viewインスタンスの生成
-				$HtmlView = new HtmlViewAssignor($basePath . strtolower($controlerClassName) . '.html');
+				$HtmlView = new $argTemplateEngine($basePath . strtolower($controlerClassName) . $argViewType);
 			}
 			else{
 				// エラー終了
@@ -441,6 +449,16 @@ class MVCCore {
 		}
 
 		return $HtmlView;
+	}
+
+	/**
+	 * クラス名に該当するhtmlを探しだしてViewクラスに詰めて返す
+	 * @param string クラス名
+	 * @param string htmlの読み込事にエラーが在る場合にbooleanを返すかどうか
+	 * @return boolean
+	 */
+	public static function loadView($argClassName = NULL, $argFileExistsCalled = FALSE, $argTargetPath = '', $argViewType = FALSE){
+		return self::loadTemplate($argClassName, $argFileExistsCalled, $argTargetPath, $argViewType);
 	}
 }
 

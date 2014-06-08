@@ -28,7 +28,7 @@ class PQuery extends simple_html_dom {
 		// テンプレートファイルの文字コード変換処理
 		if(NULL === $argFileEncoding){
 			// XXX エンコードの自動判定は非推奨
-			$argFileEncoding = mb_detect_encoding($argBuffer, "utf-8,sjis,euc-jp");
+			$argFileEncoding = mb_detect_encoding($argBuffer, 'utf-8,sjis,euc-jp');
 		}
 		if(NULL === $argConvertEncoding){
 			$argConvertEncoding = mb_internal_encoding();
@@ -45,7 +45,7 @@ class PQuery extends simple_html_dom {
 		$buffer = ob_get_contents();
 		ob_end_clean();
 		if (strlen($buffer) == 0){
-			throw new Exception("Failed opening '".$argTarget."': No such file.");
+			throw new Exception('Failed opening \''.$argTarget.'\': No such file.');
 		}
 		return self::_convertBuffer($buffer, $argFileEncoding, $argConvertEncoding);
 	}
@@ -53,9 +53,15 @@ class PQuery extends simple_html_dom {
 	/**
 	 * ソースを追加する
 	 */
-	public function addSource($argHint, $argTarget, $argFileEncoding=NULL, $argConvertEncoding=NULL){
-		$source = self::_readBuffer($argTarget, $argFileEncoding, $argConvertEncoding);
-		$this->assignText($argHint, $source);
+	public function addSource($argHint, $argTarget, $argFileEncoding=NULL, $argConvertEncoding=NULL, $argOuterEnabled=FALSE){
+		if(1024 >= strlen($argTarget) && TRUE === file_exists_ip($argTarget)){
+			$buffer = &self::_readBuffer($argTarget, $argFileEncoding, $argConvertEncoding);
+		}
+		else {
+			// html文字列扱い
+			$buffer = &self::_convertBuffer($argTarget, $argFileEncoding, $argConvertEncoding);
+		}
+		$this->assignHtml($argHint, $buffer, $argOuterEnabled);
 		// parseし直し
 		$this->refresh();
 	}
@@ -77,17 +83,27 @@ class PQuery extends simple_html_dom {
 	/**
 	 * 該当textノードの一括置換
 	 */
-	public function assignText($argNodes,$argText){
-		if(is_array($argNodes) && count($argNodes) >0){
+	public function assignText($argNodes, $argText, $argOuterEnabled=FALSE){
+		if(is_array($argNodes) && count($argNodes) > 0){
 			for($nodeIndex=0; count($argNodes)>$nodeIndex; $nodeIndex++){
-				$this->assignText($argNodes[$nodeIndex], $argText);
+				$this->assignText($argNodes[$nodeIndex], $argText, $argOuterEnabled);
 			}
 		}elseif(is_object($argNodes)){
-			$argNodes->setAttribute('innertext', $argText);
+			if(FALSE === $argOuterEnabled){
+				$argNodes->setAttribute('innertext', $argText);
+			}
+			else {
+				$argNodes->setAttribute('outertext', $argText);
+			}
 		}elseif(is_string($argNodes)){
 			$argNodes = $this->find($argNodes);
 			for($nodeIndex=0; count($argNodes)>$nodeIndex; $nodeIndex++){
-				$argNodes[$nodeIndex]->setAttribute('innertext', $argText);
+				if(FALSE === $argOuterEnabled){
+					$argNodes[$nodeIndex]->setAttribute('innertext', $argText);
+				}
+				else {
+					$argNodes[$nodeIndex]->setAttribute('outertext', $argText);
+				}
 			}
 		}
 	}
@@ -95,63 +111,63 @@ class PQuery extends simple_html_dom {
 	/**
 	 * 該当htmlノードの一括置換
 	 */
-	public function assignHtml($argNodes,$argText){
-		$this->assignText($argNodes,$argText);
+	public function assignHtml($argNodes, $argText, $argOuterEnabled=FALSE){
+		$this->assignText($argNodes, $argText, $argOuterEnabled);
 		// parseし直し
 		$this->refresh();
 	}
 
-	/**
-	 * domStoneを作って保持する
-	 */
-	private function _content($argTargetTPLHint,$argStoneName=NULL, $argFileFlag=TRUE){
+// 	/**
+// 	 * domStoneを作って保持する
+// 	 */
+// 	private function _content($argTargetTPLHint,$argStoneName=NULL, $argFileFlag=TRUE){
 
-		try {
+// 		try {
 
-			if(NULL === $argStoneName){
-				$argStoneName = count($this->_stones);
-			}
-			$this->_stones[$argStoneName] = new Rune_Stone();
+// 			if(NULL === $argStoneName){
+// 				$argStoneName = count($this->_stones);
+// 			}
+// 			$this->_stones[$argStoneName] = new Rune_Stone();
 
-			$templateFile = "{$this->_templateDirectory}/{$argTargetTPLHint}{$this->_templateSuffix}";
-			if(TRUE === $argFileFlag && is_file($argTargetTPLHint)){
-				$this->_stones[$argStoneName]->setTemplate($argTargetTPLHint);
-			}elseif(TRUE === $argFileFlag && is_file($this->_templateDirectory.'/'.$argTargetTPLHint)){
-				$this->_stones[$argStoneName]->setTemplate($this->_templateDirectory.'/'.$argTargetTPLHint);
-			}elseif(TRUE === $argFileFlag && is_file($templateFile)){
-				$this->_stones[$argStoneName]->setTemplate($templateFile);
-			}else{
-				$this->_stones[$argStoneName]->setContent($argTargetTPLHint);
-			}
-			$content = $this->_stones[$argStoneName]->getDom();
+// 			$templateFile = $this->_templateDirectory . '/' . $argTargetTPLHint . $this->_templateSuffix;
+// 			if(TRUE === $argFileFlag && is_file($argTargetTPLHint)){
+// 				$this->_stones[$argStoneName]->setTemplate($argTargetTPLHint);
+// 			}elseif(TRUE === $argFileFlag && is_file($this->_templateDirectory.'/'.$argTargetTPLHint)){
+// 				$this->_stones[$argStoneName]->setTemplate($this->_templateDirectory.'/'.$argTargetTPLHint);
+// 			}elseif(TRUE === $argFileFlag && is_file($templateFile)){
+// 				$this->_stones[$argStoneName]->setTemplate($templateFile);
+// 			}else{
+// 				$this->_stones[$argStoneName]->setContent($argTargetTPLHint);
+// 			}
+// 			$content = $this->_stones[$argStoneName]->getDom();
 
-			// template上のargument定義をすいとる
-			foreach($content->getElementsByTagName('argument') as $idx => $child){
-				$argument = $child->innertext;
-				if('true' == strtolower($child->getAttribute('eval')) || '1' === $child->getAttribute('eval') || 1 === $child->getAttribute('eval')){
-					eval('$argument = '.$argument.';');
-				}
-				$this->contentArguments[$child->getAttribute('name')] = $argument;
-				$child->clear();
-			}
+// 			// template上のargument定義をすいとる
+// 			foreach($content->getElementsByTagName('argument') as $idx => $child){
+// 				$argument = $child->innertext;
+// 				if('true' == strtolower($child->getAttribute('eval')) || '1' === $child->getAttribute('eval') || 1 === $child->getAttribute('eval')){
+// 					eval('$argument = '.$argument.';');
+// 				}
+// 				$this->contentArguments[$child->getAttribute('name')] = $argument;
+// 				$child->clear();
+// 			}
 
-			// template上のsubtemplate定義をすいとる
-			foreach($content->getElementsByTagName('subtemplate') as $idx => $child){
-				if(strlen($child->getAttribute('path')) > 0){
-					$path = $child->getAttribute('path');
-					if(is_file($path) || is_file($this->_templateDirectory.'/'.$path)){
-						$this->_content($path, $child->getAttribute('name'));
-					}
-				}else{
-					$this->_content($child->innertext, $child->getAttribute('name'), FALSE);
-				}
-				$child->clear();
-			}
+// 			// template上のsubtemplate定義をすいとる
+// 			foreach($content->getElementsByTagName('subtemplate') as $idx => $child){
+// 				if(strlen($child->getAttribute('path')) > 0){
+// 					$path = $child->getAttribute('path');
+// 					if(is_file($path) || is_file($this->_templateDirectory . '/' . $path)){
+// 						$this->_content($path, $child->getAttribute('name'));
+// 					}
+// 				}else{
+// 					$this->_content($child->innertext, $child->getAttribute('name'), FALSE);
+// 				}
+// 				$child->clear();
+// 			}
 
-		} catch (Exception $e) {
-			throw new Exception($e->getMessage());
-		}
-	}
+// 		} catch (Exception $e) {
+// 			throw new Exception($e->getMessage());
+// 		}
+// 	}
 
 	/**
 	 * assignまでの処理をラップして簡単にしたもの
@@ -165,7 +181,7 @@ class PQuery extends simple_html_dom {
 	 * XXX コレを利用したい場合は自動セットさせたいformのネームをテンプレートファイルのベースネームと一致させて置くこと！
 	 */
 	function setForm($argumets){
-		$this->setFormValue(pathinfo($this->tplName,PATHINFO_BASENAME),$argumets);
+		$this->setFormValue(pathinfo($this->tplName, PATHINFO_BASENAME),$argumets);
 	}
 
 	/**
@@ -180,7 +196,7 @@ class PQuery extends simple_html_dom {
 		unset($node);
 		return $attr;
 	}
-	
+
 	/**
 	 * setAttributeまでの処理をラップして簡単にしたもの
 	 */

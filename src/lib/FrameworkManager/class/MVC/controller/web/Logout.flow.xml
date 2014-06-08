@@ -13,7 +13,7 @@
 	</section>
 	<section id="Logout-authed" type="web">
 		<execute>
-			<view section="Logout"/>
+			<view section="Logout" baseview="base"/>
 		</execute>
 	</section>
 	<section id="Logout-uncertify" type="web">
