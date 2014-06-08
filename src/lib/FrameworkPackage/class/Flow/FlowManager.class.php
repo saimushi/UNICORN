@@ -2,7 +2,7 @@
 
 class FlowManager
 {
-	public static $params = array('post'=>NULL, 'get'=>NULL, 'request'=>NULL, 'view'=>NULL);
+	public static $params = array('post'=>NULL, 'get'=>NULL, 'request'=>NULL, 'view'=>NULL, 'backflow'=>NULL);
 
 	/**
 	 * 定義情報をチェックする
@@ -14,10 +14,38 @@ class FlowManager
 	}
 
 	/**
+	 * 次のFlowを特定し、ロードし、そのクラス名を返却する
+	 * @param string クラス名
+	 * @param string ターゲットファイルパスのヒント
+	 * @return mixed 成功時は対象のクラス名 失敗した場合はFALSEを返す
+	 */
+	public static function loadNextFlow($argClassName = NULL, $argTargetPath = ''){
+		// 先ずbackflowなのかどうか
+		if('backflow' === strtolower($argClassName)){
+			// backflowが特定出来無かった時ように強制的にIndexを指定しておく
+			$argClassName = 'Index';
+			// PostパラメータからBackflowを特定する
+			if(isset($_POST['flowpostformsection-backflow-section'])){
+				$argClassName = $_POST['flowpostformsection-backflow-section'];
+				if(FALSE !== strpos($argClassName, '/')){
+					// sectionとtargetを分割する
+					$targetTmp = explode('/', $argClassName);
+					// 最後だけをsectionIDとして使う
+					$argClassName = $targetTmp[count($targetTmp)-1];
+					unset($targetTmp[count($targetTmp)-1]);
+					$argTargetPath = implode('/', $targetTmp) . '/';
+				}
+			}
+		}
+		$className = MVCCore::loadMVCModule($argClassName, FALSE, $argTargetPath);
+		return $className;
+	}
+
+	/**
 	 * 定義情報をチェックする
 	 * @param string XMLファイルのパス文字列 or XML文字列
 	 */
-	public static function generate($argTarget, $argSection){
+	public static function generate($argTarget, $argSection, $argBasePathTarget=''){
 		$filepathUsed = FALSE;
 		$targetXML = $argTarget;
 		if(1024 >= strlen($argTarget) && TRUE === file_exists_ip($argTarget)){
@@ -105,14 +133,16 @@ class FlowManager
 						$code .= PHP_TAB . PHP_TAB . '$autoValidated = parent::_initWebFlow();' . PHP_EOL;
 					}
 					foreach ($methodNode->children() as $codeNode) {
-						$code .= self::_generateCode($codeNode);
+						$code .= self::_generateCode($codeNode, $argBasePathTarget);
 					}
 					$method = sprintf($method, $methodArg, $code);
 					$methods[] = $method;
 				}
 				// クラス定義つなぎ合わせ
 				$classDef .= PHP_EOL . 'class ' . $sectionClassName . $extends . PHP_EOL;
-				$classDef .= '{' . PHP_EOL;
+				$classDef .= '{' . PHP_EOL . PHP_EOL;
+				$classDef .= PHP_TAB . 'public $section=\''.basename($argSection).'\';' . PHP_EOL;
+				$classDef .= PHP_TAB . 'public $target=\''.$argBasePathTarget.'\';' . PHP_EOL . PHP_EOL;
 				for($methodIdx=0; count($methods) > $methodIdx; $methodIdx++){
 					$classDef .= $methods[$methodIdx];
 				}
@@ -159,7 +189,7 @@ class FlowManager
 	 * ノードを処理に分解する
 	 * @param unknown $argNode
 	 */
-	public static function _generateCode($argCodeNode, $argDepth=1){
+	public static function _generateCode($argCodeNode, $argBasePathTarget='', $argDepth=1){
 		if(isset($argCodeNode) && NULL !== $argCodeNode){
 			// TAB
 			$tab = PHP_TAB;
@@ -175,7 +205,7 @@ class FlowManager
 				// 次のフローを実行する処理を生成
 				if(isset($tmpAttr['section']) && strlen($tmpAttr['section']) > 0){
 					$sectionID = $tmpAttr['section'];
-					$target = '';
+					$target = $argBasePathTarget;
 					if(FALSE !== strpos($sectionID, '/')){
 						// sectionとtargetを分割する
 						$targetTmp = explode('/', $sectionID);
@@ -187,7 +217,7 @@ class FlowManager
 					elseif(isset($tmpAttr['target']) && strlen($tmpAttr['target']) > 0){
 						$target = $tmpAttr['target'] . '/';
 					}
-					$code .= '$className = MVCCore::loadMVCModule(\'' . str_replace('-', '_', ucfirst($sectionID)) . '\', FALSE, \'' . $target . '\');' . PHP_EOL;
+					$code .= '$className = Flow::loadNextFlow(\'' . str_replace('-', '_', ucfirst($sectionID)) . '\', \'' . $target . '\');' . PHP_EOL;
 					$code .= $tab . '$instance = new $className();' . PHP_EOL;
 					// Flowなので、処理の移譲先のコントローラに自身のクラス変数を適用し直す
 					$code .= $tab . '$instance->controlerClassName = $className;' . PHP_EOL;
@@ -331,7 +361,7 @@ class FlowManager
 				// ネスト構造を再帰的に処理して、コードに繋げる
 				if(count($argCodeNode->children()) > 0){
 					foreach($argCodeNode->children() as $codeNode){
-						$code .= self::_generateCode($codeNode, ($argDepth+1));
+						$code .= self::_generateCode($codeNode, $argBasePathTarget, ($argDepth+1));
 					}
 				}
 				// 終了子判定

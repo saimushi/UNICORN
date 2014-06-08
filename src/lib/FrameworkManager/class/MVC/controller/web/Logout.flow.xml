@@ -4,16 +4,11 @@
 		<execute>
 			<assign var="res" class="Auth" method="isCertification"/>
 			<if var="res" val="true">
-				<flow section="Logout-authed" target="web"/>
+				<view baseview="base"/>
 			</if>
 			<else>
 				<flow section="web/login"/>
 			</else>
-		</execute>
-	</section>
-	<section id="Logout-authed" type="web">
-		<execute>
-			<view section="Logout" baseview="base"/>
 		</execute>
 	</section>
 	<section id="Logout-uncertify" type="web">

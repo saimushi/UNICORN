@@ -4,16 +4,11 @@
 		<execute>
 			<assign var="res" class="Auth" method="isCertification"/>
 			<if var="res" val="true">
-				<flow section="Test-authed" target="web"/>
+				<view section="Test" baseview="base"/>
 			</if>
 			<else>
 				<flow section="web/login"/>
 			</else>
-		</execute>
-	</section>
-	<section id="Test-authed" type="web">
-		<execute>
-			<view section="Test" baseview="base"/>
 		</execute>
 	</section>
 </xml>

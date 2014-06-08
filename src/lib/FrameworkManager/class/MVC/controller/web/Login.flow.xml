@@ -10,7 +10,7 @@
 			<if var="autoValidated" val="true">
 				<assign var="res" class="Auth" method="certify"/>
 				<if var="res" val="true">
-					<flow section="Index-authed" target="web"/>
+					<flow section="backflow"/>
 				</if>
 				<else>
 					<flowpostformsectionerror>ログイン出来ませんでした</flowpostformsectionerror>

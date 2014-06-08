@@ -7,6 +7,8 @@ class HtmlViewAssignor {
 	const PART_REPLACE_ATTR_KEY = 'part-replace-attribute';
 	const LOOP_NODE_KEY = 'loop-node';
 	const PART_REPLACE_NODE_KEY = 'part-replace-node';
+	const APPEND_NODE_KEY = 'append-node';
+	const PREPEND_NODE_KEY = 'prepend-node';
 	const ASSIGN_RESET = 'initialize and reset';
 
 	protected $_orgHtmlHint;
@@ -198,6 +200,28 @@ class HtmlViewAssignor {
 								}
 								// 置き換え
 								$dom[$domIdx]->text($nodeVal);
+							}
+						}
+						unset($dom);
+					}
+					// NODEの最後にNODEを追加する処理
+					elseif(NULL !== $argKey && self::APPEND_NODE_KEY === $key){
+						$dom = $Template[$argDepth]->find($argKey);
+						if(isset($dom) && is_array($dom) && isset($dom[0])){
+							for ($domIdx = 0; count($dom) > $domIdx; $domIdx++) {
+								// 置き換え
+								$dom[$domIdx]->innerHtml($dom[$domIdx]->innerHtml().$val);
+							}
+						}
+						unset($dom);
+					}
+					// NODEの最初にNODEを追加する処理
+					elseif(NULL !== $argKey && self::PREPEND_NODE_KEY === $key){
+						$dom = $Template[$argDepth]->find($argKey);
+						if(isset($dom) && is_array($dom) && isset($dom[0])){
+							for ($domIdx = 0; count($dom) > $domIdx; $domIdx++) {
+								// 置き換え
+								$dom[$domIdx]->innerHtml($val.$dom[$domIdx]->innerHtml());
 							}
 						}
 						unset($dom);

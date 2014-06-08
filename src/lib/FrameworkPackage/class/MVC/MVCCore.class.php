@@ -229,7 +229,8 @@ class MVCCore {
 	 * MVCクラスモジュールの読み込み処理
 	 * @param string クラス名
 	 * @param string クラスの読み込事にエラーが在る場合にbooleanを返すかどうか
-	 * @return boolean
+	 * @param string クラスの読み込事にエラーが在る場合にbooleanを返すかどうか
+	 * @return mixed 成功時は対象のクラス名 失敗した場合はFALSEを返す
 	 */
 	public static function loadMVCModule($argClassName = NULL, $argClassExistsCalled = FALSE, $argTargetPath = ''){
 
@@ -330,7 +331,7 @@ class MVCCore {
 				self::$flowXMLPaths[] = array('class' => $controlerClassName, 'xml' => $flowXMLPath);
 				// Flowに応じたクラス定義の自動生成を委任
 				loadModule('Flow');
-				if(FALSE === Flow::generate($flowXMLPath, $controlerClassName)){
+				if(FALSE === Flow::generate($flowXMLPath, $controlerClassName, $targetPath)){
 					// エラー終了
 					return FALSE;
 				}

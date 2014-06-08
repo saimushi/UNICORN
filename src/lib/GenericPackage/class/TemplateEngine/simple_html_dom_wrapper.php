@@ -48,8 +48,16 @@ class simple_html_dom_node extends simple_html_dom_node_org {
 		return $textNodes;
 	}
 
-	function innerHtml(){
-		return $this->text();
+	function innerHtml($argHtmlText = NULL){
+		if(NULL === $argHtmlText){
+			// get
+			return $this->text();
+		}else{
+			// set
+			$this->setAttribute('innertext', $argHtmlText);
+			$this->dom->load($this->dom->flush());
+			return TRUE;
+		}
 	}
 
 	/**
