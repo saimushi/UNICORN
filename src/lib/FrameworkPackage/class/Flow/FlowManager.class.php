@@ -220,7 +220,7 @@ class FlowManager
 				$code .= 'if(NULL === Flow::$params[\'view\']){' . PHP_EOL;
 				$code .= $tab . PHP_TAB . 'Flow::$params[\'view\'] = array();' . PHP_EOL;
 				$code .= $tab . '}' . PHP_EOL;
-				$code .= $tab . 'Flow::$params[\'view\'][\'div[flowpostformsectionerror]\'] = \'' . $argCodeNode . '\';';
+				$code .= $tab . 'Flow::$params[\'view\'][] = array(\'div[flowpostformsectionerror]\' => \'' . $argCodeNode . '\');';
 			}
 			elseif('view' === $codeType){
 				$section = 'str_replace(\'_\', \'-\', $this->controlerClassName)';
@@ -240,7 +240,7 @@ class FlowManager
 					$code .= $tab . PHP_TAB . 'Flow::$params[\'view\'] = array();' . PHP_EOL;
 					$code .= $tab . '}' . PHP_EOL;
 					$code .= $tab . '$action = \'?_c_=' . $tmpAttr['flowpostformsection'] . '&flowpostformsection=' . $tmpAttr['flowpostformsection'] . '\';' . PHP_EOL;
-					$code .= $tab . 'Flow::$params[\'view\'][\'form[flowpostformsection=' . $tmpAttr['flowpostformsection'] . ']\'] = array(HtmlViewAssignor::REPLACE_ATTR_KEY => array(\'method\'=>\'post\', \'action\'=>$action));' . PHP_EOL;
+					$code .= $tab . 'Flow::$params[\'view\'][] = array(\'form[flowpostformsection=' . $tmpAttr['flowpostformsection'] . ']\' => array(HtmlViewAssignor::REPLACE_ATTR_KEY => array(\'method\'=>\'post\', \'action\'=>$action)));' . PHP_EOL;
 					$code .= $tab;
 				}
 				// Viewを表示する処理を生成

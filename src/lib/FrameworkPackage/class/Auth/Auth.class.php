@@ -323,7 +323,7 @@ class Auth
 			}
 		}
 		debug($id.':'.$pass);
-		$query = '`' . self::$authIDField . '` = :' . self::$authIDField . ' AND `' . self::$authPassField . '` = ' . self::$authPassField . ' ';
+		$query = '`' . self::$authIDField . '` = :' . self::$authIDField . ' AND `' . self::$authPassField . '` = :' . self::$authPassField . ' ';
 		$binds = array(self::$authIDField => self::_resolveEncrypted($id, self::$authIDEncrypted), self::$authPassField => self::_resolveEncrypted($pass, self::$authPassEncrypted));
 		$User = ORMapper::getModel(self::$_DBO, self::$authTable, $query, $binds);
 		if(isset($User->{self::$authPKeyField}) && NULL !== $User->{self::$authPKeyField} && FALSE === is_object($User->{self::$authPKeyField}) && strlen((string)$User->{self::$authPKeyField}) > 0){
