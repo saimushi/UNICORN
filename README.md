@@ -1,10 +1,14 @@
-HBOP
+UNICORN
 ====
 
-軽量、簡単且つ高機能と、既存フレームワークとの親和性の高さを目指した(てる)独自フレームワーク
+可能性を追求した(する)フレームワーク
 
-TODO:フレームワークManager機能-ログイン-の作成
-TODO:オートマイグレート機能の実装
-TODO:フレームワークManagerをインストーラで設置出来るようにする
+_■利用開始方法_
+    git clone git@github.com:saimushi/UNICORN.git
+    cd lib/FrameworkPackage/core
+    php UNICORN
 
-取り急ぎ
+_■その他リファレンス_
+<http://saimushi.github.io/UNICORN/>
+
+
