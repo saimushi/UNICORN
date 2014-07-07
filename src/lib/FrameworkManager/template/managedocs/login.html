@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta id="viewport" name="viewport"
+	content="target-densitydpi=device-dpi, width=device-width, maximum-scale=1.0, user-scalable=no">
+<title id="title">Framework Manager -login-</title>
+<link id="resert-css" rel="stylesheet" href="./static/css/reset.min.css" />
+<link id="resert-plus-css" rel="stylesheet"
+	href="./static/css/reset-plus.css" />
+<link id="base-css" rel="stylesheet" href="./static/css/base.css" />
+<link id="base-sp-css" rel="stylesheet" href="./static/css/base-sp.css" />
+<link id="base-css" rel="stylesheet" href="./static/css/la+.css" />
+<script id="jquery" src="./static/js/jquery.min.js"></script>
+<script id="base-js" type="text/javascript">
+	$(document).ready(function() {
+	});
+</script>
+</head>
+<body>
+	<header id="header" class="container">
+		<h1 class="leftbox headerbox"><a href="./"><img width="80" height="80" src="./static/image/logo-mini.png"/>RUNNING LA+</a></h1>
+		<nav class="mainbox headerbox"></nav>
+		<nav class="rightbox headerbox floatnavi">
+			<ul>
+				<li>&nbsp;</li>
+				<li>&nbsp;</li>
+				<li><a href="http://saimushi.github.io/UNICORN/" target="_blank">HELP</a></li>
+			</ul>
+		</nav>
+	</header>
+	<div class="container">
+		<div class="leftbox"></div>
+		<section class="mainbox panelbox loginform">
+			<div>
+				<h2>AUTHORIZATION.</h2>
+				<form flowpostformsection="web/login-certfy">
+					<p>■mail:</p>
+					<input type="text" name="mail" value=""/>
+					<p>■pass:</p>
+					<input type="password" name="pass" value=""/>
+					<br/>
+					<div class="buttonarea"><input type="submit" value="authorize"/></div>
+				</form>
+			</div>
+			<div flowpostformsectionerror="web/login-certfy" class="red errormsg"></div>
+		</section>
+		<div class="rightbox"></div>
+	</div>
+	<!-- 背景を body タグで指定する代わりに、この div タグに指定する -->
+	<div class="background"></div>
+</body>
+</html>

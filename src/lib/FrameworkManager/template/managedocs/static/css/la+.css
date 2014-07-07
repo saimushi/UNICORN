@@ -1,0 +1,63 @@
+
+*{
+	text-decoration: none;
+	/* 基準フォントカラー */
+	color: #FF8000;
+}
+
+header {
+	/* box setting */
+	height: 100px;
+	/* style setting */
+	color: white;
+	font-size: 2em;
+}
+
+header a:link {
+	color: white;
+}
+
+header a:visited {
+	color: white;
+}
+
+header a:hover {
+	color: white;
+}
+
+header a:active {
+	color: white;
+}
+
+.background {
+	/* box setting */
+	z-index: -1;
+	position: fixed;
+	/* position setting */
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	/* style setting */
+	background-color: black;
+	background-repeat: no-repeat;
+	background-size: 100% auto;
+	background-image:
+		url(../image/background1.jpg);
+}
+
+.headerbox {
+	/* position setting */
+	margin: 20px;
+}
+
+.panelbox {
+	/* box setting */
+	font-size: 1.5em;
+	/* position setting */
+	margin: 20px;
+	padding: 10px;
+	background-color: RGBA(0, 0, 0, 0.7);
+	/* style setting */
+	border: 2px solid #FF8000;
+}
