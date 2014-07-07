@@ -96,7 +96,14 @@ class GenericDBO {
 			}
 
 			// 継承元クラス名に応じたDSN定義を取得
-			if(0 < strlen($calledClassName) && __CLASS__  != $calledClassName && class_exists("Configure") && NULL !== Configure::constant(strtoupper($calledClassName) . "_DSN")){
+			$ProjectConfigure = NULL;
+			if(defined('PROJECT_NAME') && strlen(PROJECT_NAME) > 0 && class_exists(PROJECT_NAME . 'Configure')){
+				$ProjectConfigure = PROJECT_NAME . 'Configure';
+			}
+			if(NULL !== $ProjectConfigure && NULL !== $ProjectConfigure::constant('DB_DSN')){
+				$dsn = $ProjectConfigure::DB_DSN;
+			}
+			elseif(0 < strlen($calledClassName) && __CLASS__  != $calledClassName && class_exists("Configure") && NULL !== Configure::constant(strtoupper($calledClassName) . "_DSN")){
 				$dsn = Configure::constant(strtoupper($calledClassName) . "_DSN");
 			}
 			elseif(class_exists("Configure") && NULL !== Configure::constant("DB_DSN")){
@@ -145,12 +152,12 @@ class GenericDBO {
 	public function execute($argQuery, $argBinds = NULL){
 		$instanceIndex = self::_initDB();
 		// MYSQLの時にBindを変換してあげる処理
-		if(NULL !== $argBinds){
+		if(NULL !== $argBinds && is_array($argBinds)){
 			$dsn = self::$_DSN[$instanceIndex];
 			if(0 === strpos($dsn, "mysql")){
 				$keys = array_keys($argBinds);
 				// Bindがキー=値で来ているかどうか
-				if(TRUE === is_string($keys[0])){
+				if(0 < count($keys) && TRUE === is_string($keys[0])){
 					$newBinds = array();
 					$pattern = "/:([a-zA-Z0-9\_\-]+?)\s/";
 					$matches = NULL;
@@ -241,7 +248,7 @@ class GenericDBO {
 		$dsn = self::$_DSN[$instanceIndex];
 		if(0 === strpos($dsn, "mysql")){
 			// MySQL
-			$sql = "SHOW FULL COLUMNS FROM `".$argTable."`";
+			$sql = "SHOW FULL COLUMNS FROM `".strtolower($argTable)."`";
 			$response = self::execute($sql);
 			if(FALSE === $response){
 				return  $response;
@@ -361,6 +368,11 @@ class GenericDBO {
 					if("auto_increment" === $baseDescribes[$baseDescribeNum]["Extra"]){
 						$describes[$baseDescribes[$baseDescribeNum]["Field"]]["autoincrement"] = TRUE;
 					}
+					// コメントがあったら入れておく
+					if(isset($baseDescribes[$baseDescribeNum]["Comment"])){
+						$describes[$baseDescribes[$baseDescribeNum]["Field"]]["comment"] = $baseDescribes[$baseDescribeNum]["Comment"];
+					}
+				
 				}
 				return $describes;
 			}

@@ -24,6 +24,22 @@ class WebFlowControllerBase extends WebControllerBase {
 		if(NULL === Flow::$params){
 			Flow::$params = array();
 		}
+
+		// GETパラメータの各種自動処理
+		if(isset($_GET) && count($_GET) > 0){
+			Flow::$params['get'] = array();
+			foreach($_GET as $key => $val){
+				// Flow用としてPOSTパラメータをしまっておく
+				Flow::$params['get'][$key] = $val;
+				if(NULL === Flow::$params['view']){
+					Flow::$params['view'] = array();
+				}
+				debug('[frowparamsection=' . $key . ']');
+				Flow::$params['view'][] = array('[frowparamsection=' . $key . ']' => array(HtmlViewAssignor::PART_REPLACE_NODE_KEY => array('_flow_'.$key.'_' => $val)));
+				Flow::$params['view'][] = array('[frowparamsection=' . $key . ']' => array(HtmlViewAssignor::PART_REPLACE_ATTR_KEY => array('href' => array('_flow_'.$key.'_' => $val), 'value' => array('_flow_'.$key.'_' => $val), 'src' => array('_flow_'.$key.'_' => $val))));
+			}
+		}
+
 		// flowFormでPOSTされていたら自動的にバリデートする
 		if(isset($_POST['flowpostformsection']) && $_GET['_c_'] === $_POST['flowpostformsection'] && count($_POST) > 0){
 			Flow::$params['post'] = array();
@@ -42,15 +58,22 @@ class WebFlowControllerBase extends WebControllerBase {
 					Flow::$params['view'][] = array('input[name=' . $key . ']' => array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('value'=>$val)));
 				}
 				// auto validate
+				debug('$key='.$key);
+				debug('$val='.$val);
 				try{
 					if(FALSE !== strpos($key, 'mail')){
 						// メールアドレスのオートバリデート
 						Validations::isEmail($val);
 					}
+					if(FALSE !== strpos($key, '_must') && 0 === strlen($val)){
+						debug('must exception');
+						// 必須パラメータの存在チェック
+						throw new Exception();
+					}
 				}
 				catch (Exception $Exception){
 					// 最後のエラーメッセージを取っておく
-					$validateError = Validations::getMessage();
+					$validateError = TRUE;
 					if(NULL === Flow::$params['view']){
 						Flow::$params['view'] = array();
 					}
@@ -59,6 +82,7 @@ class WebFlowControllerBase extends WebControllerBase {
 			}
 			if(isset($validateError)){
 				// オートバリデートでエラー
+				debug('$validateError');
 				return FALSE;
 			}
 		}

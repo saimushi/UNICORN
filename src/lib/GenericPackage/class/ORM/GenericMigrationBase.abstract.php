@@ -24,7 +24,13 @@ abstract class GenericMigrationBase {
 				$fieldDef .= ' CHAR(' . $propaty['length'] . ')';
 			}
 			elseif('int' === $propaty['type']){
-				$fieldDef .= ' int(' . $propaty['length'] . ')';
+				if(FALSE !== strpos(',', $propaty['length'])){
+					// 小数点が在る場合
+					$fieldDef .= ' DECIMAL(' . $propaty['length'] . ')';
+				}
+				else{
+					$fieldDef .= ' INT(' . $propaty['length'] . ')';
+				}
 			}
 			elseif('date' === $propaty['type']){
 				$fieldDef .= ' DATETIME';
@@ -50,6 +56,9 @@ abstract class GenericMigrationBase {
 			}
 			if(isset($propaty['autoincrement']) && TRUE === $propaty['autoincrement']){
 				$fieldDef .= ' AUTO_INCREMENT';
+			}
+			if(isset($propaty['comment'])){
+				$fieldDef .= ' COMMENT \''. $propaty['comment'] .'\' ';
 			}
 			if(isset($propaty['pkey']) && TRUE === $propaty['pkey']){
 				$pkeyDef .= ', PRIMARY KEY(`' . $field . '`)';
@@ -109,8 +118,19 @@ abstract class GenericMigrationBase {
 				}
 			}
 			if(strlen($sql) > 0){
-				$executed = TRUE;
-				$argDBO->execute($sql);
+				try {
+					$argDBO->execute($sql);
+					$executed = TRUE;
+				}
+				catch (Exception $Exception){
+					logging($Exception->getMessage(), 'exception');
+					// ALTERのADDは、2重実行でエラーになるので、ここでのExceptionは無視してModfyを実行してみる
+					$sql = str_replace('ALTER TABLE `' . $this->tableName . '` ' . $propaty['alter'] . ' COLUMN ', 'ALTER TABLE `' . $this->tableName . '` MODIFY COLUMN ', $sql);
+					// MODIFYに変えて実行しなおし
+					$argDBO->execute($sql);
+					$executed = TRUE;
+					// XXX それでもダメならException！
+				}
 			}
 		}
 		if(TRUE === $executed){

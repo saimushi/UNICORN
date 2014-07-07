@@ -66,6 +66,8 @@ class GenericMigrationManager {
 					$migrationHash = self::$_lastMigrationHash;
 				}
 			}
+			debug('$migrationHash='.$migrationHash);
+			debug('$modelHash='.$modelHash);
 			// マイグレーションハッシュがある場合は
 			if(NULL !== $migrationHash){
 				if(FALSE !== strpos($migrationHash, $modelHash)){
@@ -182,7 +184,7 @@ class GenericMigrationManager {
 
 			// 現在の定義でマイグレーションファイルを生成する
 			$migrationClassName = self::_createMigrationClassName($argTblName).'_'.$modelHash;
-			$migrationClassDef = 'class '.$migrationClassName.' extends MigrationBase {' . PHP_EOL . PHP_EOL . PHP_TAB . 'public $tableName = "' . $argTblName . '";' . PHP_EOL . PHP_EOL . PHP_TAB . 'public static $migrationHash = "' . $modelHash . '";' . $migrationClassDef . '}';
+			$migrationClassDef = 'class '.$migrationClassName.' extends MigrationBase {' . PHP_EOL . PHP_EOL . PHP_TAB . 'public $tableName = "' . strtolower($argTblName) . '";' . PHP_EOL . PHP_EOL . PHP_TAB . 'public static $migrationHash = "' . $modelHash . '";' . $migrationClassDef . '}';
 			$path = getAutoMigrationPath().$argDBO->dbidentifykey.'.'.$migrationClassName.'.migration.php';
 			@file_put_contents($path, '<?php' . PHP_EOL . PHP_EOL . $migrationClassDef . PHP_EOL . PHP_EOL . '?>');
 			@chmod($path, 0777);
@@ -208,6 +210,8 @@ class GenericMigrationManager {
 				$migrationes[] = trim($line);
 			}
 		}
+		debug('dispatche all migrations=');
+		debug($migrationes);
 		$dispatchedMigrationesFilePath = getAutoMigrationPath().$argDBO->dbidentifykey.'.dispatched.migrations';
 		$dispatchedMigrationes = array();
 		if(TRUE === file_exists($dispatchedMigrationesFilePath) && TRUE === is_file($dispatchedMigrationesFilePath)){
@@ -218,6 +222,7 @@ class GenericMigrationManager {
 			}
 		}
 		$dispatchedMigrationesStr = implode(':', $dispatchedMigrationes);
+		debug('dispatched migrations='.$dispatchedMigrationesStr);
 		self::$_lastMigrationHash = NULL;
 		$diff = array();
 		// 未適用の差分を探す
@@ -232,8 +237,11 @@ class GenericMigrationManager {
 				}
 				// テーブル指定があった場合は、最後の該当テーブルに対するマイグレーションファイルを特定しておく
 				if(NULL !== $argTblName){
-					if(FALSE !== strpos(strtolower($migrationes[$migIdx]), strtolower($argTblName).'migration_')){
+					$migrationName = strtolower(ORMapper::getGeneratedModelName($argTblName));
+					debug('check exists migration='. strtolower($migrationes[$migIdx]) . ' & ' . $migrationName.'migration_');
+					if(FALSE !== strpos(strtolower($migrationes[$migIdx]), $migrationName.'migration_')){
 						self::$_lastMigrationHash = $migrationes[$migIdx];
+						debug('self::$_lastMigrationHash='.$migrationes[$migIdx]);
 					}
 				}
 			}
@@ -242,11 +250,7 @@ class GenericMigrationManager {
 	}
 
 	private static function _createMigrationClassName($argTblName){
-		$tableName = $argTblName;
-		$migrationName = ucfirst($tableName);
-		$migrationName = str_replace('_', ' ', $migrationName);
-		$migrationName = ucwords($migrationName);
-		$migrationName = str_replace(' ', '', $migrationName);
+		$migrationName = ORMapper::getGeneratedModelName($argTblName);
 		if((strlen($migrationName) - (strlen('migration'))) === strpos(strtolower($migrationName), 'migration')){
 			// 何もしない
 		}
@@ -256,34 +260,34 @@ class GenericMigrationManager {
 		return $migrationName;
 	}
 
-	/**
-	 * 定義の存在チェック
-	 * 現存する、最新のバージョン番号を返却する
-	 * @param unknown $argDBO
-	 * @param unknown $argTable
-	 * @return mixied 正常終了時はint、以上の場合はFALSEを返す
-	 */
-	public static function is($argDBO, $argTable){
-		if(class_exists('Configure') && NULL !== Configure::constant('LIB_DIR')){
-			$dirPath = Configure::LIB_DIR . 'automigrate/' . $argTable;
-			$isdir = file_exists($dirPath);
-			if(TRUE === $isdir && $handle = opendir($dirPath)) {
-				/* ディレクトリをループする際の正しい方法です */
-				$version = 1;
-				while(false !== ($entry = readdir($handle))) {
-					if(0 < strpos($entry, $argTable)){
-						$nowVersion = (int)substr($entry, 0, strpos($entry, $argTable) - 1);
-						if($version < $nowVersion){
-							$version = $nowVersion;
-						}
-					}
-				}
-				closedir($handle);
-				return $version;
-			}
-		}
-		return FALSE;
-	}
+// 	/**
+// 	 * 定義の存在チェック
+// 	 * 現存する、最新のバージョン番号を返却する
+// 	 * @param unknown $argDBO
+// 	 * @param unknown $argTable
+// 	 * @return mixied 正常終了時はint、以上の場合はFALSEを返す
+// 	 */
+// 	public static function is($argDBO, $argTable){
+// 		if(class_exists('Configure') && NULL !== Configure::constant('LIB_DIR')){
+// 			$dirPath = Configure::LIB_DIR . 'automigrate/' . $argTable;
+// 			$isdir = file_exists($dirPath);
+// 			if(TRUE === $isdir && $handle = opendir($dirPath)) {
+// 				/* ディレクトリをループする際の正しい方法です */
+// 				$version = 1;
+// 				while(false !== ($entry = readdir($handle))) {
+// 					if(0 < strpos($entry, $argTable)){
+// 						$nowVersion = (int)substr($entry, 0, strpos($entry, $argTable) - 1);
+// 						if($version < $nowVersion){
+// 							$version = $nowVersion;
+// 						}
+// 					}
+// 				}
+// 				closedir($handle);
+// 				return $version;
+// 			}
+// 		}
+// 		return FALSE;
+// 	}
 
 	/**
 	 * 定義の新規作成

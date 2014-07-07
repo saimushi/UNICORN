@@ -5,6 +5,8 @@ abstract class MVCControllerBase implements MVCController {
 	public $controlerClassName = "";
 	public $httpStatus = 200;
 	public $outputType = "html";
+	public $requestMethod = "GET";
+	public $restResource = '';
 	public $jsonUnescapedUnicode = true;
 
 	public $deviceType = "PC";

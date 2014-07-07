@@ -173,7 +173,7 @@ class Utilities {
 	 * @return string 複合データ
 	 */
 	public static function doHexDecryptAES($argValue, $argKey, $argIV = null, $argPrefix = '', $argSuffix = '') {
-		return self::decryptAES(pack("H*", $argValue), $argKey, $argIV, $argPrefix, $argSuffix);
+		return self::decryptAES(@pack("H*", $argValue), $argKey, $argIV, $argPrefix, $argSuffix);
 	}
 
 	/**

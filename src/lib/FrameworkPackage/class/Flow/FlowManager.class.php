@@ -35,9 +35,13 @@ class FlowManager
 					unset($targetTmp[count($targetTmp)-1]);
 					$argTargetPath = implode('/', $targetTmp) . '/';
 				}
+				if(FALSE !== strpos($argClassName, '-')){
+					$argClassName = str_replace('-', '_', $argClassName);
+				}
 			}
 		}
 		$className = MVCCore::loadMVCModule($argClassName, FALSE, $argTargetPath);
+			debug('backflowClass='.var_export($className,true));
 		return $className;
 	}
 

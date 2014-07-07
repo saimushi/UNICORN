@@ -29,11 +29,7 @@ class GenericORMapper {
 
 		// モデルクラス名とテーブル名を特定する
 		$tableName = $argModelName;
-		$modelName = ucfirst($tableName);
-		$modelName = str_replace("_", " ", $modelName);
-		$modelName = ucwords($modelName);
-		$modelName = str_replace(" ", "", $modelName);
-		//$modelName = str_replace(" ", "", $modelName);
+		$modelName = self::getGeneratedModelName($tableName);
 
 		// テーブル名末尾の数値は、ナンバリングテーブル名だと過程して、外す
 		$matches = NULL;
@@ -49,6 +45,7 @@ class GenericORMapper {
 		}else{
 			$modelName = $modelName."Model";
 		}
+		$tableName = ucfirst($tableName);
 
 		// オートマイグレートその1
 		$lastMigrationHash = NULL;
@@ -98,6 +95,7 @@ class GenericORMapper {
 
 			// モデルクラス定義からクラス生成
 			eval($baseModelClassDefine);
+			debug($baseModelClassDefine);
 
 			// 生成したクラスを取っておく
 			self::$_models[$tableName] = $modelName;
@@ -177,12 +175,15 @@ class GenericORMapper {
 				$describeDef .= "\$this->describes[\"" . $colName . "\"][\"null\"] = " . $describe["null"] . "; ";
 				$describeDef .= "\$this->describes[\"" . $colName . "\"][\"pkey\"] = " . $describe["pkey"] . "; ";
 				if(isset($describe["length"])){
-					$describeDef .= "\$this->describes[\"" . $colName . "\"][\"length\"] = " . $describe["length"] . "; ";
+					$describeDef .= "\$this->describes[\"" . $colName . "\"][\"length\"] = \"" . $describe["length"] . "\"; ";
 				}
 				if(isset($describe["min-length"])){
 					$describeDef .= "\$this->describes[\"" . $colName . "\"][\"min-length\"] = " . $describe["min-length"] . "; ";
 				}
 				$describeDef .= "\$this->describes[\"" . $colName . "\"][\"autoincrement\"] = " . $describe["autoincrement"] . "; ";
+				if(isset($describe["comment"])){
+					$describeDef .= "\$this->describes[\"" . $colName . "\"][\"comment\"] = \"" . $describe["comment"] . "\"; ";
+				}
 				$varDef .= "public \$" . $colName;
 				if(isset($describe["default"]) && strlen($describe["default"]) > 0){
 					$varDef .= " = " . $escape . $describe["default"] . $escape;
@@ -207,6 +208,21 @@ class GenericORMapper {
 		else {
 			throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__);
 		}
+	}
+
+	/**
+	 * テーブル名をモデル名に変換する
+	 * @param unknown $argTableName
+	 * @return unknown
+	 */
+	public static function getGeneratedModelName($argTableName){
+		// モデルクラス名とテーブル名を特定する
+		$tableName = $argTableName;
+		$modelName = ucfirst($tableName);
+		$modelName = str_replace("_", " ", $modelName);
+		$modelName = ucwords($modelName);
+		$modelName = str_replace(" ", "", $modelName);
+		return $modelName;
 	}
 }
 

@@ -129,6 +129,9 @@ class MVCCore {
 			else{
 				$controlerClassName = $res;
 				self::$CurrentController = new $controlerClassName();
+				if(isset($_SERVER['REQUEST_METHOD'])){
+					self::$CurrentController->requestMethod = strtoupper($_SERVER['REQUEST_METHOD']);
+				}
 				self::$CurrentController->controlerClassName = $controlerClassName;
 				self::$CurrentController->outputType = $outputType;
 				self::$CurrentController->deviceType = self::$deviceType;
@@ -142,6 +145,8 @@ class MVCCore {
 			}
 		}
 		catch (Exception $Exception){
+			// リターンは強制的にFALSE
+			$res = FALSE;
 			// statusコードがアレバそれを使う
 			if(isset(self::$CurrentController->httpStatus) && $httpStatus != self::$CurrentController->httpStatus){
 				$httpStatus = self::$CurrentController->httpStatus;
@@ -154,10 +159,35 @@ class MVCCore {
 
 		// Output
 		try{
-			if(200 !== $httpStatus){
+			if(200 !== $httpStatus && 201 !== $httpStatus && 202 !== $httpStatus){
 				// 200版以外のステータスコードの場合の出力処理
 				header('HTTP', TRUE, $httpStatus);
 				if(FALSE === $res && isset($Exception)){
+					if('json' === $outputType){
+						// exceptionのログ出力
+						if(!class_exists('PHPUnit_Framework_TestCase', FALSE)){
+							logging($Exception->getMessage().PATH_SEPARATOR.var_export(debug_backtrace(),TRUE),'exception');
+						}
+						// jsonでエラーメッセージを出力
+						header('Content-type: text/javascript; charset=UTF-8');
+						$res = json_encode(array('error' => $Exception->getMessage()));
+						if(TRUE == self::$CurrentController->jsonUnescapedUnicode){
+							$res = unicode_encode($res);
+							// スラッシュのエスケープをアンエスケープする
+							$res = preg_replace('/\\\\\//', '/', $res);
+						}
+						debug($res);
+						exit($res);
+					}
+					elseif('xml' === $outputType){
+						// exceptionのログ出力
+						if(!class_exists('PHPUnit_Framework_TestCase', FALSE)){
+							logging($Exception->getMessage().PATH_SEPARATOR.var_export(debug_backtrace(),TRUE),'exception');
+						}
+						// XMLでエラーメッセージを出力
+						header('Content-type:Content- type: application/xml; charset=UTF-8');
+						exit('<?xml version="1.0" encoding="UTF-8" ?>' . convertObjectToXML(array('error' => $Exception->getMessage())));
+					}
 					_systemError('Exception :' . $Exception->getMessage());
 				}
 			}
@@ -186,6 +216,13 @@ class MVCCore {
 						$res = preg_replace('/\\\\\//', '/', $res);
 					}
 				}
+				elseif('xml' === $outputType){
+					// jsonヘッダー出力
+					header('Content-type:Content- type: application/xml; charset=UTF-8');
+					if(is_array($res)){
+						$res = '<?xml version="1.0" encoding="UTF-8" ?>' . convertObjectToXML($res);
+					}
+				}
 				elseif('jpg' === $outputType || 'jpeg' === $outputType){
 					// jpgヘッダー出力
 					header('Content-type: image/jpeg');
@@ -210,11 +247,14 @@ class MVCCore {
 				if(TRUE === $isBinary && is_string($res)){
 					header('Content-length: ' . strlen($res));
 				}
+				debug('lastRES=');
+				debug($res);
 				echo $res;
 			}
 		}
 		catch (Exception $Exception){
-			//
+			// かなりのイレギュラー！ 普通はココを通らない！！
+			_systemError('Exception :' . $Exception->getMessage());
 		}
 
 		// 明示的終了
@@ -280,6 +320,9 @@ class MVCCore {
 			}
 			if(!class_exists($controlerClassName, FALSE)){
 				loadModule('default.controlmain.' . $targetPath . $controlerClassName, TRUE);
+			}
+			if(!class_exists($controlerClassName, FALSE)){
+				loadModule('default.controlmain.' . $controlerClassName, TRUE);
 			}
 			if(class_exists($controlerClassName, FALSE)){
 				// FlowGenerateする必要がなさそうなのでココで終了

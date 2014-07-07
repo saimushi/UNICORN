@@ -18,7 +18,7 @@ class SessionDB extends SessionDataDB implements SessionIO {
 	protected static $_expiredtime = 3600;// 60分
 	protected static $_sessionTblName = 'session_table';
 	protected static $_sessionPKeyName = 'token';
-	protected static $_sessionDateKeyName = 'created';
+	protected static $_sessionDateKeyName = 'create_date';
 	protected static $_cryptKey = NULL;
 	protected static $_cryptIV = NULL;
 
@@ -248,6 +248,8 @@ class SessionDB extends SessionDataDB implements SessionIO {
 							self::$_identifier = $identifier;
 							return TRUE;
 						}
+						// identiferだけは認める
+						self::sessionID($identifier);
 					}
 					debug('cookie delete!');
 					// 二度処理しない為に削除する
@@ -289,8 +291,8 @@ class SessionDB extends SessionDataDB implements SessionIO {
 		// SESSHONレコードを更新
 		$binds = array(self::$_sessionPKeyName => self::$_token, 'expierddate' => Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
 		$Session = ORMapper::getModel(self::$_DBO, self::$_sessionTblName, '`' . self::$_sessionPKeyName . '` = :' . self::$_sessionPKeyName . ' AND `' . self::$_sessionDateKeyName . '` >= :expierddate ORDER BY `' . self::$_sessionDateKeyName . '` DESC limit 1', $binds);
-		$Session->{'set'.ucfirst(self::$_sessionPKeyName)}(self::$_token);
-		$Session->{'set'.ucfirst(self::$_sessionDateKeyName)}(Utilities::date('Y-m-d H:i:s', NULL, NULL, 'GMT'));
+		$Session->{'set' . str_replace(' ', '', ucwords(str_replace('_', ' ', self::$_sessionPKeyName)))}(self::$_token);
+		$Session->{'set' . str_replace(' ', '', ucwords(str_replace('_', ' ', self::$_sessionDateKeyName)))}(Utilities::date('Y-m-d H:i:s', NULL, NULL, 'GMT'));
 		$Session->save();
 	}
 

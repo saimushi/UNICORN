@@ -12,6 +12,8 @@ class Auth
 	public static $authPKeyField = 'id';
 	public static $authIDField = 'mailaddress';
 	public static $authPassField = 'password';
+	public static $authCreatedField = 'create_date';
+	public static $authModifiedField = 'modify_date';
 	public static $authIDEncrypted = 'AES128CBC';
 	public static $authPassEncrypted = 'SHA256';
 
@@ -43,6 +45,14 @@ class Auth
 			if(class_exists('Configure') && NULL !== Configure::constant('AUTH_PASS_FIELD_NAME')){
 				// 定義からuserTable名を特定
 				self::$authPassField = Configure::AUTH_PASS_FIELD_NAME;
+			}
+			if(class_exists('Configure') && NULL !== Configure::constant('AUTH_CREATE_DATE_KEY_NAME')){
+				// 定義からuserTable名を特定
+				self::$authCreatedField = Configure::AUTH_CREATE_DATE_KEY_NAME;
+			}
+			if(class_exists('Configure') && NULL !== Configure::constant('AUTH_MODIFY_DATE_KEY_NAME')){
+				// 定義からuserTable名を特定
+				self::$authModifiedField = Configure::AUTH_MODIFY_DATE_KEY_NAME;
 			}
 			if(class_exists('Configure') && NULL !== Configure::constant('AUTH_ID_ENCRYPTED')){
 				// 定義からuserTable名を特定
@@ -120,6 +130,14 @@ class Auth
 					// 定義からuserTable名を特定
 					self::$authPassField = $ProjectConfigure::AUTH_PASS_FIELD_NAME;
 				}
+				if(NULL !== $ProjectConfigure::constant('AUTH_CREATE_DATE_KEY_NAME')){
+					// 定義からuserTable名を特定
+					self::$authCreatedField = $ProjectConfigure::AUTH_CREATE_DATE_KEY_NAME;
+				}
+				if(NULL !== $ProjectConfigure::constant('AUTH_MODIFY_DATE_KEY_NAME')){
+					// 定義からuserTable名を特定
+					self::$authModifiedField = $ProjectConfigure::AUTH_MODIFY_DATE_KEY_NAME;
+				}
 				if(NULL !== $ProjectConfigure::constant('AUTH_ID_ENCRYPTED')){
 					// 定義からuserTable名を特定
 					self::$authIDEncrypted = $ProjectConfigure::AUTH_ID_ENCRYPTED;
@@ -186,6 +204,25 @@ class Auth
 	}
 
 	/**
+	 */
+	public static function getEncryptedAuthIdentifier($argIdentifier=NULL){
+		if(NULL === $argIdentifier){
+			$argIdentifier = Session::sessionID();
+		}
+		return Utilities::doHexEncryptAES($argIdentifier, self::$_sessionCryptKey, self::$_sessionCryptIV);
+
+	}
+
+	/**
+	 */
+	public static function getDecryptedAuthIdentifier($argIdentifier=NULL){
+		if(NULL === $argIdentifier){
+			$argIdentifier = Session::sessionID();
+		}
+		return Utilities::doHexDecryptAES($argIdentifier, self::$_sessionCryptKey, self::$_sessionCryptIV);
+	}
+
+	/**
 	 * 認証が証明済みのユーザーモデルを返す
 	 * @param string DB接続情報
 	 */
@@ -197,7 +234,7 @@ class Auth
 		$sessionIdentifier = Session::sessionID();
 		debug( self::$_sessionCryptKey . ':' . self::$_sessionCryptIV);
 		debug("session identifier".$sessionIdentifier);
-		$userID = Utilities::doHexDecryptAES($sessionIdentifier, self::$_sessionCryptKey, self::$_sessionCryptIV);
+		$userID = self::getDecryptedAuthIdentifier($sessionIdentifier);
 		debug("decrypted userID=".$userID);
 		if(strlen($userID) > 0){
 			$User = ORMapper::getModel(self::$_DBO, self::$authTable, $userID);
@@ -232,10 +269,11 @@ class Auth
 	 * @param string 認証ID
 	 * @param string 認証パスワード
 	 * @param string DB接続情報
+	 * @param string 強制再認証
 	 */
-	public static function certify($argID = NULL, $argPass = NULL, $argDSN = NULL){
+	public static function certify($argID = NULL, $argPass = NULL, $argDSN = NULL, $argExecut = FALSE){
 		debug('start certify auth');
-		if(FALSE === self::isCertification($argDSN)){
+		if(TRUE === $argExecut || FALSE === self::isCertification($argDSN)){
 			// ログインセッションが無かった場合に処理を実行
 			$id = $argID;
 			$pass = $argPass;
@@ -267,8 +305,8 @@ class Auth
 			}
 			// セッションを発行
 			Session::start();
-			debug(self::$authPKeyField);
-			$sessionIdentifier = Utilities::doHexEncryptAES($User->{self::$authPKeyField}, self::$_sessionCryptKey, self::$_sessionCryptIV);
+			debug('self::$authPKeyField='.self::$authPKeyField);
+			$sessionIdentifier = self::getEncryptedAuthIdentifier($User->{self::$authPKeyField});
 			debug('new identifier='.$sessionIdentifier);
 			Session::sessionID($sessionIdentifier);
 			// ログインした固有識別子をSessionに保存して、Cookieの発行を行う
@@ -380,12 +418,18 @@ class Auth
 		}
 		$id = self::_resolveEncrypted($id, self::$authIDEncrypted);
 		$pass = self::_resolveEncrypted($pass, self::$authPassEncrypted);
+		$gmtDate = Utilities::date('Y-m-d H:i:s', NULL, NULL, 'GMT');
 		$query = '`' . self::$authIDField . '` = :' . self::$authIDField . ' AND `' . self::$authPassField . '` = ' . self::$authPassField . ' ';
 		$binds = array(self::$authIDField => $id, self::$authPassField => $pass);
 		$User = ORMapper::getModel(self::$_DBO, self::$authTable, $query, $binds);
-		$User->{'set'.ucfirst(self::$authIDField)}($id);
-		$User->{'set'.ucfirst(self::$authPassField)}($pass);
-		$User->save();
+		$User->{'set' . str_replace(' ', '', ucwords(str_replace('_', ' ', self::$authIDField)))}($id);
+		$User->{'set' . str_replace(' ', '', ucwords(str_replace('_', ' ', self::$authPassField)))}($pass);
+		$User->{'set' . str_replace(' ', '', ucwords(str_replace('_', ' ', self::$authCreatedField)))}($gmtDate);
+		$User->{'set' . str_replace(' ', '', ucwords(str_replace('_', ' ', self::$authModifiedField)))}($gmtDate);
+		if(TRUE === $User->save()){
+			// ユーザーの登録は完了とみなし、コミットを行う！
+			self::$_DBO->commit();
+		}
 		return $User;
 	}
 
@@ -394,6 +438,7 @@ class Auth
 	 * @param string $argDSN
 	 */
 	protected static function _resolveEncrypted($argString, $argAlgorism = NULL){
+		debug('EncryptAlg='.$argAlgorism);
 		$string = $argString;
 		if('sha1' === strtolower($argAlgorism)){
 			$string = sha1($argString);

@@ -11,7 +11,7 @@ abstract class SessionDataDB {
 	protected static $_sessionDataTblName = 'session_table';
 	protected static $_sessionDataPKeyName = 'identifier';
 	protected static $_serializeKeyName = 'data';
-	protected static $_sessionDataDateKeyName = 'modified';
+	protected static $_sessionDataDateKeyName = 'modify_date';
 	protected static $_sessionData = NULL;
 	protected static $_DBO = NULL;
 
@@ -52,7 +52,7 @@ abstract class SessionDataDB {
 			}
 			if(class_exists('Configure') && NULL !== Configure::constant('SESSION_DATA_DATE_KEY_NAME')){
 				// 定義から日時フィールド名を特定
-				self::$_sessionDataDateKeyName = Configure::DATE_KEY_NAME;
+				self::$_sessionDataDateKeyName = Configure::SESSION_DATA_DATE_KEY_NAME;
 			}
 			if(defined('PROJECT_NAME') && strlen(PROJECT_NAME) > 0 && class_exists(PROJECT_NAME . 'Configure')){
 				$ProjectConfigure = PROJECT_NAME . 'Configure';
@@ -82,7 +82,7 @@ abstract class SessionDataDB {
 				}
 				if(NULL !== $ProjectConfigure::constant('SESSION_DATA_DATE_KEY_NAME')){
 					// 定義から日時フィールド名を特定
-					self::$_sessionDataDateKeyName = $ProjectConfigure::DATE_KEY_NAME;
+					self::$_sessionDataDateKeyName = $ProjectConfigure::SESSION_DATA_DATE_KEY_NAME;
 				}
 			}
 
@@ -135,15 +135,14 @@ abstract class SessionDataDB {
 			$binds = array(self::$_sessionDataPKeyName => $argPKey, 'expierddate' => Utilities::modifyDate('-' . (string)self::$_expiredtime . 'sec', 'Y-m-d H:i:s', NULL, NULL, 'GMT'));
 			$Session = ORMapper::getModel(self::$_DBO, self::$_sessionDataTblName, $argPKey);
 			// XXX identifierが変えられたかもしれないので、もう一度セット
-			$Session->{'set'.ucfirst(self::$_sessionDataPKeyName)}($argPKey);
-			$Session->{'set'.ucfirst(self::$_serializeKeyName)}(json_encode(self::$_sessionData));
-			$Session->{'set'.ucfirst(self::$_sessionDataDateKeyName)}(Utilities::date('Y-m-d H:i:s', NULL, NULL, 'GMT'));
+			$Session->{'set' . str_replace(' ', '', ucwords(str_replace('_', ' ', self::$_sessionDataPKeyName)))}($argPKey);
+			$Session->{'set' . str_replace(' ', '', ucwords(str_replace('_', ' ', self::$_serializeKeyName)))}(json_encode(self::$_sessionData));
+			$Session->{'set' . str_replace(' ', '', ucwords(str_replace('_', ' ', self::$_sessionDataDateKeyName)))}(Utilities::date('Y-m-d H:i:s', NULL, NULL, 'GMT'));
 			debug('session!');
-			debug($Session);
 			try{
-			debug('save???');
+				debug('save???');
 				$Session->save();
-			debug('save!');
+				debug('save!');
 				// 正常終了
 				return TRUE;
 			}
@@ -152,7 +151,7 @@ abstract class SessionDataDB {
 				debug('throw msg='.$Exception->getMessage());
 				debug('throw save?');
 				$Session->save();
-			debug('throw save!');
+				debug('throw save!');
 				// 正常終了
 				return TRUE;
 			}

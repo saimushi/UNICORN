@@ -169,7 +169,7 @@ function convertObjectToXML($data, $level = 0) {
 		}
 
 		if (0 < $lineCnt) {
-			$xmlStr .= EBS_USER_XML_LINE_END;
+			$xmlStr .= PHP_EOL;
 		}
 		$xmlStr .= str_repeat("\t", $level)."<".$tag;
 		if ("" != $attr) {
@@ -189,7 +189,7 @@ function convertObjectToXML($data, $level = 0) {
 			$xmlStr .= "</".$tag.">";
 		}
 		else {
-			$xmlStr .= ">".EBS_USER_XML_LINE_END.$thisFunctionNameStr($value, $level+1).EBS_USER_XML_LINE_END.str_repeat("\t", $level)."</$tag>";
+			$xmlStr .= ">".PHP_EOL.$thisFunctionNameStr($value, $level+1).PHP_EOL.str_repeat("\t", $level)."</$tag>";
 		}
 		$lineCnt++;
 	}
@@ -644,70 +644,6 @@ function pathInfoEX($argPath, $argKey) {
 	else {
 		return $pathInfo[$argKey];
 	}
-}
-
-/**
- * ディレクトリごとコピーする
- */
-function dir_copy($dir_name, $new_dir) {
-	if (!is_dir($new_dir)) {
-		mkdir($new_dir);
-	}
-
-	if (is_dir($dir_name)) {
-		if ($dh = opendir($dir_name)) {
-			while (($file = readdir($dh)) !== false) {
-				if ($file == "." || $file == "..") {
-					continue;
-				}
-				if (is_dir($dir_name . "/" . $file)) {
-					dir_copy($dir_name . "/" . $file, $new_dir . "/" . $file);
-				}
-				else {
-					copy($dir_name . "/" . $file, $new_dir . "/" . $file);
-				}
-			}
-			closedir($dh);
-		}
-	}
-	return true;
-}
-
-/**
- * ディレクトリごと削除する
- */
-function dir_delete($dir_name) {
-	if (is_dir($dir_name)) {
-		if ($dh = opendir($dir_name)) {
-			while (($file = readdir($dh)) !== false) {
-				if ($file == "." || $file == "..") {
-					continue;
-				}
-				if (is_dir($dir_name . "/" . $file)) {
-					dir_delete($dir_name . "/" . $file);
-				}
-				else {
-					unlink($dir_name . "/" . $file);
-				}
-			}
-			closedir($dh);
-		}
-		rmdir($dir_name);
-	}
-
-	return true;
-}
-
-/**
- * ディレクトリごと移動(コピーして削除)する
- */
-function dir_move($dir_name, $new_dir) {
-	if(true === dir_copy($dir_name, $new_dir)){
-		// コピーに成功してから削除する
-		// XXX 冗長だが敢えて
-		return dir_delete($dir_name);
-	}
-	return false;
 }
 
 // UTF-8文字列をUnicodeエスケープする。ただし英数字と記号はエスケープしない。

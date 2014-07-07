@@ -12,12 +12,6 @@ abstract class GenericModelBase {
 	protected $_DBO;
 
 	/**
-	 * 操作時に式を使うフィールドの一覧
-	 * @var string
-	 */
-	private $_exec;
-
-	/**
 	 * 対象テーブル名
 	 * @var string
 	 */
@@ -115,16 +109,16 @@ abstract class GenericModelBase {
 					// 抽出条件が何なのか
 					// WHERE句での指定
 					if(FALSE !== strpos($argExtractionCondition,"WHERE") && strpos($argExtractionCondition,"WHERE") <= 1){
-						$response = $this->_DBO->execute("SELECT " . $field. " FROM " . $this->tableName . " " . $argExtractionCondition . " ", $argBinds);
+						$response = $this->_DBO->execute("SELECT " . $field. " FROM " . strtolower($this->tableName) . " " . $argExtractionCondition . " ", $argBinds);
 					}
 					elseif(FALSE !== strpos($argExtractionCondition,"=")){
 						// 条件のみでの指定
-						$response = $this->_DBO->execute("SELECT " . $field. " FROM " . $this->tableName . " WHERE " . $argExtractionCondition . " ", $argBinds);
+						$response = $this->_DBO->execute("SELECT " . $field. " FROM " . strtolower($this->tableName) . " WHERE " . $argExtractionCondition . " ", $argBinds);
 					}else{
 						// Pkey指定として扱う
 						$binds = array();
 						$binds[$this->pkeyName] = $argExtractionCondition;
-						$response = $this->_DBO->execute("SELECT " . $field. " FROM " . $this->tableName . " WHERE " . $this->pkeyName . " = :" .$this->pkeyName . " ", $binds);
+						$response = $this->_DBO->execute("SELECT " . $field. " FROM " . strtolower($this->tableName) . " WHERE " . $this->pkeyName . " = :" .$this->pkeyName . " ", $binds);
 					}
 				}
 				else{
@@ -202,7 +196,7 @@ abstract class GenericModelBase {
 	 * @param string $argKey
 	 * @param mixid $argVal
 	 */
-	public function set($argKey,&$argVal){
+	public function set($argKey, &$argVal){
 		// 次のDB操作で変更するフィールドとして登録
 		$this->describes[$argKey]["replace"] = TRUE;
 		$this->describes[$argKey]["before"] = $this->{$argKey};
@@ -218,7 +212,7 @@ abstract class GenericModelBase {
 			$insert = TRUE;
 		}
 		elseif(FALSE === $this->loaded){
-			// アップデート
+			// インサート
 			$insert = TRUE;
 		}
 		if(is_array($argments)){
@@ -259,12 +253,9 @@ abstract class GenericModelBase {
 						$binds[$key] = $this->{$key};
 					}
 				}
-				if(isset($val["exec"]) && TRUE === $val["exec"]){
-					$replaceFields[$key] = " ".$this->_exec[$key]." ";
-				}
 			}
 			// インサートする新しいシーケンスIDの取得に関する処理
-			if(NULL !== $this->pkeyName && !isset($replaceFields[$this->pkeyName])){
+			if(NULL === $this->pkey && NULL !== $this->pkeyName && !isset($replaceFields[$this->pkeyName])){
 				// Insertでpkeyにあたるキーの値がセットされていなければシーケンス処理を試みる
 				if("mysql" === $this->_DBO->DBType){
 					if(isset($this->describes[$this->pkeyName]["autoincrement"]) && TRUE !== $this->describes[$this->pkeyName]["autoincrement"]){
@@ -274,12 +265,12 @@ abstract class GenericModelBase {
 							$seqSql = $sequenceSelectQuery;
 						}else{
 							// 独自シーケンス取得SQLが未定義済みならばフレームワーク固有のSQLを実行
-							$seqSql = "UPDATE ".$this->tableName."_".$this->pkeyName."_seq SET id=LAST_INSERT_ID(id+1)";
+							$seqSql = "UPDATE ".strtolower($this->tableName)."_".$this->pkeyName."_seq SET id=LAST_INSERT_ID(id+1)";
 							$response = $this->_DBO->execute($seqSql);
 							if(FALSE === $response){
 								throw new Exception("");
 							}
-							$seqSql = "SELECT LAST_INSERT_ID() as new_id FROM ".$this->tableName."_".$this->pkeyName."_seq";
+							$seqSql = "SELECT LAST_INSERT_ID() as new_id FROM ".strtolower($this->tableName)."_".$this->pkeyName."_seq";
 						}
 					}
 					else{
@@ -294,7 +285,7 @@ abstract class GenericModelBase {
 						$seqSql = $sequenceSelectQuery;
 					}else{
 						// 独自シーケンス取得SQLが未定義済みならばフレームワーク固有のSQLを実行
-						$seqSql = "SELECT nextval(".$this->tableName."_".$this->pkeyName."_seq) as new_id";
+						$seqSql = "SELECT nextval(".strtolower($this->tableName)."_".$this->pkeyName."_seq) as new_id";
 					}
 				}
 				elseif("oracle" === $this->_DBO->DBType){
@@ -304,7 +295,7 @@ abstract class GenericModelBase {
 						$seqSql = $sequenceSelectQuery;
 					}else{
 						// 独自シーケンス取得SQLが未定義済みならばフレームワーク固有のSQLを実行
-						$seqSql = "SELECT ".$this->tableName."_".$this->pkeyName."_seq.NEXTVAL as new_id FROM DUAL";
+						$seqSql = "SELECT ".strtolower($this->tableName)."_".$this->pkeyName."_seq.NEXTVAL as new_id FROM DUAL";
 					}
 				}
 				else{
@@ -323,7 +314,7 @@ abstract class GenericModelBase {
 				}
 			}
 			// インサート文
-			$sql = "INSERT INTO " . $this->tableName." ";
+			$sql = "INSERT INTO " . strtolower($this->tableName)." ";
 			$sql .= "(`" . implode("`,`", array_keys($replaceFields)) . "`) ";
 			$sql .= "VALUES (" . implode(" , ", $replaceFields) . " ) ";
 
@@ -335,7 +326,7 @@ abstract class GenericModelBase {
 
 			// MySQLのauto_increment用処理
 			if(isset($lastInsertIdEnabled) && TRUE === $lastInsertIdEnabled){
-				$response = $this->_DBO->execute("SELECT LAST_INSERT_ID() AS new_id FROM " . $this->tableName . " LIMIT 1");
+				$response = $this->_DBO->execute("SELECT LAST_INSERT_ID() AS new_id FROM " . strtolower($this->tableName) . " LIMIT 1");
 				if(FALSE === $response){
 					throw new Exception("");
 				}else{
@@ -352,7 +343,7 @@ abstract class GenericModelBase {
 				for($pkeyNum=0; count($this->pkeys) > $pkeyNum; $pkeyNum++){
 					$where .= " AND `" . $this->pkeys[$pkeyNum] . "` = " . $this->{$this->pkeys[$pkeyNum]};
 				}
-				if(FALSE === $this->_DBO->updateClob($this->tableName, $key, $replaceCLOBFields[$key], $where)){
+				if(FALSE === $this->_DBO->updateClob(strtolower($this->tableName), $key, $replaceCLOBFields[$key], $where)){
 					throw new Exception("");
 				}
 			}
@@ -364,7 +355,7 @@ abstract class GenericModelBase {
 				for($pkeyNum=0; count($this->pkeys) > $pkeyNum; $pkeyNum++){
 					$where .= " AND `" . $this->pkeys[$pkeyNum] . "` = " . $this->{$this->pkeys[$pkeyNum]};
 				}
-				if(FALSE === $this->_DBO->updateBlob($this->tableName, $key, $replaceBLOBFields[$key], $where)){
+				if(FALSE === $this->_DBO->updateBlob(strtolower($this->tableName), $key, $replaceBLOBFields[$key], $where)){
 					throw new Exception("");
 				}
 			}
@@ -374,6 +365,13 @@ abstract class GenericModelBase {
 				$this->pkey = $pkey;
 				$this->{$this->pkeyName} = $pkey;
 			}
+			elseif(isset($this->{$this->pkeyName}) && strlen($this->{$this->pkeyName})){
+				// オートインクリメント以外で、Pkeyに該当するフィールドにデータが入っていたらそれをPkeyとして自動補完する
+				$this->pkey = $this->{$this->pkeyName};
+			}
+
+			// XXX 読み込み済み扱いとする
+			$this->loaded = TRUE;
 
 		}else{
 			// アップデート処理
@@ -391,8 +389,8 @@ abstract class GenericModelBase {
 							$replaceFields[$key] = " `".$key."` = :".$key;
 						}
 						elseif("oracle" === $this->_DBO->DBType){
-							// MySQLでは日付型はTO_DATE関数で変換する
-							$replaceFields[$key] = " `".$key."` = TO_DATE(:" . $key . " , 'yyyy-mm-dd hh24:mi:ss')";
+							// oracleでは日付型はTO_DATE関数で変換する
+							$replaceFields[$key] = " `".$key."` = TO_DATE( :" . $key . " , 'yyyy-mm-dd hh24:mi:ss')";
 						}
 						else{
 							// 未対応のDBエンジン
@@ -400,17 +398,20 @@ abstract class GenericModelBase {
 						}
 						$binds[$key] = $this->{$key};
 					}
+					elseif("int" === $val["type"] && "increment" === strtolower($this->{$key})){
+						$replaceFields[$key] = " `".$key."` = (`".$key."` + 1)";
+					}
+					elseif("int" === $val["type"] && "decrement" === strtolower($this->{$key})){
+						$replaceFields[$key] = " `".$key."` = (`".$key."` - 1)";
+					}
 					else{
 						$replaceFields[$key] = " `".$key."` = :".$key;
 						$binds[$key] = $this->{$key};
 					}
 				}
-				if(isset($val["exec"]) && TRUE === $val["exec"]){
-					$replaceFields[$key] = " `".$key."` = ".$this->_exec[$key];
-				}
 			}
 			// アップデート文
-			$sql = "UPDATE ".$this->tableName." ";
+			$sql = "UPDATE ".strtolower($this->tableName)." ";
 			$sql .= "SET " . implode(" , ", $replaceFields) . " ";
 			$sql .= "WHERE 1=1 ";
 			if(NULL !== $this->pkeys && TRUE === is_array($this->pkeys) && count($this->pkeys) > 1){
@@ -447,7 +448,7 @@ abstract class GenericModelBase {
 				for($pkeyNum=0; count($this->pkeys) > $pkeyNum; $pkeyNum++){
 					$where .= " AND `" . $this->pkeys[$pkeyNum] . "` = " . $this->{$this->pkeys[$pkeyNum]};
 				}
-				if(FALSE === $this->_DBO->updateClob($this->tableName, $key, $replaceCLOBFields[$key], $where)){
+				if(FALSE === $this->_DBO->updateClob(strtolower($this->tableName), $key, $replaceCLOBFields[$key], $where)){
 					throw new Exception("");
 				}
 			}
@@ -459,7 +460,7 @@ abstract class GenericModelBase {
 				for($pkeyNum=0; count($this->pkeys) > $pkeyNum; $pkeyNum++){
 					$where .= " AND `" . $this->pkeys[$pkeyNum] . "` = " . $this->{$this->pkeys[$pkeyNum]};
 				}
-				if(FALSE === $this->_DBO->updateBlob($this->tableName, $key, $replaceBLOBFields[$key], $where)){
+				if(FALSE === $this->_DBO->updateBlob(strtolower($this->tableName), $key, $replaceBLOBFields[$key], $where)){
 					throw new Exception("");
 				}
 			}
@@ -470,8 +471,13 @@ abstract class GenericModelBase {
 
 		// DB操作に成功したのでdescribes内のreplaceとexec値を初期化しておく
 		foreach($replaceFields as $key => $val){
+			if("int" === $this->describes[$key]["type"] && 'increment' === $this->{$key}){
+				$this->{$key} = (int)$this->describes[$key]["before"] + 1;
+			}
+			elseif("int" === $this->describes[$key]["type"] && 'decrement' === $this->{$key}){
+				$this->{$key} = (int)$this->describes[$key]["before"] - 1;
+			}
 			$this->describes[$key]["replace"] = NULL;
-			$this->describes[$key]["exec"] = NULL;
 		}
 
 		return TRUE;
@@ -493,6 +499,8 @@ abstract class GenericModelBase {
 			}
 		}
 	}
+
+	// XXX インクリメント、デクリメントメソッド追加予定
 
 	public function next(){
 		if(NULL !== $this->recodes && !$this->recodes->EOF && $this->count > $this->index){
@@ -587,11 +595,19 @@ abstract class GenericModelBase {
 		// NULLチェック
 		$this->validateNULL($argKey,$argValue);
 		// 型チェック
-		$this->validateTYPE($argKey,$argValue);
+		$this->validateType($argKey,$argValue);
 		// 桁チェック
 		$this->validateLength($argKey,$argValue);
+		// XXX システム依存のバリデーションチェックの実装
+		// 1.ユニークID(ユニークネーム)
+		// 2.メールアドレス
+		// 3.パスワード
+		// 4.画像のサイズ、拡張子
 		return TRUE;
 	}
-}
 
+	public function getFieldKeys(){
+		return array_keys($this->describes);
+	}
+}
 ?>
