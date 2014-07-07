@@ -5,7 +5,7 @@ UNICORN
 
 _■利用開始方法_
     git clone git@github.com:saimushi/UNICORN.git
-    cd lib/FrameworkPackage/core
+    cd UNICORN/src/lib/FrameworkPackage/core
     php UNICORN
 
 _■その他リファレンス_

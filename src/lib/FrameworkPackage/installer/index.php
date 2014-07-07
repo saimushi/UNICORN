@@ -1129,7 +1129,7 @@ $(document).ready(function(){
 					}
 					// 1個前の項目ローディング表示
 					$("#step" + argStep + "input" + (stepApply - 1) + "form_box .loading").addClass("active");
-					var data = { fwmpath: fwmpath, newfwmdocpath: $("#input-newfwmdocpath").val() };
+					var data = { fwmpath: fwmpath, fwmdocpath: $("#fwmdocpath").text(), newfwmdocpath: $("#input-newfwmdocpath").val() };
 				}
 				else if(12 == stepApply){
 					// 何もせず次へ(ステップは変わらない)
@@ -2827,77 +2827,79 @@ elseif(isset($_GET["a"])){
 			// hlogも不要
 			@unlink(dirname(__FILE__)."/hlog");
 
-			// 移動が無事に成功したのでindex.phpの中のフレームワークパスなどを正しく設定しなおして上げる
-			// 4行目、フレームワークマネージャーのROOTディレクトリの名前を特定して上げる
-			$fwmpkgName = basename($fwmgrPath);
-			$targetLineNum1 = 4;
-			// 5行目、フレームワークパスの特定処理
-			$targetLineNum2 = 5;
-			// $fwmdocpath中のこのファイル上のFrameworkManagerのパス設定を書き換える
-			// パスの文字列形式を揃える
-			$tmp1Path = str_replace("//", "/", $frameworkPath."/");
-			$tmp2Path = str_replace("//", "/",$_POST["newfwmdocpath"]."/");
-			$tmp1Paths = explode('/', $tmp1Path);
-			$tmp2Paths = explode('/', $tmp2Path);
-			unset($tmp1Paths[count($tmp1Paths)-1]);
-			unset($tmp2Paths[count($tmp2Paths)-1]);
-			$tmp1Path = implode('/', $tmp1Paths);
-			$tmp2Path = implode('/', $tmp2Paths);
-			installerlog(var_export($tmp1Paths, TRUE));
-			installerlog(var_export($tmp2Paths, TRUE));
-			$basePaths = $tmp1Paths;
-			$targetPath = $tmp1Path;
-			if(count($tmp1Paths) > count($tmp2Paths)){
-				$basePaths = $tmp2Paths;
-			}
-			$newFwmTmpPath = "/";
-			for($newFwmTmpPathIdx=0, $pathIdx=1; $pathIdx <= count($basePaths); $pathIdx++){
-				// 空文字は無視
-				if(isset($basePaths[$pathIdx]) && strlen($basePaths[$pathIdx]) > 0){
-					if(0 === strpos($targetPath, $newFwmTmpPath.$basePaths[$pathIdx])){
-						$newFwmTmpPath .= $basePaths[$pathIdx]."/";
-						$newFwmTmpPathIdx++;
-						// パスが一致したので次へ
-						installerlog($newFwmTmpPath);
-						continue;
+			if($_POST["fwmdocpath"] != $_POST["newfwmdocpath"]){
+				// 移動が無事に成功したのでindex.phpの中のフレームワークパスなどを正しく設定しなおして上げる
+				// 4行目、フレームワークマネージャーのROOTディレクトリの名前を特定して上げる
+				$fwmpkgName = basename($fwmgrPath);
+				$targetLineNum1 = 4;
+				// 5行目、フレームワークパスの特定処理
+				$targetLineNum2 = 5;
+				// $fwmdocpath中のこのファイル上のFrameworkManagerのパス設定を書き換える
+				// パスの文字列形式を揃える
+				$tmp1Path = str_replace("//", "/", $frameworkPath."/");
+				$tmp2Path = str_replace("//", "/",$_POST["newfwmdocpath"]."/");
+				$tmp1Paths = explode('/', $tmp1Path);
+				$tmp2Paths = explode('/', $tmp2Path);
+				unset($tmp1Paths[count($tmp1Paths)-1]);
+				unset($tmp2Paths[count($tmp2Paths)-1]);
+				$tmp1Path = implode('/', $tmp1Paths);
+				$tmp2Path = implode('/', $tmp2Paths);
+				installerlog(var_export($tmp1Paths, TRUE));
+				installerlog(var_export($tmp2Paths, TRUE));
+				$basePaths = $tmp1Paths;
+				$targetPath = $tmp1Path;
+				if(count($tmp1Paths) > count($tmp2Paths)){
+					$basePaths = $tmp2Paths;
+				}
+				$newFwmTmpPath = "/";
+				for($newFwmTmpPathIdx=0, $pathIdx=1; $pathIdx <= count($basePaths); $pathIdx++){
+					// 空文字は無視
+					if(isset($basePaths[$pathIdx]) && strlen($basePaths[$pathIdx]) > 0){
+						if(0 === strpos($targetPath, $newFwmTmpPath.$basePaths[$pathIdx])){
+							$newFwmTmpPath .= $basePaths[$pathIdx]."/";
+							$newFwmTmpPathIdx++;
+							// パスが一致したので次へ
+							installerlog($newFwmTmpPath);
+							continue;
+						}
+						else {
+							// 一致しなかったので、この前までが一致パスとする
+							break;
+						}
+					}
+				}
+				$newfwmLinkPath = substr($targetPath, strlen($newFwmTmpPath));
+				installerlog("newfwmLinkPath=".$newfwmLinkPath);
+				installerlog(count($tmp2Paths) - $newFwmTmpPathIdx);
+				$pathCode = "dirname(__FILE__)";
+				// depth分dirname関数を掛ける
+				for($didx=0; $didx < count($tmp2Paths) - $newFwmTmpPathIdx - 1; $didx++){
+					$pathCode = "dirname(" . $pathCode . ")";
+				}
+				$replaceStr = "\$fwpath = " . $pathCode . ".\"/" . $newfwmLinkPath . "\";";
+				installerlog("replaceStr=".$replaceStr);
+				$handle = fopen($_POST["newfwmdocpath"]."/index.php", 'r');
+				if(FALSE === $handle){
+					exit(json_encode(array("ok"=>false,"error"=>"何らかの理由でこのファイルのfopen(r:読込・ポインタはファイル先頭)に失敗しています。 \n 考えられる理由: \n このファイルへの書込権限が設定されていません。\n".$error)));
+				}
+				$readLine = 0;
+				$file="";
+				while (($buffer = fgets($handle, 4096)) !== false) {
+					$readLine++;
+					if($targetLineNum1 === $readLine){
+						$file .= "\$fwmpkgName = \"" . $fwmpkgName . "\";" . PHP_EOL;
+					}
+					else if($targetLineNum2 === $readLine) {
+						// 置換処理
+						$file .= $replaceStr . PHP_EOL;
 					}
 					else {
-						// 一致しなかったので、この前までが一致パスとする
-						break;
+						$file .= $buffer;
 					}
 				}
+				fclose($handle);
+				file_put_contents($_POST["newfwmdocpath"]."/index.php", $file);
 			}
-			$newfwmLinkPath = substr($targetPath, strlen($newFwmTmpPath));
-			installerlog("newfwmLinkPath=".$newfwmLinkPath);
-			installerlog(count($tmp2Paths) - $newFwmTmpPathIdx);
-			$pathCode = "dirname(__FILE__)";
-			// depth分dirname関数を掛ける
-			for($didx=0; $didx < count($tmp2Paths) - $newFwmTmpPathIdx - 1; $didx++){
-				$pathCode = "dirname(" . $pathCode . ")";
-			}
-			$replaceStr = "\$fwpath = " . $pathCode . ".\"/" . $newfwmLinkPath . "\";";
-			installerlog("replaceStr=".$replaceStr);
-			$handle = fopen($_POST["newfwmdocpath"]."/index.php", 'r');
-			if(FALSE === $handle){
-				exit(json_encode(array("ok"=>false,"error"=>"何らかの理由でこのファイルのfopen(r:読込・ポインタはファイル先頭)に失敗しています。 \n 考えられる理由: \n このファイルへの書込権限が設定されていません。\n".$error)));
-			}
-			$readLine = 0;
-			$file="";
-			while (($buffer = fgets($handle, 4096)) !== false) {
-				$readLine++;
-				if($targetLineNum1 === $readLine){
-					$file .= "\$fwmpkgName = \"" . $fwmpkgName . "\";" . PHP_EOL;
-				}
-				else if($targetLineNum2 === $readLine) {
-					// 置換処理
-					$file .= $replaceStr . PHP_EOL;
-				}
-				else {
-					$file .= $buffer;
-				}
-			}
-			fclose($handle);
-			file_put_contents($_POST["newfwmdocpath"]."/index.php", $file);
 
 			// フレームワークマネージャーの移動の正常終了
 			exit(json_encode($res));
