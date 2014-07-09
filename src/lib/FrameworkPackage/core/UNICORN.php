@@ -1928,7 +1928,7 @@ define('options','HELP:INSTALL:INSTALLER:MIGRATION:');
 // フレームワークの起動モードを調べる
 // XXX デフォルトはWebブラウザアクセスモードとする
 $_consoled = FALSE;
-if(isset($_SERVER['SHELL']) && isset($_SERVER['SCRIPT_FILENAME']) && 0 === strpos(basename(__FILE__), $_SERVER['SCRIPT_FILENAME'])){
+if(isset($_SERVER['SHELL']) && isset($_SERVER['SCRIPT_FILENAME']) && strlen($_SERVER['SCRIPT_FILENAME']) - strlen(basename(__FILE__, '.php')) === strrpos($_SERVER['SCRIPT_FILENAME'], basename(__FILE__, '.php'))){
 	// フレームワークのConsolモードを起動する
 	$_consoled = TRUE;
 }
