@@ -16,6 +16,8 @@ class GenericMigrationManager {
 			// 適用差分を見つける
 			self::$_lastMigrationHash = NULL;
 			$diff = self::_getDiff($argDBO, $argTblName);
+			debug('diff=');
+			debug($diff);
 			if(count($diff) > 0){
 				// 差分の数だけマイグレーションを適用
 				for($diffIdx=0; $diffIdx < count($diff); $diffIdx++){
@@ -114,6 +116,7 @@ class GenericMigrationManager {
 				$lastModel = new $migrationHash();
 				$beforeDescribes = $lastModel->describes;
 				$describes = array();
+				$beforeFieldKey = NULL;
 				eval(str_replace('$this->', '$', $describeDef));
 				// 増えてる減ってるでループの起点を切り替え
 				if(count($describes) >= count($beforeDescribes)) {
@@ -138,12 +141,24 @@ class GenericMigrationManager {
 						}
 						if(NULL === $alter){
 							// 処理をスキップして次のループへ
+							$beforeFieldKey = $feldKey;
 							continue;
 						}
 						// up生成
 						$alterDefs = ORMapper::getModelPropertyDefs($argDBO, $argTblName, array($feldKey=>$propary));
 						$upAlterDef .= str_replace('$this->describes = array(); ', '', $alterDefs['describeDef']);
 						$upAlterDef .= '$alter["'.$feldKey.'"]["alter"] = "' . $alter . '"; ';
+						if('ADD' === $alter){
+							if(NULL === $beforeFieldKey){
+								// 先頭にフィールドが増えている
+								$upAlterDef .= '$alter["'.$feldKey.'"]["first"] = TRUE;';
+							}
+							else {
+								// ADDする箇所の指定
+								$upAlterDef .= '$alter["'.$feldKey.'"]["after"] = "' . $beforeFieldKey . '";';
+							}
+						}
+						$beforeFieldKey = $feldKey;
 					}
 				}
 				else{
@@ -169,12 +184,24 @@ class GenericMigrationManager {
 						}
 						if(NULL === $alter){
 							// 処理をスキップして次のループへ
+							$beforeFieldKey = $feldKey;
 							continue;
 						}
 						// down生成
 						$alterDefs = ORMapper::getModelPropertyDefs($argDBO, $argTblName, array($feldKey=>$propary));
 						$downAlterDef .= str_replace('$this->describes = array(); ', '', $alterDefs['describeDef']);
 						$downAlterDef .= '$alter["'.$feldKey.'"]["alter"] = "' . $alter . '"; ';
+						if('ADD' === $alter){
+							if(NULL === $beforeFieldKey){
+								// 先頭にフィールドが増えている
+								$downAlterDef .= '$alter["'.$feldKey.'"]["first"] = TRUE;';
+							}
+							else {
+								// ADDする箇所の指定
+								$downAlterDef .= '$alter["'.$feldKey.'"]["after"] = "' . $beforeFieldKey . '";';
+							}
+						}
+						$beforeFieldKey = $feldKey;
 					}
 				}
 				// alter指示を生成
@@ -211,6 +238,7 @@ class GenericMigrationManager {
 			}
 		}
 		debug('dispatche all migrations=');
+		debug($migrationesFilePath);
 		debug($migrationes);
 		$dispatchedMigrationesFilePath = getAutoMigrationPath().$argDBO->dbidentifykey.'.dispatched.migrations';
 		$dispatchedMigrationes = array();

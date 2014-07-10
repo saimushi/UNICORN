@@ -115,10 +115,17 @@ abstract class GenericMigrationBase {
 				$fieldDef = $fielPropatyQuerys['fieldDef'];
 				if(strlen($fieldDef) > 0){
 					$sql = 'ALTER TABLE `' . $this->tableName . '` ' . $propaty['alter'] . ' COLUMN ' . $fieldDef;
+					if(isset($propaty['first']) && TRUE === $propaty['first']){
+						$sql .= ' FIRST ';
+					}
+					else if(isset($propaty['after']) && 0 < strlen($propaty['after'])){
+						$sql .= ' AFTER `'.$propaty['after'].'`';
+					}
 				}
 			}
 			if(strlen($sql) > 0){
 				try {
+					debug('migration sql='.$sql);
 					$argDBO->execute($sql);
 					$executed = TRUE;
 				}
