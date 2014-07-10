@@ -1408,7 +1408,7 @@ function isTest($argStagingEnabled=FALSE){
 function getLocalEnabled(){
 	static $localEnabled = NULL;
 	if(NULL === $localEnabled){
-		if(NULL !== constant('PROJECT_NAME')){
+		if(NULL !== defined('PROJECT_NAME')){
 			// 併設されている事を前提とする！
 			$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.local';
 			if(TRUE !== is_file($localEnabledFilepath)){
@@ -1449,7 +1449,7 @@ function getLocalEnabled(){
 function getDevelopmentEnabled(){
 	static $devlopmentEnabled = NULL;
 	if(NULL === $devlopmentEnabled){
-		if(NULL !== constant('PROJECT_NAME')){
+		if(NULL !== defined('PROJECT_NAME')){
 			// 併設されている事を前提とする！
 			$devlopmentEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.dev';
 			if(TRUE !== is_file($devlopmentEnabledFilepath)){
@@ -1497,7 +1497,7 @@ function getDevelopmentEnabled(){
 function getTestEnabled(){
 	static $testEnabled = NULL;
 	if(NULL === $testEnabled){
-		if(NULL !== constant('PROJECT_NAME')){
+		if(NULL !== defined('PROJECT_NAME')){
 			// 併設されている事を前提とする！
 			$testEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.test';
 			if(TRUE !== is_file($testEnabledFilepath)){
@@ -1538,7 +1538,7 @@ function getTestEnabled(){
 function getStagingEnabled(){
 	static $stagingEnabled = NULL;
 	if(NULL === $stagingEnabled){
-		if(NULL !== constant('PROJECT_NAME')){
+		if(NULL !== defined('PROJECT_NAME')){
 			// 併設されている事を前提とする！
 			$stagingEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.staging';
 			if(TRUE !== is_file($stagingEnabledFilepath)){
@@ -1579,7 +1579,7 @@ function getStagingEnabled(){
 function getDebugEnabled(){
 	static $debugEnabled = NULL;
 	if(NULL === $debugEnabled){
-		if(NULL !== constant('PROJECT_NAME')){
+		if(NULL !== defined('PROJECT_NAME')){
 			// 併設されている事を前提とする！
 			$debugEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.debug';
 			if(TRUE !== is_file($debugEnabledFilepath)){
@@ -1619,7 +1619,7 @@ function getDebugEnabled(){
 function getErrorReportEnabled(){
 	static $errorReportEnabled = NULL;
 	if(NULL === $errorReportEnabled){
-		if(NULL !== constant('PROJECT_NAME')){
+		if(NULL !== defined('PROJECT_NAME')){
 			// 併設されている事を前提とする！
 			$errorReportEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.error_report';
 			if(TRUE !== is_file($errorReportEnabledFilepath)){
@@ -1699,7 +1699,7 @@ function getAutoGenerateEnabled(){
 function getAutoMigrationEnabled(){
 	static $autoMigrationEnabled = NULL;
 	if(NULL === $autoMigrationEnabled){
-		if(NULL !== constant('PROJECT_NAME')){
+		if(NULL !== defined('PROJECT_NAME')){
 			// 併設されている事を前提とする！
 			$autoMigrationEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.automigration';
 			if(TRUE !== is_file($autoMigrationEnabledFilepath)){
@@ -1839,7 +1839,7 @@ function getAutoMigrationPath(){
 	static $migrationPath = NULL;
 	if(NULL === $migrationPath){
 		$migrationPath = dirname(dirname(__FILE__)).'/automigration/';
-		if(NULL !== constant('PROJECT_NAME')){
+		if(NULL !== defined('PROJECT_NAME')){
 			// 併設されている事を前提とする！
 			$tmpMigrationPath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/automigration';
 			if(TRUE === is_dir($tmpMigrationPath)){
