@@ -6,6 +6,7 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 	public $requestMethod = 'GET';
 	public $restResource = '';
 	public $restResourceModel = '';
+	public $restResourceListed = NULL;
 	public $restResourceCreateDateKeyName = '';
 	public $restResourceModifyDateKeyName = '';
 	public $restResourceAvailableKeyName = '';
@@ -48,6 +49,10 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 			debug('restResourceModifyDateKeyName='.$this->restResourceModifyDateKeyName);
 			$this->_initialized = TRUE;
 		}
+	}
+
+	public function getDBO($argDSN=NULL){
+		return self::_getDBO($argDSN);
 	}
 
 	protected static function _getDBO($argDSN=NULL){
@@ -185,7 +190,13 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 			if(FALSE === $Device){
 				// 登録処理
 				// SessionID=端末固有IDと言う決めに沿って登録を行う
-				$Device = Auth::registration(Auth::getDecryptedAuthIdentifier(), Auth::getDecryptedAuthIdentifier());
+				$deviceID = Auth::getDecryptedAuthIdentifier();
+				debug('$deviceID='.$deviceID);
+				if(is_numeric($deviceID)){
+					// XXX UIDエラー！ 認証エラー
+					throw new RESTException(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__, 401);
+				}
+				$Device = Auth::registration($deviceID, $deviceID);
 				// 強制認証で証明を得る
 				if(TRUE !== Auth::certify($Device->{Auth::$authIDField}, $Device->{Auth::$authPassField}, NULL, TRUE)){
 					// 認証NG(401)
@@ -392,7 +403,7 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 	 * RESTする
 	 * @return array 配列構造のリソースデータ
 	 */
-	public function execute($argResourceHint=NULL){
+	public function execute($argResourceHint=NULL, $argRequestParams=NULL){
 		$this->_init();
 		debug($this->restResource);
 		// RESTアクセスされるリソースの特定
@@ -429,6 +440,9 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 			$DBO = self::_getDBO();
 			// RESTの実行
 			$this->restResourceModel = $resource['model'];
+			if(NULL === $this->restResourceListed){
+				$this->restResourceListed = $resource['listed'];
+			}
 			$this->restResource = $resource;
 			$classHint = str_replace(' ', '', ucwords(str_replace(' ', '', $this->restResourceModel)));
 			debug('$classHint='.$classHint);
@@ -451,6 +465,7 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 				$RestController->deepRESTMode = $this->deepRESTMode;
 				$RestController->restResource = $this->restResource;
 				$RestController->restResourceModel = $this->restResourceModel;
+				$RestController->restResourceListed = $this->restResourceListed;
 				$RestController->restResourceCreateDateKeyName = $this->restResourceCreateDateKeyName;
 				$RestController->restResourceModifyDateKeyName = $this->restResourceModifyDateKeyName;
 				$RestController->AuthUser = $this->AuthUser;
@@ -458,7 +473,12 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 				$RestController->authUserIDFieldName = $this->authUserIDFieldName;
 				$RestController->authUserQuery = $this->authUserQuery;
 				// リクエストメソッドで分岐する
-				$res = $RestController->{strtolower($this->requestMethod)}();
+				if('POST' === $this->requestMethod || 'PUT' === $this->requestMethod){
+					$res = $RestController->{strtolower($this->requestMethod)}($argRequestParams);
+				}
+				else {
+					$res = $RestController->{strtolower($this->requestMethod)}();
+				}
 				// 結果のパラメータを受け取り直す
 				$this->httpStatus = $RestController->httpStatus;
 				$this->outputType = $RestController->outputType;
@@ -472,6 +492,7 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 				$this->deepRESTMode = $RestController->deepRESTMode;
 				$this->restResource = $RestController->restResource;
 				$this->restResourceModel = $RestController->restResourceModel;
+				$this->restResourceListed = $RestController->restResourceListed;
 				$this->restResourceCreateDateKeyName = $RestController->restResourceCreateDateKeyName;
 				$this->restResourceModifyDateKeyName = $RestController->restResourceModifyDateKeyName;
 				$this->AuthUser = $RestController->AuthUser;
@@ -614,56 +635,8 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 					$deepModels[$fields[$fieldIdx]] = $deepBaseResource;
 				}
 			}
-			// 配列の参照
-			if(TRUE === $this->restResource['listed']){
-				$query = $baseQuery;
-				$binds = $baseBinds;
-				// ORDER句指定があれば付け足す
-				if(isset($requestParams['ORDER'])){
-					$query .= ' ORDER BY ' . $requestParams['ORDER'] . ' ';
-				}
-				elseif(in_array($this->restResourceModifyDateKeyName, $Model->getFieldKeys())) {
-					$query .= ' ORDER BY `' . $this->restResourceModifyDateKeyName . '` DESC ';
-				}
-				elseif(in_array($this->restResourceCreateDateKeyName, $Model->getFieldKeys())) {
-					$query .= ' ORDER BY `' . $this->restResourceCreateDateKeyName . '` DESC ';
-				}
-				else {
-					$query .= ' ORDER BY `' . $Model->pkeyName . '` DESC ';
-				}
-				// LIMIT句指定があれば付け足す
-				if(isset($requestParams['LIMIT'])){
-					$query .= ' LIMIT ' . $requestParams['LIMIT'] . ' ';
-				}
-
-				// 読み込み
-				$Model->load($query, $binds);
-				if($Model->count > 0){
-					do {
-						$resources[] = $this->_convertArrayFromModel($Model);
-						// DEEP-REST IDに紐づく関連テーブルのレコード参照
-						if(TRUE === $isDeepModel){
-							foreach($deepModels as $key => $val){
-								$id = $resources[count($resources)-1][$key];
-								if(0 < (int)$id && 0 < strlen($id)){
-									// DEEPは有効なIDの値の時だけ
-									$deepResource = $val.'/'.$id;
-									debug('deep??'.$deepResource);
-									// deepRESTを実行し、IDの取得をする
-									$DeepREST = new REST();
-									$DeepREST->AuthUser = $this->AuthUser;
-									$DeepREST->authUserID = $this->authUserID;
-									$DeepREST->authUserIDFieldName = $this->authUserIDFieldName;
-									$DeepREST->authUserQuery = $this->authUserQuery;
-									$resources[count($resources)-1][$val] = $DeepREST->execute($deepResource);
-								}
-							}
-						}
-					} while (false !== $Model->next());
-				}
-			}
 			// ID指定による参照(単一参照含む)
-			elseif(NULL !== $this->restResource['ids'] && count($this->restResource['ids']) >= 1){
+			if(NULL !== $this->restResource['ids'] && count($this->restResource['ids']) >= 1){
 				// id指定でループする
 				for($IDIdx = 0; $IDIdx < count($this->restResource['ids']); $IDIdx++){
 					$query = $baseQuery . ' AND `' . $Model->pkeyName . '` = :' . $Model->pkeyName . ' ';
@@ -706,16 +679,76 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 									$DeepREST->authUserID = $this->authUserID;
 									$DeepREST->authUserIDFieldName = $this->authUserIDFieldName;
 									$DeepREST->authUserQuery = $this->authUserQuery;
+									// リスト参照はDEEP-RESTに継承する
+									$DeepREST->restResourceListed = $this->restResourceListed;
 									$resources[count($resources)-1][$val] = $DeepREST->execute($deepResource);
 								}
 							}
 						}
 					}
-					else if(!isset($Model->pkey) || $Model->pkey != $this->restResource['ids'][$IDIdx]){
-						// リソースが存在しない
-						debug($Model->pkeyName . '=' . $Model->pkey);
-						throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__);
+					else if(TRUE !== $this->restResourceListed){
+						if(!isset($Model->{$Model->pkeyName}) || $Model->{$Model->pkeyName} != $this->restResource['ids'][$IDIdx]){
+							// リソースが存在しない
+							debug($this->restResourceModel);
+							debug($query);
+							debug($binds);
+							debug($this->restResource);
+							debug($Model->pkeyName . '=' . $Model->{$Model->pkeyName});
+							throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__);
+						}
 					}
+				}
+			}
+			// 配列の参照
+			else if(TRUE === $this->restResourceListed){
+				$query = $baseQuery;
+				$binds = $baseBinds;
+				// ORDER句指定があれば付け足す
+				if(isset($requestParams['ORDER'])){
+					$query .= ' ORDER BY ' . $requestParams['ORDER'] . ' ';
+				}
+				elseif(in_array($this->restResourceModifyDateKeyName, $Model->getFieldKeys())) {
+					$query .= ' ORDER BY `' . $this->restResourceModifyDateKeyName . '` DESC ';
+				}
+				elseif(in_array($this->restResourceCreateDateKeyName, $Model->getFieldKeys())) {
+					$query .= ' ORDER BY `' . $this->restResourceCreateDateKeyName . '` DESC ';
+				}
+				else {
+					$query .= ' ORDER BY `' . $Model->pkeyName . '` DESC ';
+				}
+				// LIMIT句指定があれば付け足す
+				if(isset($requestParams['LIMIT'])){
+					$query .= ' LIMIT ' . $requestParams['LIMIT'] . ' ';
+				}
+
+				// 読み込み
+				debug($query);
+				debug($binds);
+				$Model->load($query, $binds);
+				if($Model->count > 0){
+					do {
+						$resources[] = $this->_convertArrayFromModel($Model);
+						// DEEP-REST IDに紐づく関連テーブルのレコード参照
+						if(TRUE === $isDeepModel){
+							foreach($deepModels as $key => $val){
+								$id = $resources[count($resources)-1][$key];
+								if(0 < (int)$id && 0 < strlen($id)){
+									// DEEPは有効なIDの値の時だけ
+									$deepResource = $val.'/'.$id;
+									debug('deep??'.$deepResource);
+									// deepRESTを実行し、IDの取得をする
+									$DeepREST = new REST();
+									$DeepREST->AuthUser = $this->AuthUser;
+									$DeepREST->authUserID = $this->authUserID;
+									$DeepREST->authUserIDFieldName = $this->authUserIDFieldName;
+									$DeepREST->authUserQuery = $this->authUserQuery;
+									// リスト参照はDEEP-RESTに継承する
+									$DeepREST->restResourceListed = $this->restResourceListed;
+									$resources[count($resources)-1][$val] = $DeepREST->execute($deepResource);
+								}
+							}
+						}
+					} while (false !== $Model->next());
 				}
 			}
 		}
@@ -732,8 +765,8 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 	 * XXX モデルの位置付けが、テーブルリソースで無い場合は、継承して、RESTの”冪等性”に従って実装して下さい
 	 * @return mixed 成功時は最新のリソース配列 失敗時はFALSE
 	 */
-	public function post(){
-		return $this->put();
+	public function post($argRequestParams = NULL){
+		return $this->put($argRequestParams);
 		// XXX インクリメント、デクリメントの実装を追加予定
 	}
 
@@ -742,165 +775,229 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 	 * XXX モデルの位置付けが、テーブルリソースで無い場合は、継承して、RESTの”冪等性”に従って実装して下さい
 	 * @return mixed 成功時は最新のリソース配列 失敗時はFALSE
 	 */
-	public function put(){
+	public function put($argRequestParams = NULL){
 		$this->_init();
 		$gmtDate = Utilities::date('Y-m-d H:i:s', NULL, NULL, 'GMT');
 		$requestParams = array();
-		if('PUT' === $_SERVER['REQUEST_METHOD']){
-			$requestParams = $this->_getRequestParams();
+		$resources = FALSE;
+		if(NULL === $argRequestParams){
+			if('PUT' === $_SERVER['REQUEST_METHOD']){
+				$requestParams = $this->_getRequestParams();
+			}
+			else{
+				$requestParams = $_POST;
+			}
+		}
+		else {
+			$requestParams = $argRequestParams;
+		}
+		if(isset($requestParams['datas']) && isset($requestParams['datas'][0])){
+			// 配列のPOSTはリカーシブルで処理をする
+			for($requestIdx=0; $requestIdx < count($requestParams['datas']); $requestIdx++){
+				$tmpRes = $this->put($requestParams['datas'][$requestIdx]);
+				if(is_array($tmpRes) && isset($tmpRes[0])){
+					$resources[$requestIdx] = $tmpRes[0];
+				}
+				else {
+					return FALSE;
+				}
+			}
 		}
 		else{
-			$requestParams = $_POST;
-		}
-		$resources = FALSE;
-		// 更新を行うリソースを特定する
-		$baseQuery = ' 1=1 ';
-		$baseBinds = NULL;
-		if($this->restResource['me'] && NULL !== $this->AuthUser && is_object($this->AuthUser)){
-			// 認証ユーザーのリソース指定
-			// bind使うので自力で組み立てる
-			$baseQuery = ' `' . $this->authUserIDFieldName . '` = :' . $this->authUserIDFieldName. ' ';
-			$baseBinds = array($this->authUserIDFieldName => $this->authUserID);
-		}
-		// リソースの更新
-		// XXX 因みに更新はDEEP指定されていてもDEEPしない！
-		if(NULL !== $this->restResource['ids'] && count($this->restResource['ids']) >= 1){
-			// id指定でループする
-			for($IDIdx = 0; $IDIdx < count($this->restResource['ids']); $IDIdx++){
-				// 空のモデルを先ず作る
-				try{
-					$Model = $this->_getModel($this->restResourceModel);
-					$query = $baseQuery . ' AND `' . $Model->pkeyName . '` = :' . $Model->pkeyName . ' ';
-					$binds = $baseBinds;
-					if(NULL === $binds){
-						$binds = array();
+			// 更新を行うリソースを特定する
+			$baseQuery = ' 1=1 ';
+			$baseBinds = NULL;
+			if(TRUE === $this->restResource['me'] && NULL !== $this->AuthUser && is_object($this->AuthUser) && strtolower($this->restResourceModel) != strtolower($this->AuthUser->tableName)){
+				// 認証ユーザーのリソース指定
+				// bind使うので自力で組み立てる
+				$baseQuery = ' `' . $this->authUserIDFieldName . '` = :' . $this->authUserIDFieldName. ' ';
+				$baseBinds = array($this->authUserIDFieldName => $this->authUserID);
+			}
+			// リソースの更新
+			// XXX 因みに更新はDEEP指定されていてもDEEPしない！
+			if(NULL !== $this->restResource['ids'] && count($this->restResource['ids']) >= 1){
+				// id指定でループする
+				for($IDIdx = 0; $IDIdx < count($this->restResource['ids']); $IDIdx++){
+					// 空のモデルを先ず作る
+					try{
+						if(TRUE === $this->restResource['me'] && NULL !== $this->AuthUser && is_object($this->AuthUser) && strtolower($this->restResourceModel) == strtolower($this->AuthUser->tableName) && $this->restResource['ids'][$IDIdx] == $this->AuthUser->pkeyName){
+							// 自分自身のAuthモデルに対しての処理とする
+							$Model = $this->AuthUser;
+						}
+						else {
+							$Model = $this->_getModel($this->restResourceModel);
+							$query = $baseQuery . ' AND `' . $Model->pkeyName . '` = :' . $Model->pkeyName . ' ';
+							$binds = $baseBinds;
+							if(NULL === $binds){
+								$binds = array();
+							}
+							$binds[$Model->pkeyName] = $this->restResource['ids'][$IDIdx];
+							// 読み込み
+							debug($query);
+							debug($binds);
+							$Model->load($query, $binds);
+						}
 					}
-					$binds[$Model->pkeyName] = $this->restResource['ids'][$IDIdx];
-					// 読み込み
-					$Model->load($query, $binds);
+					catch (Exception $Exception){
+						// リソースが存在しない
+						$this->httpStatus = 404;
+						throw new RESTException($Exception->getMessage(), $this->httpStatus);
+						break;
+					}
+					// 最初の一回目はバリデーションを必ず実行
+					if(0 === $IDIdx){
+						$datas = array();
+						$fields = $Model->getFieldKeys();
+						// オートバリデート
+						try{
+							for($fieldIdx = 0; $fieldIdx < count($fields); $fieldIdx++){
+								if(isset($requestParams[$fields[$fieldIdx]])){
+									// XXX intのincrementとdecrimentは許可する
+									if(FALSE === ('int' === $Model->describes[$fields[$fieldIdx]]['type'] && TRUE === ('increment' === strtolower($requestParams[$fields[$fieldIdx]]) || 'decrement' === strtolower($requestParams[$fields[$fieldIdx]])))){
+										// exec系以外はオートバリデート
+										$Model->validate($fields[$fieldIdx], $requestParams[$fields[$fieldIdx]]);
+									}
+									// バリデートに成功したので更新値として認める
+									$datas[$fields[$fieldIdx]] = $requestParams[$fields[$fieldIdx]];
+								}
+								elseif($fields[$fieldIdx] == $this->restResourceCreateDateKeyName && !(0 < strlen($Model->{$this->restResourceCreateDateKeyName}))){
+									// データ作成日付の自動補完
+									$datas[$fields[$fieldIdx]] = $gmtDate;
+								}
+								elseif($fields[$fieldIdx] == $this->restResourceModifyDateKeyName){
+									// データ更新日付の自動補完
+									$datas[$fields[$fieldIdx]] = $gmtDate;
+								}
+								// Filterがあったらフィルター処理をする
+								$filerName = str_replace(' ', '', ucwords(str_replace('_', ' ', $this->restResourceModel. ' '. $fields[$fieldIdx]))) . 'Filter';
+								debug('$filerName='.$filerName);
+								if(FALSE !== MVCCore::loadMVCFilter($filerName, TRUE)){
+									$filterClass = MVCCore::loadMVCFilter($filerName);
+									$Filter = new $filterClass();
+									$Filter->REST = $this;
+									if(!isset($datas[$fields[$fieldIdx]])){
+										// 初期化
+										$datas[$fields[$fieldIdx]] = NULL;
+									}
+									debug('original value='.$datas[$fields[$fieldIdx]]);
+									$datas[$fields[$fieldIdx]] = $Filter->filterPut($datas[$fields[$fieldIdx]]);
+									debug('$filered value='.$datas[$fields[$fieldIdx]]);
+								}
+							}
+						}
+						catch (Exception $Exception){
+							// バリデーションエラー(必須パラメータチェックエラー)
+							$this->httpStatus = 400;
+							throw new RESTException($Exception->getMessage(), $this->httpStatus);
+							break;
+						}
+					}
+					// POSTに従ってModelを更新する
+					$Model->save($datas);
+					// 更新の完了した新しいモデルのデータをレスポンスにセット
+					$resources[] = $this->_convertArrayFromModel($Model);
+				}
+			}
+			// リソースの新規作成
+			else{
+				try{
+					if(TRUE === $this->restResource['me'] && NULL !== $this->AuthUser && is_object($this->AuthUser) && strtolower($this->restResourceModel) == strtolower($this->AuthUser->tableName)){
+						// 自分自身のAuthモデルに対しての処理とする
+						$Model = $this->AuthUser;
+					}
+					else {
+						$Model = $this->_getModel($this->restResourceModel);
+					}
+					$datas = array();
+					$isDeepModel = FALSE;
+					$deepDatas = array();
+					$fields = $Model->getFieldKeys();
 				}
 				catch (Exception $Exception){
 					// リソースが存在しない
 					$this->httpStatus = 404;
 					throw new RESTException($Exception->getMessage(), $this->httpStatus);
-					break;
 				}
-				// 最初の一回目はバリデーションを必ず実行
-				if(0 === $IDIdx){
-					$datas = array();
-					$fields = $Model->getFieldKeys();
-					// オートバリデート
-					try{
-						for($fieldIdx = 0; $fieldIdx < count($fields); $fieldIdx++){
-							if(isset($requestParams[$fields[$fieldIdx]])){
-								// XXX intのincrementとdecrimentは許可する
-								if(FALSE === ('int' === $Model->describes[$fields[$fieldIdx]]['type'] && TRUE === ('increment' === strtolower($requestParams[$fields[$fieldIdx]]) || 'decrement' === strtolower($requestParams[$fields[$fieldIdx]])))){
-									// exec系以外はオートバリデート
-									$Model->validate($fields[$fieldIdx], $requestParams[$fields[$fieldIdx]]);
-								}
-								// バリデートに成功したので更新値として認める
-								$datas[$fields[$fieldIdx]] = $requestParams[$fields[$fieldIdx]];
+				// オートバリデート
+				for($fieldIdx = 0; $fieldIdx < count($fields); $fieldIdx++){
+					if(isset($requestParams[$fields[$fieldIdx]])){
+						try{
+							// XXX intのincrementとdecrimentは許可する
+							if(FALSE === ('int' === $Model->describes[$fields[$fieldIdx]]['type'] && TRUE === ('increment' === strtolower($requestParams[$fields[$fieldIdx]]) || 'decrement' === strtolower($requestParams[$fields[$fieldIdx]])))){
+								// exec系以外はオートバリデート
+								$Model->validate($fields[$fieldIdx], $requestParams[$fields[$fieldIdx]]);
 							}
-							elseif($fields[$fieldIdx] == $this->restResourceCreateDateKeyName && !(0 < strlen($Model->{$this->restResourceCreateDateKeyName}))){
-								// データ作成日付の自動補完
-								$datas[$fields[$fieldIdx]] = $gmtDate;
-							}
-							elseif($fields[$fieldIdx] == $this->restResourceModifyDateKeyName){
-								// データ更新日付の自動補完
-								$datas[$fields[$fieldIdx]] = $gmtDate;
-							}
+							// バリデートに成功したので更新値として認める
+							$datas[$fields[$fieldIdx]] = $requestParams[$fields[$fieldIdx]];
+						}
+						catch (Exception $Exception){
+							// バリデーションエラー(必須パラメータチェックエラー)
+							$this->httpStatus = 400;
+							throw new RESTException($Exception->getMessage(), $this->httpStatus);
+							break;
 						}
 					}
-					catch (Exception $Exception){
-						// バリデーションエラー(必須パラメータチェックエラー)
-						$this->httpStatus = 400;
-						throw new RESTException($Exception->getMessage(), $this->httpStatus);
-						break;
+					// DEEP-REST IDに紐づく関連テーブルのレコード作成・更新
+					elseif(TRUE === $this->deepRESTMode && (strlen($fields[$fieldIdx]) -3) === strpos($fields[$fieldIdx], '_id') && $this->authUserIDFieldName != $fields[$fieldIdx]){
+						$deepResource = substr($fields[$fieldIdx], 0, -3);
+						$deepResourcePath = $deepResource;
+						if(TRUE === $this->restResource['me']){
+							$deepResourcePath = 'me/'.$deepResource;
+						}
+						debug('deep??'.$deepResourcePath.' & '.$this->authUserIDFieldName.' & '.$fields[$fieldIdx].' & '.(strlen($fields[$fieldIdx]) -3).' & '.strpos($fields[$fieldIdx], '_id'));
+						$isDeepModel = TRUE;
+						try{
+							$deepModel = $this->_getModel($deepResource);
+						}
+						catch(Exception $Exception){
+							$isDeepModel = FALSE;
+						}
+						if(TRUE === $isDeepModel){
+							// deepRESTを実行し、IDの取得をする
+							$DeepREST = new REST();
+							$DeepREST->AuthUser = $this->AuthUser;
+							$DeepREST->authUserID = $this->authUserID;
+							$DeepREST->authUserIDFieldName = $this->authUserIDFieldName;
+							$DeepREST->authUserQuery = $this->authUserQuery;
+							$res = $DeepREST->execute($deepResourcePath, $requestParams);
+							$datas[$fields[$fieldIdx]] = $res[0]['id'];
+							$deepDatas[$deepResource] = $res;
+						}
+					}
+					// DEEP-REST 自身のIDの自動補完
+					elseif(TRUE === $this->deepRESTMode && $this->authUserIDFieldName == $fields[$fieldIdx]) {
+						// ログインIDの自動補完
+						$datas[$fields[$fieldIdx]] = $this->authUserID;
+					}
+					if($fields[$fieldIdx] == $this->restResourceCreateDateKeyName || $fields[$fieldIdx] == $this->restResourceModifyDateKeyName){
+						// データ作成日付の自動補完
+						$datas[$fields[$fieldIdx]] = $gmtDate;
+					}
+					// Filterがあったらフィルター処理をする
+					$filerName = str_replace(' ', '', ucwords(str_replace('_', ' ', $this->restResourceModel. ' '. $fields[$fieldIdx]))) . 'Filter';
+					debug('$filerName='.$filerName);
+					if(FALSE !== MVCCore::loadMVCFilter($filerName, TRUE)){
+						$filterClass = MVCCore::loadMVCFilter($filerName);
+						debug($filterClass);
+						$Filter = new $filterClass();
+						$Filter->REST = $this;
+						if(!isset($datas[$fields[$fieldIdx]])){
+							// 初期化
+							$datas[$fields[$fieldIdx]] = NULL;
+						}
+						debug('original value='.$datas[$fields[$fieldIdx]]);
+						$datas[$fields[$fieldIdx]] = $Filter->filterPut($datas[$fields[$fieldIdx]]);
+						debug('$filered value='.$datas[$fields[$fieldIdx]]);
 					}
 				}
-				// POSTに従ってModelを更新する
+				// POSTに従ってModelを作成する
 				$Model->save($datas);
 				// 更新の完了した新しいモデルのデータをレスポンスにセット
 				$resources[] = $this->_convertArrayFromModel($Model);
-			}
-		}
-		// リソースの新規作成
-		else{
-			try{
-				$Model = $this->_getModel($this->restResourceModel);
-				$datas = array();
-				$isDeepModel = FALSE;
-				$deepDatas = array();
-				$fields = $Model->getFieldKeys();
-			}
-			catch (Exception $Exception){
-				// リソースが存在しない
-				$this->httpStatus = 404;
-				throw new RESTException($Exception->getMessage(), $this->httpStatus);
-			}
-			// オートバリデート
-			for($fieldIdx = 0; $fieldIdx < count($fields); $fieldIdx++){
-				if(isset($requestParams[$fields[$fieldIdx]])){
-					try{
-						// XXX intのincrementとdecrimentは許可する
-						if(FALSE === ('int' === $Model->describes[$fields[$fieldIdx]]['type'] && TRUE === ('increment' === strtolower($requestParams[$fields[$fieldIdx]]) || 'decrement' === strtolower($requestParams[$fields[$fieldIdx]])))){
-							// exec系以外はオートバリデート
-							$Model->validate($fields[$fieldIdx], $requestParams[$fields[$fieldIdx]]);
-						}
-						// バリデートに成功したので更新値として認める
-						$datas[$fields[$fieldIdx]] = $requestParams[$fields[$fieldIdx]];
+				if(TRUE === $isDeepModel && 0 < count($deepDatas)){
+					foreach($deepDatas as $key => $val){
+						$resources[count($resources)-1][$key] = $val;
 					}
-					catch (Exception $Exception){
-						// バリデーションエラー(必須パラメータチェックエラー)
-						$this->httpStatus = 400;
-						throw new RESTException($Exception->getMessage(), $this->httpStatus);
-						break;
-					}
-				}
-				// DEEP-REST IDに紐づく関連テーブルのレコード作成・更新
-				elseif(TRUE === $this->deepRESTMode && (strlen($fields[$fieldIdx]) -3) === strpos($fields[$fieldIdx], '_id') && $this->authUserIDFieldName != $fields[$fieldIdx]){
-					$deepResource = substr($fields[$fieldIdx], 0, -3);
-					$deepResourcePath = $deepResource;
-					if(TRUE === $this->restResource['me']){
-						$deepResourcePath = 'me/'.$deepResource;
-					}
-					debug('deep??'.$deepResourcePath.' & '.$this->authUserIDFieldName.' & '.$fields[$fieldIdx].' & '.(strlen($fields[$fieldIdx]) -3).' & '.strpos($fields[$fieldIdx], '_id'));
-					$isDeepModel = TRUE;
-					try{
-						$deepModel = $this->_getModel($deepResource);
-					}
-					catch(Exception $Exception){
-						$isDeepModel = FALSE;
-					}
-					if(TRUE === $isDeepModel){
-						// deepRESTを実行し、IDの取得をする
-						$DeepREST = new REST();
-						$DeepREST->AuthUser = $this->AuthUser;
-						$DeepREST->authUserID = $this->authUserID;
-						$DeepREST->authUserIDFieldName = $this->authUserIDFieldName;
-						$DeepREST->authUserQuery = $this->authUserQuery;
-						$res = $DeepREST->execute($deepResourcePath);
-						$datas[$fields[$fieldIdx]] = $res[0]['id'];
-						$deepDatas[$deepResource] = $res;
-					}
-				}
-				// DEEP-REST 自身のIDの自動補完
-				elseif(TRUE === $this->deepRESTMode && $this->authUserIDFieldName == $fields[$fieldIdx]) {
-					// ログインIDの自動補完
-					$datas[$fields[$fieldIdx]] = $this->authUserID;
-				}
-				if($fields[$fieldIdx] == $this->restResourceCreateDateKeyName || $fields[$fieldIdx] == $this->restResourceModifyDateKeyName){
-					// データ作成日付の自動補完
-					$datas[$fields[$fieldIdx]] = $gmtDate;
-				}
-			}
-			// POSTに従ってModelを作成する
-			$Model->save($datas);
-			// 更新の完了した新しいモデルのデータをレスポンスにセット
-			$resources[] = $this->_convertArrayFromModel($Model);
-			if(TRUE === $isDeepModel && 0 < count($deepDatas)){
-				foreach($deepDatas as $key => $val){
-					$resources[count($resources)-1][$key] = $val;
 				}
 			}
 		}

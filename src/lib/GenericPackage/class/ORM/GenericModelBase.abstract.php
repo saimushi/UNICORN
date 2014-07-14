@@ -109,16 +109,16 @@ abstract class GenericModelBase {
 					// 抽出条件が何なのか
 					// WHERE句での指定
 					if(FALSE !== strpos($argExtractionCondition,"WHERE") && strpos($argExtractionCondition,"WHERE") <= 1){
-						$response = $this->_DBO->execute("SELECT " . $field. " FROM " . strtolower($this->tableName) . " " . $argExtractionCondition . " ", $argBinds);
+						$response = $this->_DBO->execute("SELECT " . $field. " FROM `" . strtolower($this->tableName) . "` " . $argExtractionCondition . " ", $argBinds);
 					}
 					elseif(FALSE !== strpos($argExtractionCondition,"=")){
 						// 条件のみでの指定
-						$response = $this->_DBO->execute("SELECT " . $field. " FROM " . strtolower($this->tableName) . " WHERE " . $argExtractionCondition . " ", $argBinds);
+						$response = $this->_DBO->execute("SELECT " . $field. " FROM `" . strtolower($this->tableName) . "` WHERE " . $argExtractionCondition . " ", $argBinds);
 					}else{
 						// Pkey指定として扱う
 						$binds = array();
 						$binds[$this->pkeyName] = $argExtractionCondition;
-						$response = $this->_DBO->execute("SELECT " . $field. " FROM " . strtolower($this->tableName) . " WHERE " . $this->pkeyName . " = :" .$this->pkeyName . " ", $binds);
+						$response = $this->_DBO->execute("SELECT " . $field. " FROM `" . strtolower($this->tableName) . "` WHERE `" . $this->pkeyName . "` = :" .$this->pkeyName . " ", $binds);
 					}
 				}
 				else{
@@ -303,6 +303,7 @@ abstract class GenericModelBase {
 					throw new Exception("");
 				}
 				if(!(isset($lastInsertIdEnabled) && TRUE === $lastInsertIdEnabled)){
+					debug('$seqSql='.$seqSql);
 					$response = $this->_DBO->execute($seqSql);
 					if(FALSE === $response){
 						throw new Exception("");
@@ -311,11 +312,13 @@ abstract class GenericModelBase {
 						$pkey = $responseArr[0]["new_id"];
 					}
 					$replaceFields[$this->pkeyName] = $pkey;
+					debug($this->pkeyName);
+					debug($replaceFields);
 				}
 			}
 			// インサート文
-			$sql = "INSERT INTO " . strtolower($this->tableName)." ";
-			$sql .= "(`" . implode("`,`", array_keys($replaceFields)) . "`) ";
+			$sql = "INSERT INTO `" . strtolower($this->tableName)."` ";
+			$sql .= "(`" . implode("`, `", array_keys($replaceFields)) . "`) ";
 			$sql .= "VALUES (" . implode(" , ", $replaceFields) . " ) ";
 
 			// DB操作実行
@@ -411,14 +414,14 @@ abstract class GenericModelBase {
 				}
 			}
 			// アップデート文
-			$sql = "UPDATE ".strtolower($this->tableName)." ";
+			$sql = "UPDATE `".strtolower($this->tableName)."` ";
 			$sql .= "SET " . implode(" , ", $replaceFields) . " ";
 			$sql .= "WHERE 1=1 ";
 			if(NULL !== $this->pkeys && TRUE === is_array($this->pkeys) && count($this->pkeys) > 1){
 				// 複合プライマリーキーの為の処理
 				foreach($this->pkeys as $key => $val){
-					$sql .= "AND `" . $key . "` = :pkey_".$key . " ";
-					$binds["pkey_".$key] = $val;
+					$sql .= "AND `" . $val . "` = :pkey_".$val . " ";
+					$binds["pkey_".$val] = $this->{$val};
 				}
 			}
 			elseif(NULL !== $this->pkeyName){
@@ -578,7 +581,7 @@ abstract class GenericModelBase {
 			// lenghtの厳密な制限事項ナシ
 			return TRUE;
 		}
-		if(FALSE !== strpos(",", $this->describes[$argKey]["lenght"])){
+		if(FALSE !== strpos($this->describes[$argKey]["lenght"], ",")){
 			$valuelengths = explode(",", (string)$argValue);
 			$typelengths = explode(",", $this->describes[$argKey]["lenght"]);
 			if(strlen($valuelengths[0]) <= (int)$typelengths[0] && strlen($valuelengths[1]) <= (int)$typelengths[1]){

@@ -389,6 +389,45 @@ class MVCCore {
 	}
 
 	/**
+	 * MVCフィルターモジュールの読み込み処理
+	 * @param string クラス名
+	 * @param string クラスの読み込事にエラーが在る場合にbooleanを返すかどうか
+	 * @param string クラスの読み込事にエラーが在る場合にbooleanを返すかどうか
+	 * @return mixed 成功時は対象のクラス名 失敗した場合はFALSEを返す
+	 */
+	public static function loadMVCFilter($argFilterName, $argTargetPath = ''){
+
+		$filterClassName = $argFilterName;
+		if('' !== $argTargetPath){
+			$targetPath = $argTargetPath;
+		}
+		$version = '';
+		if(isset($_GET['_v_']) && strlen($_GET['_v_']) > 0){
+			$version = $_GET['_v_'];
+		}
+
+		if(!class_exists($filterClassName, FALSE)){
+			// コントローラを読み込み
+			if('' !== $version){
+				// バージョン一致のファイルを先ず走査する
+				loadModule('default.controlmain.Filter/' . $targetPath . $version . '/' . $filterClassName, TRUE);
+			}
+			if(!class_exists($filterClassName, FALSE)){
+				loadModule('default.controlmain.Filter/' . $targetPath . $filterClassName, TRUE);
+			}
+			if(!class_exists($filterClassName, FALSE)){
+				debug('default.controlmain.Filter/' . $filterClassName);
+				loadModule('default.controlmain.Filter/' . $filterClassName, TRUE);
+			}
+			if(!class_exists($filterClassName, FALSE)){
+				return FALSE;
+			}
+		}
+
+		return $filterClassName;
+	}
+
+	/**
 	 * クラス名に該当するhtmlを探しだして指定のテンプレートクラスに詰めて返す
 	 * @param string クラス名
 	 * @param string htmlの読み込事にエラーが在る場合にbooleanを返すかどうか

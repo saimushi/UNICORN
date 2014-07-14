@@ -24,7 +24,7 @@ abstract class GenericMigrationBase {
 				$fieldDef .= ' CHAR(' . $propaty['length'] . ')';
 			}
 			elseif('int' === $propaty['type']){
-				if(FALSE !== strpos(',', $propaty['length'])){
+				if(FALSE !== strpos($propaty['length'], ',')){
 					// 小数点が在る場合
 					$fieldDef .= ' DECIMAL(' . $propaty['length'] . ')';
 				}
@@ -64,6 +64,10 @@ abstract class GenericMigrationBase {
 				$pkeyDef .= ', PRIMARY KEY(`' . $field . '`)';
 			}
 		}
+		if(FALSE !== strpos($pkeyDef, '), PRIMARY KEY(')){
+			// 複合主キーが設定されていたらそれに従う
+			$pkeyDef = str_replace('), PRIMARY KEY(', ',', $pkeyDef);
+		}
 		return array('fieldDef'=>$fieldDef, 'pkeyDef'=>$pkeyDef);
 	}
 
@@ -79,6 +83,7 @@ abstract class GenericMigrationBase {
 		$fieldDef = $fielPropatyQuerys['fieldDef'];
 		if(strlen($fieldDef) > 0){
 			$sql = 'CREATE TABLE IF NOT EXISTS `' . $this->tableName . '` (' . $fieldDef . $pkeyDef . ')';
+			debug('migration create sql='.$sql);
 			$argDBO->execute($sql);
 			$argDBO->commit();
 		}
@@ -125,7 +130,7 @@ abstract class GenericMigrationBase {
 			}
 			if(strlen($sql) > 0){
 				try {
-					debug('migration sql='.$sql);
+					debug('migration alter sql='.$sql);
 					$argDBO->execute($sql);
 					$executed = TRUE;
 				}

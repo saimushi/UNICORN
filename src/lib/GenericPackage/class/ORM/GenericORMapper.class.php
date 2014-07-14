@@ -95,7 +95,6 @@ class GenericORMapper {
 
 			// モデルクラス定義からクラス生成
 			eval($baseModelClassDefine);
-			debug($baseModelClassDefine);
 
 			// 生成したクラスを取っておく
 			self::$_models[$tableName] = $modelName;
