@@ -1343,8 +1343,8 @@ function logging($arglog, $argLogName = NULL, $argConsolEchoFlag = FALSE){
 	@file_put_contents($logpath.$argLogName.'_log', $logstr.PHP_EOL, FILE_APPEND);
 	@file_put_contents($logpath.$argLogName.'_'.$phour.'.log', $logstr.PHP_EOL, FILE_APPEND);
 
-	// $debugFlagが有効だったらhttpHeaderにログを出しちゃう
-	if(isset($debugFlag) && TRUE == $debugFlag && isset($_SERVER['REQUEST_URI']) && 'debug' != $argLogName){
+	// $debugFlagが有効だったらdebugログに必ず出力
+	if(isset($debugFlag) && 1 === (int)$debugFlag && isset($_SERVER['REQUEST_URI']) && 'debug' != $argLogName){
 		debug($arglog);
 	}
 
@@ -1360,7 +1360,12 @@ function logging($arglog, $argLogName = NULL, $argConsolEchoFlag = FALSE){
  * debugログ出力
  */
 function debug($arglog){
-	logging($arglog, 'debug',TRUE);
+	if(class_exists('Configure', FALSE) && NULL !== constant('Configure::DEBUG_ENABLED')){
+		$debugFlag = Configure::DEBUG_ENABLED;
+	}
+	if(isset($debugFlag) && 1 === (int)$debugFlag){
+		logging($arglog, 'debug',TRUE);
+	}
 }
 
 /**

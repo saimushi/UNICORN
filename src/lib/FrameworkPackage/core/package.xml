@@ -128,6 +128,10 @@
 		<package>HtmlTemplate</package>
 		<link>default.implement.MVC/HtmlViewAssignor</link>
 	</HtmlViewAssignor>
+	<PushNotification>
+		<link>default.AWSSDK/aws.phar</link>
+		<link mapfrom="GenericAWSNotification" mapto="PushNotification">default.implement.AWS/GenericAWSNotification</link>
+	</PushNotification>
 	<Image>
 		<pattern><![CDATA[^Image[a-zA-Z]*(Info|Util)]]></pattern>
 		<link>default.implement.Image/Image</link>

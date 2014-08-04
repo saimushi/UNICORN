@@ -256,6 +256,12 @@ class FlowManager
 				$code .= $tab . '}' . PHP_EOL;
 				$code .= $tab . 'Flow::$params[\'view\'][] = array(\'div[flowpostformsectionerror]\' => \'' . $argCodeNode . '\');';
 			}
+			elseif('flowviewparam' === $codeType){
+				$code .= 'if(NULL === Flow::$params[\'view\']){' . PHP_EOL;
+				$code .= $tab . PHP_TAB . 'Flow::$params[\'view\'] = array();' . PHP_EOL;
+				$code .= $tab . '}' . PHP_EOL;
+				$code .= $tab . 'Flow::$params[\'view\'][] = array(\'' . $tmpAttr['selector'] . '\' => ' . self::_resolveValue($tmpAttr['val']) . ');';
+			}
 			elseif('view' === $codeType){
 				$section = 'str_replace(\'_\', \'-\', $this->controlerClassName)';
 				if(isset($tmpAttr['section']) && strlen($tmpAttr['section']) > 0){
@@ -263,7 +269,7 @@ class FlowManager
 				}
 				$target = '\'\'';
 				if(isset($tmpAttr['target']) && strlen($tmpAttr['target']) > 0){
-					$target = self::_resolveValue($tmpAttr['target']);
+					$target = '\'' . $tmpAttr['target'] . '\'';
 				}
 				$base = NULL;
 				if(isset($tmpAttr['baseview']) && strlen($tmpAttr['baseview']) > 0){
@@ -357,6 +363,10 @@ class FlowManager
 				if(isset($tmpAttr['method']) && strlen($tmpAttr['method']) > 0){
 					$code .= $tmpAttr['method'] . '(' . self::_resolveArgs($tmpAttr) . ')';
 				}
+				// property定義を繋げる
+				if(isset($tmpAttr['property']) && strlen($tmpAttr['property']) > 0){
+					$code .= $tmpAttr['property'];
+				}
 				// 式の終端文
 				if('if' === $codeType || 'elseif' === $codeType){
 					$code .= '){' . PHP_EOL;
@@ -408,7 +418,8 @@ class FlowManager
 	 */
 	public static function _resolveValue($argValue){
 		$val = $argValue;
-		if(strpos($val, 'assign:')){
+		if(0 === strpos($val, 'assign:')){
+			$val = substr($val, 7);
 			$val = '$' . $val;
 		}
 		elseif('true' === strtolower($val)){

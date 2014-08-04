@@ -14,16 +14,16 @@ class Rest extends RestControllerBase {
 	 * リソースの作成・更新・インクリメント・デクリメント
 	 * @return mixed 成功時は最新のリソース配列 失敗時はFALSE
 	 */
-	public function post(){
-		return parent::post();
+	public function post($argRequestParams = NULL){
+		return parent::post($argRequestParams);
 	}
 
 	/**
 	 * リソースの作成・更新
 	 * @return mixed 成功時は最新のリソース配列 失敗時はFALSE
 	 */
-	public function put(){
-		return parent::put();
+	public function put($argRequestParams = NULL){
+		return parent::put($argRequestParams);
 	}
 
 	/**
