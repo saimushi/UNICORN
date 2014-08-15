@@ -1,5 +1,6 @@
 package com.unicorn.utilities;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Calendar;
 
 import com.unicorn.project.R;
@@ -25,13 +26,11 @@ public class PublicFunction {
 	}
 
 	public static byte[] asByteArray(String hex) {
-		// 文字列長の1/2の長さのバイト配列を生成。
-		byte[] bytes = new byte[hex.length() / 2];
-
-		// バイト配列の要素数分、処理を繰り返す。
-		for (int index = 0; index < bytes.length; index++) {
-			// 16進数文字列をバイトに変換して配列に格納。
-			bytes[index] = (byte) Integer.parseInt(hex.substring(index * 2, (index + 1) * 2), 16);
+		byte[] bytes = null;
+		try {
+			bytes = hex.getBytes("UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
 		}
 
 		// バイト配列を返す。

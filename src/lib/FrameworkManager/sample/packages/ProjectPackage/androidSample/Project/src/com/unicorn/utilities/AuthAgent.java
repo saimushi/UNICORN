@@ -122,13 +122,6 @@ public class AuthAgent {
 			mEditor.remove(type);
 			mEditor.commit();
 		}
-
-		//着せ替え情報のクリア
-		Preferences sPref;
-		sPref = new Preferences(context);
-		sPref.setIntValue(Constant.PREFERENCES_DRESS_UP_ID, 0);
-		
-
 	}
 
 	public void setToken(String token) {

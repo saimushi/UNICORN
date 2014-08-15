@@ -186,65 +186,55 @@ public class AsyncHttpClientAgent {
 		});
 	}
 
-	public static void get(final Context context, final String url, RequestParams params,
-			String country_code, final JsonHttpResponseHandler responseHandler) {
+	public static void get(final Context context, final String url, RequestParams params,final JsonHttpResponseHandler responseHandler) {
 
-		if (url != Constant.API_UUID_AUTH_URL) {
-			if (null != params) {
-				String regId;
-				if (Constant.isDebug) {
-					regId = "";
-				} else {
-					regId = AuthAgent.getInstance().getData(context, AuthAgent.AUTH_RegistrationID);
-					if (null != regId && !regId.equals("")) {
-						Log.d(TAG, "post regId:" + regId);
-						params.put("registration_id", regId);
-					}
-				}
-			}
-		}
-
-//		if (!"".equals(country_code)) {
-//			if(params == null){
-//				params = new RequestParams();
+//		if (url != Constant.API_UUID_AUTH_URL) {
+//			if (null != params) {
+//				String regId;
+//				if (Constant.isDebug) {
+//					regId = "";
+//				} else {
+//					regId = AuthAgent.getInstance().getData(context, AuthAgent.AUTH_RegistrationID);
+//					if (null != regId && !regId.equals("")) {
+//						Log.d(TAG, "post regId:" + regId);
+//						params.put("registration_id", regId);
+//					}
+//				}
 //			}
-//			params.put("language", country_code);
 //		}
+
 		if(params == null){
 			params = new RequestParams();
 		}
-		TelephonyManager telephonyManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-		params.put("language", telephonyManager.getSimCountryIso());
+//		TelephonyManager telephonyManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
+//		params.put("language", telephonyManager.getSimCountryIso());
 
 		final RequestParams finalParams = params;
 
 		final AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
-		CookieStore cookieStore = AsyncHttpClientAgent.loadCookies(context, asyncHttpClient
-				.getHttpClient());
+//		CookieStore cookieStore = AsyncHttpClientAgent.loadCookies(context, asyncHttpClient
+//				.getHttpClient());
+		CookieStore cookieStore = AsyncHttpClientAgent.createToken(context,
+				asyncHttpClient.getHttpClient());
 		asyncHttpClient.setCookieStore(cookieStore);
 		asyncHttpClient.setUserAgent(getUserAgent(context));
 		asyncHttpClient.addHeader("Content-Type", "text/html; charset=UTF-8");
 		asyncHttpClient.post(url, params, new JsonHttpResponseHandler() {
 			@Override
 			public void onSuccess(JSONObject response) {
-				try {
-					String status = response.getString("status");
-					if (status.equals("001")) {
-						CookieStore cookieStore = AsyncHttpClientAgent.createToken(context,
-								asyncHttpClient.getHttpClient());
-						asyncHttpClient.setCookieStore(cookieStore);
-						asyncHttpClient.post(url, finalParams, responseHandler);
-					} else {
-						responseHandler.onSuccess(response);
-					}
-				} catch (JSONException e) {
-					e.printStackTrace();
-				}
+				responseHandler.onSuccess(response);
 			}
+			
+			@Override
+			public void onSuccess(JSONArray response) {
+				responseHandler.onSuccess(response);
+			}
+
 
 			@Override
 			public void onFailure(Throwable e, JSONObject errorResponse) {
 				responseHandler.onFailure(e, errorResponse);
+				
 			}
 
 			@Override
@@ -289,7 +279,6 @@ public class AsyncHttpClientAgent {
 	public static CookieStore loadCookies(Context context, DefaultHttpClient defaultHttpClient) {
 
 		boolean loginCookieEnabled = false;
-		boolean inviteCookieEnabled = false;
 
 		Preferences pref = new Preferences(context);
 
@@ -301,10 +290,6 @@ public class AsyncHttpClientAgent {
 			if (cookie.getDomain().equals(Constant.DOMAIN_NAME) && cookie.getName().equals("token")) {
 				loginCookieEnabled = true;
 			}
-			if (cookie.getDomain().equals(Constant.DOMAIN_NAME)
-					&& cookie.getName().equals("invitecode")) {
-				inviteCookieEnabled = true;
-			}
 		}
 
 		if (!loginCookieEnabled) {
@@ -315,17 +300,6 @@ public class AsyncHttpClientAgent {
 			newCookie.setPath("/");
 			myCookieStore.addCookie(newCookie);
 			loginCookieEnabled = true;
-		}
-
-		String invitecode = pref.getInviteAuthCode();
-		if (!"".equals(invitecode)) {
-			if (!inviteCookieEnabled) {
-				BasicClientCookie newCookie = new BasicClientCookie("invitecode", invitecode);
-				newCookie.setVersion(0);
-				newCookie.setDomain(Constant.DOMAIN_NAME);
-				newCookie.setPath("/");
-				myCookieStore.addCookie(newCookie);
-			}
 		}
 
 		if (!loginCookieEnabled) {
@@ -361,12 +335,14 @@ public class AsyncHttpClientAgent {
 		df.setTimeZone(TimeZone.getTimeZone("GMT"));
 		String gmtstringdata = df.format(date);
 
-		String encBeforeString = AuthAgent.getInstance().getData(context, AuthAgent.AUTH_UUID)
-				+ gmtstringdata;
-		String encString = null;
+		String identifier = AuthAgent.getInstance().getData(context, AuthAgent.AUTH_UUID);
+		identifier = "323d323dgfsgsfghjuyt323dgfsgsfghjuyt";
+		String encIdentifier = null;
 		String encDDString = null;
+		
 		try {
-			encString = AESCipher.encryptPKCS7PaddingUTF8(encBeforeString);
+			identifier = AESCipher.encryptPKCS7PaddingUTF8(identifier);
+			encIdentifier = AESCipher.encryptPKCS7PaddingUTF8(identifier + gmtstringdata);
 			encDDString = AESCipher.encryptPKCS7PaddingUTF8(gmtstringdata);
 		} catch (InvalidKeyException e) {
 			e.printStackTrace();
@@ -383,9 +359,9 @@ public class AsyncHttpClientAgent {
 		} catch (BadPaddingException e) {
 			e.printStackTrace();
 		}
-
-		if (null != encString) {
-			String token = encString + gmtstringdata;
+		
+		if (null != encIdentifier && null != encDDString) {
+			String token = encIdentifier + gmtstringdata;
 			BasicClientCookie newCookie = new BasicClientCookie("token", token);
 			newCookie.setVersion(0);
 			newCookie.setDomain(Constant.DOMAIN_NAME);
@@ -393,7 +369,7 @@ public class AsyncHttpClientAgent {
 			myCookieStore.addCookie(newCookie);
 
 			// tokenをSharedPreferencesに保存
-			saveLocalToken(context, encString, encDDString, token);
+			saveLocalToken(context, encIdentifier, encDDString, token);
 		}
 
 		return myCookieStore;
