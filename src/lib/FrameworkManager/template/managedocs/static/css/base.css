@@ -15,6 +15,27 @@ header {
 	vertical-align: center;
 }
 
+footer {
+	/* box setting */
+	z-index: 10;
+	display:block;
+	width: 100%;
+	height: 50px;
+	/* position setting */
+	position: fixed;
+	bottom: 0;
+	padding-top: 20px;
+	padding-right: 10px;
+	text-align: right;
+	/* style setting */
+	background-color: rgba(0, 0, 0, 0.8);
+	color: white;
+}
+
+footer a {
+	color: white;
+}
+
 .background {
 	/* box setting */
 	z-index: -1;
@@ -88,9 +109,9 @@ button[disabled=disabled],input[disabled=disabled]:active,input[disabled=disable
 	color: #ccc;
 }
 
-form input[type='text'], form input[type='password'] {
+input[type='text'], form input[type='password'] {
 	/* box setting */
-	width: 300px;
+	width: 500px;
 	height: 30px;
 	background-color: RGBA(0, 0, 0, 0.2);
 	border: 1px solid white;
@@ -98,7 +119,7 @@ form input[type='text'], form input[type='password'] {
 	font-size: 1em;
 }
 
-form .buttonarea input {
+.buttonarea input {
 	/* box setting */
 	width: 150px;
 	height: 30px;
@@ -110,6 +131,7 @@ form .buttonarea input {
 p {
 	/* position setting */
 	padding: 2px;
+	word-wrap: break-word;
 }
 
 body {
@@ -118,8 +140,23 @@ body {
 
 h2 {
 	color: white;
+	font-size: 2em;
+	font-weight: bold;
+	padding: 20px;
+	padding-left: 0px;
+}
+
+h3 {
+	color: white;
 	font-size: 1.5em;
 	font-weight: bold;
+	padding: 10px;
+	padding-left: 0px;
+}
+
+pre {
+	color: white;
+	font-size: 1em;
 }
 
 li {
@@ -144,6 +181,10 @@ li {
 .red {
 	/* style setting */
 	color: red;
+}
+
+.strong {
+	font-weight: bold;
 }
 
 .errormsg {
@@ -201,17 +242,25 @@ li {
 		to(gray));
 }
 
-header.container {
+header.layout-container {
+	/* box setting */
+	height: 100px;
 	/* position setting */
 	display: -webkit-box;/* Safari,Google Chrome用 */
 	display: -moz-box;/* Firefox用 */
 	top: 0;
 }
 
-.container {
+.mainbox.headerbox {
+	border-left: solid 1px #FFF;
+	border-right: solid 1px #FFF;
+}
+
+.layout-container {
 	/* box setting */
 	z-index: 1;
 	width: 100%;
+	height: calc(100% - 150px);
 	/* position setting */
 	position: fixed;
 	display: -webkit-box;/* Safari,Google Chrome用 */
@@ -263,13 +312,17 @@ header.container {
 	box-sizing: border-box;/* Opera用 */
 }
 
+.main .mainbox {
+	overflow: scroll;
+}
+
+
 .floatnavi li {
 	/* position setting */
 	padding: 5px 10px;
 	/* style setting */
 	font-size: 0.8em;
 	font-weight: bold;
-	border-left: solid 1px #FFF;
 }
 
 .floatnavi li a {
@@ -297,10 +350,12 @@ header.container {
 
 .loginform .errormsg {
 	/* box setting */
-	width: 400px;
+	width: 100%;
 	/* position setting */
 	margin-left: auto;
 	margin-right: auto;
+	/* style setting */
+	text-align: center;
 }
 
 .loginform form p {
@@ -324,4 +379,10 @@ header.container {
 
 .loginform form .buttonarea input {
 	width: 150px;
+}
+
+.error *{
+	color: red;
+	font-weight: bold;
+	margin-bottom: 20px;
 }

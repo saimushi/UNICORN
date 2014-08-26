@@ -3,12 +3,13 @@
 class ProjectManager
 {
 	public static function createProject($argProjectName=''){
+		$conName = PROJECT_NAME."Configure";
 		debug('$argProjectName='.$argProjectName);
-		$samplePackage = FrameworkManagerConfigure::SAMPLE_PROJECT_PACKAGE_PATH;
+		$samplePackage = $conName::SAMPLE_PROJECT_PACKAGE_PATH;
 		$newProjectName = str_replace('Package', '', ucfirst($argProjectName.basename($samplePackage)));
 		debug('$newProjectName='.$newProjectName);
 		// 移動先のパス
-		$movePath = dirname(FrameworkManagerConfigure::PROJECT_ROOT_PATH).'/'.$newProjectName.'Package';
+		$movePath = dirname($conName::PROJECT_ROOT_PATH).'/'.$newProjectName.'Package';
 		debug('$movePath='.$movePath);
 		if(!dir_copy($samplePackage, $movePath)){
 			return FALSE;

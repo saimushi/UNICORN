@@ -43,7 +43,7 @@ elseif (!isset($_GET["a"]) && (!isset($argv) || null === $argv)){
 <head>
 <meta charset="utf-8">
 <meta id="viewport" name="viewport"
-	content="target-densitydpi=device-dpi, width=device-width, maximum-scale=1.0, user-scalable=no">
+	content="width=device-width, maximum-scale=1.0, user-scalable=no">
 <title><?php echo PROJECT_NAME; ?> installer</title>
 <style id="resert_css" type="text/css">
 
@@ -405,7 +405,7 @@ dl.page_sub_body {
 /* デフォルトでは非表示にしていく要素の定義 */
 #page1, #page2, #page3, #page4, #page5, #nextstep, #execute, #apply, #endstep, #page1_sub_title4, .errormsg
 , #page2_body2, #page2_body3, #page2_body5, #page2_body6, #page2_body7, #page2_body8, #page2_body9, #page2_body10
-, #page3_body2, #page3_body3, #page3_body4, #page3_body5, #page3_body6, #page3_body7, #page3_body8, #page3_body9, #page3_body10, #page3_body11, #page3_body12, #page3_body13
+, #page3_body2, #page3_body3, #page3_body4, #page3_body5, #page3_body6, #page3_body7, #page3_body8, #page3_body9, #page3_body10, #page3_body11, #page3_body12, #page3_body13, #page4_body2
 {
 	/* box setting */
 	display: none;
@@ -423,7 +423,7 @@ dl.page_sub_body {
 	margin-top: -30px;
 }
 
-#page2_body2 .loading, #page3_body5 .loading, #page3_body10 .loading {
+#page2_body2 .loading, #page3_body5 .loading, #page3_body10 .loading, #page4_body1 .loading {
 	margin-top: 15px;
 }
 
@@ -481,7 +481,6 @@ dl.page_sub_body {
 		/* box setting */
 		width: 300px;
 		/* position setting */
-		margin-top: 2.5%;
 		/* style setting */
 		font-size: 2em;
 	}
@@ -590,6 +589,14 @@ $(document).ready(function(){
 			if(argStep == maxstep) {
 				// インストール完了ページ表示時はナビゲーターはもう不要
 				$("#navigatior").hide();
+				// 後始末処理
+				$.ajax({
+					url: "?a=1&step=" + argStep + "&debug=" + isDebug,
+					dataType: "json",
+					cache: false,
+				}).done(function(json) {
+					// 何もしない
+				});
 			}
 		}
 		// ページの上部へ移動
@@ -677,6 +684,7 @@ $(document).ready(function(){
 	// 各ステップの設定数定義
 	var maxStep2apply = 8;
 	var maxStep3apply = 12;
+	var maxStep4apply = 1;
 
 	// ステップを横断して利用する変数の定義
 	var beforeframeworkpath = "";
@@ -960,8 +968,8 @@ $(document).ready(function(){
 						return;
 					}
 				});
-				return;
 			}
+			return;
 		}
 		else if(argStep == 3){
 			if(stepApply <= maxStep3apply){
@@ -1229,7 +1237,8 @@ $(document).ready(function(){
 						else if(9 == stepApply){
 							// 何もしない
 							$("#fwmdocpath2").text($("#input-fwmdocpath").val());
-							$("#fwmdocpath3").text($("#input-fwmdocpath").val());
+							var basepaths = $("#input-fwmdocpath").val().split("/");
+							$("#fwmdocpath3").text(basepaths[basepaths.length-1]);
 						}
 						else if(10 == stepApply){
 							$("#fwmurl").attr("href", json.fwmurl);
@@ -1293,6 +1302,69 @@ $(document).ready(function(){
 			}
 			return;
 		}
+		else if(argStep == 4){
+			if(stepApply <= maxStep4apply){
+				$("#page" + argStep + " .hlog").text("");
+				// ローディング非表示
+				$("#step" + argStep + "input" + stepApply + "form_box .loading").removeClass("active");
+				// エラーを非表示
+				$("#page" + argStep + " .errormsg").hide();
+				// applyステップ毎のバリデーション
+				if(1 == stepApply){
+					// applyステップ1のバリデート
+					var data = {};
+					var skip = true;
+					if(true == $("#input-sslon").prop("checked")){
+						skip = false;
+						data["sslon"] = "1";
+					}
+					if(1 < $("#input-ipaddress").val().length){
+						skip = false;
+						data["ipaddress"] = $("#input-ipaddress").val();
+					}
+					if(skip){
+						// 次の設定へ
+						$("#page" + argStep + "_body" + stepApply).hide();
+						$("#page" + argStep + "_body" + (stepApply+1)).show();
+						stepApply++;
+					}
+					else {
+						data["fwmpath"] = fwmpath;
+					}
+				}
+
+				if(!skip){
+					// 各種フォームパーツの無効化
+					$("#apply").attr("disabled", "disabled");
+					// 項目ローディング表示
+					$("#step" + argStep + "input" + stepApply + "form_box .loading").addClass("active");
+					$.ajax({
+						type: "POST",
+						url: "?a=1&step=" + argStep + "&apply=" + stepApply + "&debug=" + isDebug,
+						data: data,
+						dataType: "json",
+						cache: false,
+					}).done(function(json) {
+						// ローディング非表示
+						$("#step" + argStep + "input" + stepApply + "form_box .loading").removeClass("active");
+						if(true == json.ok){
+							// 次の設定へ
+							$("#page" + argStep + "_body" + stepApply).hide();
+							$("#page" + argStep + "_body" + (stepApply+1)).show();
+							stepApply++;
+						}
+						else {
+							// バリデート以外の理由によるエラー
+							$("#page" + argStep + " .errormsg").show();
+							$("#page" + argStep + " .errormsg").text("(!!!)" + json.error);
+							// ページの上部へ移動
+							inPageLocation("#page" + argStep + " .errormsg");
+							return;
+						}
+					});
+				}
+			}
+		}
 
 		// 全ての設定が成功で終了
 		// 次のステップへ行けるように
@@ -1324,12 +1396,14 @@ $(document).ready(function(){
 
 	// 各種フォームの初期値のセット
 	$("#input-path").val("<?php echo $frameworkPath; ?>");
+	$("#input-fwmbaseurl").val($("#input-fwmbaseurl").val() + "<?php $urls = explode('?', $_SERVER['REQUEST_URI']); echo $_SERVER['SERVER_NAME'].$urls[0]; ?>");
 	$("#input-fwmpath").val("<?php echo $fwmgrPath; ?>");
 	$("#input-mysqluser").val("root");
 	$("#input-mysqlpass").val("root");
 	$("#input-fwmdbuser").val("fwm");
 	$("#input-fwmdbpass").val("fwmpass");
 	$("#input-fwmdb").val("fwm");
+	fwmpath = "<?php echo $fwmgrPath; ?>";
 
 	// デバッグフラグの設定
 	if("" !== getParameterByName("debug")){
@@ -1370,7 +1444,7 @@ $(document).ready(function(){
 					<br>
 					<small>・フレームワーク管理機能のインストール(任意)</small>
 					<br>
-					<small>・フレームワーク管理機能のアクセス権設定(任意)</small>
+					<small>・フレームワーク管理機能のアクセス制限設定(任意)</small>
 					<br>
 					<br>
 					<br>
@@ -1683,7 +1757,7 @@ $(document).ready(function(){
 					<br>
 					<br>
 					<br>
-					<strong>フレームワークの詳しい利用方法は、Webサイト「<a href="">準備中</a>」を確認して下さい。</strong>
+					<strong>フレームワークの詳しい利用方法は、<a target="_blank" href="http://saimushi.github.io/<?php echo PROJECT_NAME; ?>/">UNICORNのWebサイト</a>を確認して下さい。</strong>
 					<br>
 					<br>
 				</p>
@@ -1716,7 +1790,7 @@ $(document).ready(function(){
 					</strong>
 					<br>
 					<br>
-					<strong>フレームワークの詳しい利用方法は、Webサイト「<a href="http://saimushi.github.io/<?php echo PROJECT_NAME; ?>/" target="_blank">準備中</a>」を確認して下さい。</strong>
+					<strong>フレームワークの詳しい利用方法は、<a target="_blank" href="http://saimushi.github.io/<?php echo PROJECT_NAME; ?>/">UNICORNのWebサイト</a>を確認して下さい。</strong>
 					<br>
 					<br>
 				</p>
@@ -2090,12 +2164,12 @@ $(document).ready(function(){
 					<br>
 					<br>
 					<strong class="orange">
-						※次以降はフレームワークマネージャーのアクセス権の確認・設定(任意:※準備中)が行えます。
-						フレームワークマネージャーのアクセス権の確認・設定(任意:※準備中)を行う場合は、「次のステップへ」ボタンを押して下さい。
+						※次以降はフレームワークマネージャーのアクセス制限の確認・設定(任意)が行えます。
+						フレームワークマネージャーのアクセス制限の確認・設定(任意)を行う場合は、「次のステップへ」ボタンを押して下さい。
 					</strong>
 					<br>
 					<br>
-					<strong>フレームワークマネージャーの詳しい利用方法は、Webサイト「<a href="http://saimushi.github.io/<?php echo PROJECT_NAME; ?>/" target="_blank">準備中</a>」を確認して下さい。</strong>
+					<strong>フレームワークマネージャーの詳しい利用方法は、<a target="_blank" href="http://saimushi.github.io/<?php echo PROJECT_NAME; ?>/">UNICORNのWebサイト</a>を確認して下さい。</strong>
 				</p>
 			</div>
 			<div class="page_body">
@@ -2108,22 +2182,87 @@ $(document).ready(function(){
 	</section>
 	<section id="page4" class="page_box">
 		<article class="page">
-			<h3 id="page4_title" class="page_title"><strong class="orange">STEP:4</strong><br>フレームワーク管理機能のアクセス権の設定(任意:※準備中)</h3>
+			<h3 id="page4_title" class="page_title"><strong class="orange">STEP:4</strong><br>フレームワーク管理機能のアクセス制限の設定(任意)</h3>
 			<div id="page4_body1" class="page_body">
 				<p>
-					<strong class="orange">準備中</strong>
+					<strong class="orange">フレームワーク管理機能へのアクセスを制限する事が出来ます。</strong>
 					<br>
 					<br>
-					フレームワーク管理機能のhttps設定や、接続ネットワークの限定などの設定が行えるようになる予定です。
+					・SSL接続のみにする事が出来ます。
+					<br>
+					・また、IPアドレスをカンマ区切りに複数指定し、該当するIPアドレスからの接続のみにする事が出来ます。
+					<br>
+					<br>
+					<br>
+					<strong>以下のフォームにアクセス制限情報を入力して「設定」ボタンを押して下さい。</strong>
+					<br>
+					<br>
+					<strong>アクセス制限をしない場合は、そのまま「設定」ボタンを押して下さい。</strong>
+					<br>
+					<strong class="red">※アクセス制限をしない場合、ログインIDを知る全てのユーザーが管理機能にログイン出来る事に注意して下さい！</strong>
+					<br>
+					<br>
+					<br>
+					<strong>尚、現在の貴方のIPアドレスは<strong class="red"><?php echo $_SERVER['REMOTE_ADDR']; ?></strong>です。</strong>
+					<br>
 					<br>
 					<br>
 				</p>
+				<br>
+				<small>SSL接続のみ許可する</small>
+				<div id="step4input11form_box" class="text-checkbox-form">
+					<form id="step4input11-1form" name="step4input11-1form">
+						<input id="input-sslon" class="input-checkbox" type="checkbox" name="sslon" />
+					</form><span class="loading"></span>
+				</div>
+				<br>
+				<small>指定したIPアドレスからの接続のみ許可する(カンマ区切りで複数指定可)</small>
+				<div id="step4input11-2form_box" class="text-input-form">
+					<form id="step4input11-2form" name="step4input11-2form">
+						<input id="input-ipaddress" class="input-text" type="text" name="ipaddress" value="" maxlenght="255" />
+						<input id="input-mysqluser-reset" class="input-reset" type="reset" value="×" />
+					</form>
+				</div>
+			</div>
+			<div id="page4_body2" class="page_body">
+				<p>
+					<strong class="green">おめでとう御座います！！</strong>
+					<br>
+					<br>
+					<strong class="green">フレームワーク管理機能へのアクセス制限の設定が完了しました。</strong>
+					<br>
+					<br>
+					<br>
+					<strong class="green">
+						「次のステップへ」ボタンを押して、インストールを完了しましょう！
+					</strong>
+					<br>
+					<br>
+				</p>
+			</div>
+			<div class="page_body">
+				<pre class="errormsg red"></pre>
 			</div>
 		</article>
 	</section>
 	<section id="page5" class="page_box">
 		<article class="page">
-			<h2 id="page5_title" class="page_title">インストールが完了しました！</h2>
+			<h2 id="page5_title" class="page_title">インストールが完了<br/>しました！</h2>
+			<div id="page1_body" class="page_body">
+				<p>
+					<strong class="green">お疲れ様でした。</strong>
+					<br>
+					<br>
+					全てのインストール工程が完了しました。
+					<br>
+					インストーラーをブラウザから閉じて、インストールを完全に終了する事が出来ます。
+					<br>
+					<br>
+					<strong>フレームワークの詳しい利用方法は、<a target="_blank" href="http://saimushi.github.io/<?php echo PROJECT_NAME; ?>/">UNICORNのWebサイト</a>を確認して下さい。</strong>
+					<br>
+					<br>
+				</p>
+			</div>
 		</article>
 	</section>
 	<nav id="navigatior" class="navigation_box">
@@ -2149,7 +2288,7 @@ $(document).ready(function(){
 			</div>
 			<div id="navigatestep4" class="navigate_step leftfloat">
 				<p class="navigate_header">STEP:4</p>
-				<div class="navigate_body">フレームワーク管理機能のアクセス権の設定(任意)</small></div>
+				<div class="navigate_body">フレームワーク管理機能のアクセス制限の設定(任意)</small></div>
 			</div>
 		</div>
 	</nav>
@@ -2762,7 +2901,7 @@ elseif(isset($_GET["a"])){
 			}
 			if(NULL === mysqli_fetch_array($result)){
 				// インサートする
-				$insertSQL = "INSERT INTO `user` (`name`, `mail`, `pass`, `rolu`) VALUES ('".$username."', '".$usermail."', '".$userpassHash."', '9')";
+				$insertSQL = "INSERT INTO `user` (`name`, `mail`, `pass`) VALUES ('".$username."', '".$usermail."', '".$userpassHash."')";
 				installerlog($insertSQL);
 				if (!mysqli_query($connect, $insertSQL)) {
 					exit("{\"ok\":false,\"error\":\"SQL文の実行に失敗しました。 \\n " . mysqli_error($connect) . " \\n 考えられる理由: \\n 1.指定された設定情報にselectの実行権限が無いかも知れません。 \\n 2.指定された設定情報にupdateの実行権限が無いかも知れません。 \\n 3.指定された設定情報にinsertの実行権限が無いかも知れません。\"}");
@@ -2770,7 +2909,7 @@ elseif(isset($_GET["a"])){
 			}
 			else {
 				// アップデートする
-				$updateSQL = "UPDATE `user` SET `name` = '".$username."', `mail` = '".$usermail."', `pass` = '".$userpassHash."', `rolu` = '9' WHERE `mail` =  '".$usermail."' AND `pass` = '".$userpassHash."'";
+				$updateSQL = "UPDATE `user` SET `name` = '".$username."', `mail` = '".$usermail."', `pass` = '".$userpassHash."', WHERE `mail` =  '".$usermail."' AND `pass` = '".$userpassHash."'";
 				installerlog($updateSQL);
 				if (!mysqli_query($connect, $updateSQL)) {
 					exit("{\"ok\":false,\"error\":\"SQL文の実行に失敗しました。 \\n " . mysqli_error($connect) . " \\n 考えられる理由: \\n 1.指定された設定情報にselectの実行権限が無いかも知れません。 \\n 2.指定された設定情報にupdateの実行権限が無いかも知れません。 \\n 3.指定された設定情報にinsertの実行権限が無いかも知れません。\"}");
@@ -2904,6 +3043,48 @@ elseif(isset($_GET["a"])){
 			// フレームワークマネージャーの移動の正常終了
 			exit(json_encode($res));
 		}
+	}
+	// ステップ4フレームワークマネージャーのインストール
+	else if(isset($_GET["step"]) && 4 === (int)$_GET["step"]) {
+		// アクセス制限を設定する
+		if(isset($_GET["apply"]) && 1 === (int)$_GET["apply"]) {
+			installerlog(var_export($_POST,true));
+			if(!isset($_POST["fwmpath"])){
+				// 存在を確認出来ず
+				exit("{\"ok\":false,\"error\":\"指定されたパス「" . $path . "」にフレームワークを見つけられませんでした。\\n正しいパスを指定し治して、「設定」ボタンを押して下さい。\"}");
+			}
+			$path = $_POST["fwmpath"]."/core/FrameworkManager.config.xml";;
+			if(!is_file($path)){
+				// 存在を確認出来ず
+				exit("{\"ok\":false,\"error\":\"指定されたパス「" . $path . "」にフレームワークを見つけられませんでした。\\n正しいパスを指定し治して、「設定」ボタンを押して下さい。\"}");
+			}
+			$fwmConfXML = simplexml_load_file($path);
+			$modified = false;
+			if(isset($_POST["sslon"]) && true == (1 === (int)$_POST["sslon"] || true === $_POST["sslon"] || "1" === $_POST["sslon"])){
+				$fwmConfXML->FrameworkManager->DENY_HTTP = true;
+				$modified = true;
+			}
+			if(isset($_POST["ipaddress"]) &&  8 < strlen($_POST["ipaddress"])){
+				$fwmConfXML->FrameworkManager->DENY_ALL_IP = $_POST["ipaddress"];
+				$modified = true;
+			}
+			if(true === $modified){
+				// XML文字列を再生成
+				$fwmConfXML->asXML($path);
+				installerlog($fwmConfXML->asXML());
+			}
+			// アクセス制限設定の正常終了
+			exit("{\"ok\":true}");
+		}
+	}
+	// ステップ4フレームワークマネージャーのインストール
+	else if(isset($_GET["step"]) && 5 === (int)$_GET["step"]) {
+		if(is_file(dirname(__FILE__).'/.copy')){
+			// コピーされたインストーラーならまるまる削除して終了する
+			dir_delete(dirname(__FILE__));
+		}
+		// 後始末処理の終了
+		exit("{\"ok\":true}");
 	}
 	exit ("{\"error\":\"該当するシステム要件チェックがありません。\"}");
 }

@@ -5,12 +5,12 @@
 <meta id="viewport" name="viewport"
 	content="target-densitydpi=device-dpi, width=device-width, maximum-scale=1.0, user-scalable=no">
 <title id="title">Framework Manager -pagename-</title>
-<link id="resert-css" rel="stylesheet" href="./static/css/reset.min.css" />
-<link id="resert-plus-css" rel="stylesheet"
+<link id="reset-css" rel="stylesheet" href="./static/css/reset.min.css" />
+<link id="reset-plus-css" rel="stylesheet"
 	href="./static/css/reset-plus.css" />
 <link id="base-css" rel="stylesheet" href="./static/css/base.css" />
 <link id="base-sp-css" rel="stylesheet" href="./static/css/base-sp.css" />
-<link id="base-css" rel="stylesheet" href="./static/css/la+wake.css" />
+<link id="main-css" rel="stylesheet" href="./static/css/la+wake.css" />
 <script id="jquery" src="./static/js/jquery.min.js"></script>
 <script id="base-js" type="text/javascript">
 	$(document).ready(function() {
@@ -18,7 +18,7 @@
 </script>
 </head>
 <body>
-	<header id="header" class="container">
+	<header id="header" class="layout-container">
 		<h1 class="leftbox headerbox"><a href="./"><img width="80" height="80" src="https://dl.dropboxusercontent.com/u/22810487/UNICORN/image/logo-mini.png"/>RUNNING LA+</a></h1>
 		<nav class="mainbox headerbox floatnavi">
 			<ul>
@@ -33,16 +33,18 @@
 			</ul>
 		</nav>
 	</header>
-	<div class="container">
+	<div class="layout-container">
 		<nav class="leftbox panelbox">
 			<ul>
 				<li class="project"><a href="">project name</a></li>
 			</ul>
 		</nav>
 		<section templatepartsid="main" class="mainbox panelbox">
-			<p>フレームワーク管理ツールの雛形htmlファイルです。</p>
-			<br />
-			<p>このファイルをベースにフレームワーク管理ツール用のhtmlはコーディングしています。</p>
+			<div class="maincontents">
+				<p>フレームワーク管理ツールの雛形htmlファイルです。</p>
+				<br />
+				<p>このファイルをベースにフレームワーク管理ツール用のhtmlはコーディングしています。</p>
+			</div>
 		</section>
 	</div>
 	<!-- 背景を body タグで指定する代わりに、この div タグに指定する -->

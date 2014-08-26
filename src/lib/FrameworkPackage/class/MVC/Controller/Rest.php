@@ -33,6 +33,14 @@ class Rest extends RestControllerBase {
 	public function delete(){
 		return parent::delete();
 	}
+
+	/**
+	 * リソースの情報の取得
+	 * @return boolean
+	 */
+	public function head(){
+		return parent::head();
+	}
 }
 
 ?>

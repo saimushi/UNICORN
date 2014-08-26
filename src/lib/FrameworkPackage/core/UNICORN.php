@@ -142,32 +142,6 @@ function loadModule($argHint, $argClassExistsCalled = FALSE){
 			// ジェネレートされたファイルを読み込んで終了
 			return TRUE;
 		}
-
-		// 		if(is_file($generatedIncFileName)){
-		// 			$unlink=TRUE;
-		// 			if(filemtime($generatedIncFileName) >= filemtime(__FILE__)){
-		// 				// フレームワークコアの変更が見当たらない場合は、コンフィグと比較
-		// 				for($pkConfXMLCnt = 0, $timecheckNum = 0; count($pkConfXMLs) > $pkConfXMLCnt; $pkConfXMLCnt++){
-		// 					// XXX 時間チェック(タイムゾーン変えてもちゃんと動く？？)
-		// 					if(filemtime($generatedIncFileName) >= $pkConfXMLs[$pkConfXMLCnt]['time']){
-		// 						$timecheckNum++;
-		// 					}
-		// 				}
-		// 				if($timecheckNum === $pkConfXMLCnt){
-		// 					$unlink=FALSE;
-		// 					// 静的ファイル化されたrequire群ファイルを読み込んで終了
-		// 					// fatal errorがいいのでrequireする
-		// 					require_once $generatedIncFileName;
-		// 				}
-		// 			}
-		// 			if(FALSE === $unlink){
-		// 				// ジェネレートされたファイルを読み込んで終了
-		// 				return TRUE;
-		// 			}
-		// 			// ここまで来たら再ジェネレートが走るのでジェネレート済みの古いファイルを削除しておく
-		// 			@file_put_contents($generatedIncFileName, '');
-		// 			@unlink($generatedIncFileName);
-		// 		}
 	}
 
 	// パッケージ名に該当するノードが格納されたパッケージXML格納用
@@ -1071,25 +1045,95 @@ eval('function init' . $corefilename . '($argment = NULL){ return _initFramework
 /**
  * フレームワーク内のエラー処理
 */
-function _systemError($argMsg){
+function _systemError($argMsg, $argStatusCode=500, $argHtml=''){
 	$corefilename = strtoupper(substr(basename(__FILE__), 0, strpos(basename(__FILE__), '.')));
+	$errorHtml = $argHtml;
 	// ココを通るのは相当なイレギュラー
 	if(defined($corefilename . '_ERROR_FINALIS')){
 		eval(constant($corefilename . '_ERROR_FINALIS').'();');
 	}
 	else{
-		header('HTTP/1.0 500 Internal Server Error');
-		echo '<h1>Internal Server Error</h1>'.PHP_EOL;
-		echo '<br/>'.PHP_EOL;
-		echo 'Please check exception\'s log'.PHP_EOL;
+		header('HTTP/1.0 '.$argStatusCode.' Internal Server Error');
+		if(!strlen($errorHtml) > 0){
+			echo '<h1>Internal Server Error</h1>'.PHP_EOL;
+			echo '<br/>'.PHP_EOL;
+			echo 'Please check exception\'s log'.PHP_EOL;
+		}
 	}
 	// 開発状態のみエラー表示をする
 	if(isTest()) {
-		echo $argMsg;
-		// PHPUnitTestではdebugtraceを取らない・・・(traceが長すぎてパンクする・・・)
-		if(!class_exists('PHPUnit_Framework_TestCase', FALSE)){
-			echo "\n<br>\n" . str_replace(array(" ", "\n"), array("&nbsp;", "\n<br>\n"), var_export(debug_backtrace(), TRUE));
+		if(strlen($errorHtml) > 0){
+			$errorTitle = '<h2>Internal Server Error</h2>';
+			$errorTitle .= '<h3>'.$argMsg.'</h3>';
+			$errorTitle .= '<h4>Please check exception\'s log</h4>';
+			$errorHtml = str_replace('%error_title%', $errorTitle, $errorHtml);
+			// バックトレースの0番目をコードとして表示
+			$errorMsg = '<p><strong>error code:%error_file% - %error_line%行目</strong></p>'.PHP_EOL;
+			$errorMsg .= '<pre class="error_code brush: php first-line:%error_code_startline% highlight:[%error_code_highlightline%]">%error_code%</pre>'.PHP_EOL;
+			$errorMsg .= '<p><strong>error ditail:</strong></p>'.PHP_EOL;
+			$errorMsg .= '<pre class="error_detail">%error_detail%</pre>'.PHP_EOL;
+			$errorCode = '';
+			$errorDetail = '';
+			$tracecs = debug_backtrace();
+			if(isset($tracecs[0])){
+				$errorFileInfo = $tracecs[0];
+				if(isset($errorFileInfo['file']) && isset($errorFileInfo['line']) && is_file($errorFileInfo['file']) && is_numeric($errorFileInfo['line'])){
+					$handle = fopen($errorFileInfo['file'], 'r');
+					if($handle){
+						$targetStartLine = (int)$errorFileInfo['line'] - 10;
+						if(0 > $targetStartLine){
+							$targetStartLine = 0;
+						}
+						$targetEndLine = (int)$errorFileInfo['line'] + 10;
+						$readLine = 0;
+						$file="";
+						while (($buffer = fgets($handle, 4096)) !== false) {
+							if($readLine >= $targetStartLine && $readLine < $targetEndLine){
+								$errorCode .= $buffer;
+							}
+							$readLine++;
+							if($readLine >= $targetEndLine){
+								break;
+							}
+						}
+						fclose($handle);
+						$errorMsg = str_replace('%error_file%', $errorFileInfo['file'], $errorMsg);
+						$errorMsg = str_replace('%error_line%', $errorFileInfo['line'], $errorMsg);
+						$errorMsg = str_replace('%error_code_startline%', (int)$targetStartLine+1, $errorMsg);
+						$errorMsg = str_replace('%error_code_highlightline%', $errorFileInfo['line'], $errorMsg);
+					}
+				}
+			}
+			$errorMsg = str_replace('%error_file%', '', $errorMsg);
+			$errorMsg = str_replace('%error_line%', '', $errorMsg);
+			$errorMsg = str_replace('%error_code_startline%', '', $errorMsg);
+			$errorMsg = str_replace('%error_code_highlightline%', '', $errorMsg);
+			$errorMsg = str_replace('%error_code%', $errorCode, $errorMsg);
+			// PHPUnitTestではdebugtraceを取らない・・・(traceが長すぎてパンクする・・・)
+			if(!class_exists('PHPUnit_Framework_TestCase', FALSE)){
+				$errorDetail = str_replace(array(PHP_TAB, ' '), array('&nbsp;&nbsp;', '&nbsp;'), htmlspecialchars(var_export(debug_backtrace(), TRUE)));
+			}
+			$errorMsg = str_replace('%error_detail%', $errorDetail, $errorMsg);
+			// メッセージをディスパッチ
+			$errorHtml = str_replace('%error_msg%', $errorMsg, $errorHtml);
+			echo $errorHtml;
 		}
+		else {
+			echo $argMsg;
+			// PHPUnitTestではdebugtraceを取らない・・・(traceが長すぎてパンクする・・・)
+			if(!class_exists('PHPUnit_Framework_TestCase', FALSE)){
+				echo PHP_EOL.'<br>'.PHP_EOL.str_replace(array(' ', PHP_EOL), array('&nbsp;', PHP_EOL.'<br>'.PHP_EOL), var_export(debug_backtrace(), TRUE));
+			}
+		}
+	}
+	else if(strlen($errorHtml) > 0){
+		// XXX 本番環境では詳細なエラーの画面表示はしない！(exception_logには吐かれます)
+		$errorTitle = '<h2>Internal Server Error</h2>';
+		$errorTitle .= '<h3>&nbsp;</h3>';
+		$errorTitle .= '<h4>Please check exception\'s log</h4>';
+		$errorHtml = str_replace('%error_title%', $errorTitle, $errorHtml);
+		$errorHtml = str_replace('%error_msg%', '', $errorHtml);
+		echo $errorHtml;
 	}
 	// PHPUnitTestではdebugtraceを取らない・・・(traceが長すぎてパンクする・・・)
 	if(!class_exists('PHPUnit_Framework_TestCase', FALSE)){
@@ -1101,13 +1145,15 @@ function _systemError($argMsg){
 /**
  * 外部からのフレームワークの明示的エラー処理
  */
-eval('function error' . $corefilename . '($argMsg){ _systemError($argMsg); }');
+function errorExit($argMsg, $argStatusCode=500, $argHtml=''){
+	_systemError($argMsg, $argStatusCode, $argHtml);
+}
 
 /**
  * フレームワークの終了処理
  * ob_startを仕掛けたプログラムの終了時にコールされる
  * @param バッファストリング
-*/
+ */
 function _callbackAndFinalize($argBuffer){
 	// return ってすると出力されるのよ。
 	return $argBuffer;
@@ -2051,6 +2097,10 @@ if(TRUE === $_consoled){
 						}
 						fclose($handle);
 						file_put_contents($_SERVER['argv'][2] . '/installer/index.php', $file);
+						// インストーラーが標準の位置では無い場合は印をつける
+						if(str_replace('//', '/', $_SERVER['argv'][2] . '/installer/index.php') !== str_replace('//', '/', dirname(dirname(__FLE__)).'/installer/index.php')){
+							@touch($_SERVER['argv'][2] . '/installer/.copy');
+						}
 						$installerURL = $_SERVER['argv'][3].'/installer/';
 						if(isset($_SERVER['argv'][4]) && 'debug' === $_SERVER['argv'][4]){
 							$installerURL .= '?debug=1';
@@ -2085,11 +2135,11 @@ if(TRUE === $_consoled){
 		echo PHP_TAB . ' 例) php UNICORN NT-D /home/user/unicorn/htdocs/ http://mydomian.com/unicorn/ debug' . PHP_EOL;
 		echo PHP_EOL;
 		echo PHP_EOL;
-// 		echo ' 2.(LA+システムによる)フレームワークマネージメント' . PHP_EOL;
-// 		echo PHP_EOL;
-// 		echo PHP_TAB . ' -> php UNICORN management [or] php UNICORN LA+' . PHP_EOL;
-// 		echo PHP_EOL;
-// 		echo PHP_EOL;
+		// 		echo ' 2.(LA+システムによる)フレームワークマネージメント' . PHP_EOL;
+		// 		echo PHP_EOL;
+		// 		echo PHP_TAB . ' -> php UNICORN management [or] php UNICORN LA+' . PHP_EOL;
+		// 		echo PHP_EOL;
+		// 		echo PHP_EOL;
 		echo ' 2.(ORMapper「PsychoFrame」を利用した)データベースマイグレーション(※準備中)' . PHP_EOL;
 		echo PHP_EOL;
 		echo PHP_TAB . ' ※ 前提条件 : フレームワークのインストールを完了し、データベース接続設定が完了している事' . PHP_EOL;

@@ -19,7 +19,9 @@ define("PROJECT_NAME", $fwmpkgName);
 // フレームワークのコアファイルを読み込み
 require_once $fwpath."/core/UNICORN";
 
+$conName = PROJECT_NAME."Configure";
+
 // フレームワークのMVCフレームワーク機能(FLOW版)を使う
-Core::webmain(FrameworkManagerConfigure::FLOWXML_PATH);
+Core::webmain($conName::FLOWXML_PATH);
 
 ?>

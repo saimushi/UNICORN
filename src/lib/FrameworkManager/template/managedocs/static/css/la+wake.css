@@ -56,8 +56,22 @@ header a:active {
 	font-size: 1.5em;
 	/* position setting */
 	margin: 20px;
-	padding: 10px;
-	background-color: RGBA(0, 0, 0, 0.7);
+}
+
+nav.panelbox {
 	/* style setting */
 	border: 2px solid #00FF40;
+	background-color: RGBA(0, 0, 0, 0.7);
+}
+
+.maincontents {
+	/* box setting */
+	margin: 0;
+	height: 100%;
+	/* position setting */
+	padding: 10px;
+	padding-bottom: 30px;
+	/* style setting */
+	border: 2px solid #00FF40;
+	background-color: RGBA(0, 0, 0, 0.7);
 }

@@ -82,6 +82,18 @@
 		<package>RestControllerBase</package>
 		<link>default.controlmain.Rest</link>
 	</Rest>
+	<MVCAppendFilter>
+		<link mapfrom="BaseAppendFilter" mapto="MVCAppendFilter">default.controlmain.Filter/BaseAppendFilter</link>
+	</MVCAppendFilter>
+	<MVCPrependFilter>
+		<link mapfrom="BasePrependFilter" mapto="MVCPrependFilter">default.controlmain.Filter/BasePrependFilter</link>
+	</MVCPrependFilter>
+	<StaticAppendFilter>
+		<link mapfrom="BaseAppendFilter" mapto="StaticAppendFilter">default.controlmain.Filter/BaseAppendFilter</link>
+	</StaticAppendFilter>
+	<StaticPrependFilter>
+		<link mapfrom="BasePrependFilter" mapto="StaticPrependFilter">default.controlmain.Filter/BasePrependFilter</link>
+	</StaticPrependFilter>
 	<Utilities>
 		<link mapfrom="Cipher" mapto="Crypt">default.implement.Cipher/Cipher</link>
 		<link>default.implement.Utilities/Utilities</link>

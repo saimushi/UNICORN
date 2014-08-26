@@ -5,7 +5,8 @@ class Project extends RestControllerBase {
 	public function get(){
 		// プロジェクトの一覧を返す
 		$dirs = array();
-		$basedir = dirname(FrameworkManagerConfigure::PROJECT_ROOT_PATH);
+		$conName = PROJECT_NAME."Configure";
+		$basedir = dirname($conName::PROJECT_ROOT_PATH);
 		debug($basedir);
 		if ($handle = opendir($basedir)) {
 			while (false !== ($file = readdir($handle))) {
