@@ -1,8 +1,10 @@
 package com.unicorn.model;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map.Entry;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -125,7 +127,7 @@ public class ModelBase {
 			// ID無指定は単一モデル参照エラー
 			return false;
 		}
-		return load(loadResourceMode.myResource);
+		return load(loadResourceMode.myResource, null);
 	}
 
 	public boolean load(Handler argCompletionHandler) {
@@ -134,130 +136,614 @@ public class ModelBase {
 			return false;
 		}
 		completionHandler = argCompletionHandler;
-		return load(loadResourceMode.myResource);
+		return load(loadResourceMode.myResource, null);
 	}
 
-	public boolean load(loadResourceMode argLoadResourceMode) {
+	/* モデルを参照する */
+	public boolean list() {
+		return load(loadResourceMode.listedResource, null);
+	}
+
+	public boolean list(Handler argCompletionHandler) {
+		completionHandler = argCompletionHandler;
+		return load(loadResourceMode.listedResource, null);
+	}
+
+	/* モデルを参照する */
+	public boolean query(HashMap<String, Object> argWhereParams) {
+		return load(loadResourceMode.automaticResource, argWhereParams);
+	}
+
+	public boolean query(HashMap<String, Object> argWhereParams, Handler argCompletionHandler) {
+		completionHandler = argCompletionHandler;
+		return load(loadResourceMode.automaticResource, argWhereParams);
+	}
+
+	public boolean save() {
+		completionHandler = null;
+		return true;
+	}
+
+	public boolean save(Handler argCompletionHandler) {
+		completionHandler = argCompletionHandler;
+		return true;
+	}
+
+	public boolean save(HashMap<String, Object> argSaveParams, byte[] argUploadData,
+			String argUploadDataName, String argUploadDataContentType, String argUploadDataKey) {
+
+		String url = createURLString(ID);
+
+		if (ID != null) {
+			// 更新(Put)
+
+			AsyncHttpClientAgent.putBinary(context, url, argSaveParams, argUploadData,
+					argUploadDataName, argUploadDataContentType, argUploadDataKey,
+					new JsonHttpResponseHandler() {
+						@Override
+						public void onSuccess(JSONObject response) {
+							Log.v(TAG, "post->onSuccessJsonObject");
+							try {
+								responseList.add(createMapFromJSONObject(response));
+								Log.v(TAG, "post->onSuccessJsonObject->pauseSuccess");
+								Message msg = new Message();
+								msg.arg1 = Constant.RESULT_OK;
+								msg.obj = response;
+								returnMainTheread(msg);
+							} catch (JSONException e) {
+								e.printStackTrace();
+							}
+						}
+
+						@Override
+						public void onSuccess(JSONArray response) {
+							Log.v(TAG, "post->onSuccessJsonArray");
+							try {
+								responseList = createArrayFromJSONArray(response);
+								Log.v(TAG, "post->onSuccessJsonArray->pauseSuccess");
+								Message msg = new Message();
+								msg.arg1 = Constant.RESULT_OK;
+								msg.obj = response;
+								returnMainTheread(msg);
+							} catch (JSONException e) {
+								e.printStackTrace();
+							}
+						}
+
+						@Override
+						public void onFailure(Throwable e, JSONObject errorResponse) {
+							String error = e.toString();
+							Log.d(TAG + " error", error);
+							Message msg = new Message();
+							msg.arg1 = Constant.RESULT_FAILED;
+							msg.obj = error;
+							returnMainTheread(msg);
+						}
+
+						@Override
+						public void onFailure(Throwable e, JSONArray errorResponse) {
+							String error = e.toString();
+							Log.d(TAG + " error", error);
+							Message msg = new Message();
+							msg.arg1 = Constant.RESULT_FAILED;
+							msg.obj = error;
+							returnMainTheread(msg);
+						}
+
+						@Override
+						public void onFailure(Throwable e, String errorResponse) {
+							Log.d(TAG + " error", errorResponse);
+							Message msg = new Message();
+							msg.arg1 = Constant.RESULT_FAILED;
+							msg.obj = errorResponse;
+							returnMainTheread(msg);
+						}
+					});
+		} else {
+			// 更新(Post)
+
+			AsyncHttpClientAgent.postBinary(context, url, argSaveParams, argUploadData,
+					argUploadDataName, argUploadDataContentType, argUploadDataKey,
+					new JsonHttpResponseHandler() {
+						@Override
+						public void onSuccess(JSONObject response) {
+							Log.v(TAG, "post->onSuccessJsonObject");
+							try {
+								responseList.add(createMapFromJSONObject(response));
+								Log.v(TAG, "post->onSuccessJsonObject->pauseSuccess");
+								Message msg = new Message();
+								msg.arg1 = Constant.RESULT_OK;
+								msg.obj = response;
+								returnMainTheread(msg);
+							} catch (JSONException e) {
+								e.printStackTrace();
+							}
+						}
+
+						@Override
+						public void onSuccess(JSONArray response) {
+							Log.v(TAG, "post->onSuccessJsonArray");
+							try {
+								responseList = createArrayFromJSONArray(response);
+								Log.v(TAG, "post->onSuccessJsonArray->pauseSuccess");
+								Message msg = new Message();
+								msg.arg1 = Constant.RESULT_OK;
+								msg.obj = response;
+								returnMainTheread(msg);
+							} catch (JSONException e) {
+								e.printStackTrace();
+							}
+						}
+
+						@Override
+						public void onFailure(Throwable e, JSONObject errorResponse) {
+							String error = e.toString();
+							Log.d(TAG + " error", error);
+							Message msg = new Message();
+							msg.arg1 = Constant.RESULT_FAILED;
+							msg.obj = error;
+							returnMainTheread(msg);
+						}
+
+						@Override
+						public void onFailure(Throwable e, JSONArray errorResponse) {
+							String error = e.toString();
+							Log.d(TAG + " error", error);
+							Message msg = new Message();
+							msg.arg1 = Constant.RESULT_FAILED;
+							msg.obj = error;
+							returnMainTheread(msg);
+						}
+
+						@Override
+						public void onFailure(Throwable e, String errorResponse) {
+							Log.d(TAG + " error", errorResponse);
+							Message msg = new Message();
+							msg.arg1 = Constant.RESULT_FAILED;
+							msg.obj = errorResponse;
+							returnMainTheread(msg);
+						}
+					});
+		}
+		return true;
+	}
+
+	/* ファイルを一つのモデルリソースと見立てて保存(アップロード)する */
+	/* PUTメソッドでのアップロード処理を強制します！ */
+	public boolean _save(byte[] argUploadData) {
+		String url = createURLString(ID);
+
+		if (null != ID) {
+			// 更新(Put)
+
+			AsyncHttpClientAgent.putBinary(context, url, argUploadData,
+					new JsonHttpResponseHandler() {
+						@Override
+						public void onSuccess(JSONObject response) {
+							Log.v(TAG, "post->onSuccessJsonObject");
+							try {
+								responseList.add(createMapFromJSONObject(response));
+								Log.v(TAG, "post->onSuccessJsonObject->pauseSuccess");
+								Message msg = new Message();
+								msg.arg1 = Constant.RESULT_OK;
+								msg.obj = response;
+								returnMainTheread(msg);
+							} catch (JSONException e) {
+								e.printStackTrace();
+							}
+						}
+
+						@Override
+						public void onSuccess(JSONArray response) {
+							Log.v(TAG, "post->onSuccessJsonArray");
+							try {
+								responseList = createArrayFromJSONArray(response);
+								Log.v(TAG, "post->onSuccessJsonArray->pauseSuccess");
+								Message msg = new Message();
+								msg.arg1 = Constant.RESULT_OK;
+								msg.obj = response;
+								returnMainTheread(msg);
+							} catch (JSONException e) {
+								e.printStackTrace();
+							}
+						}
+
+						@Override
+						public void onFailure(Throwable e, JSONObject errorResponse) {
+							String error = e.toString();
+							Log.d(TAG + " error", error);
+							Message msg = new Message();
+							msg.arg1 = Constant.RESULT_FAILED;
+							msg.obj = error;
+							returnMainTheread(msg);
+						}
+
+						@Override
+						public void onFailure(Throwable e, JSONArray errorResponse) {
+							String error = e.toString();
+							Log.d(TAG + " error", error);
+							Message msg = new Message();
+							msg.arg1 = Constant.RESULT_FAILED;
+							msg.obj = error;
+							returnMainTheread(msg);
+						}
+
+						@Override
+						public void onFailure(Throwable e, String errorResponse) {
+							Log.d(TAG + " error", errorResponse);
+							Message msg = new Message();
+							msg.arg1 = Constant.RESULT_FAILED;
+							msg.obj = errorResponse;
+							returnMainTheread(msg);
+						}
+					});
+		} else {
+			// XXX ID無しのファイルアップロードは出来ない！
+			return false;
+		}
+		return false;
+	}
+
+	public boolean save(HashMap<String, Object> argsaveParams) {
+
+		String url = createURLString(ID);
+
+		if (ID != null) {
+			// 更新(Put)
+			RequestParams requestParam = new RequestParams();
+
+			for (Iterator<Entry<String, Object>> it = argsaveParams.entrySet().iterator(); it
+					.hasNext();) {
+				HashMap.Entry<String, Object> entry = (HashMap.Entry<String, Object>) it.next();
+				Object key = entry.getKey();
+				Object value = entry.getValue();
+				if (value instanceof String) {
+					requestParam.put((String) key, (String) value);
+				}
+			}
+
+			AsyncHttpClientAgent.post(context, url, requestParam, new JsonHttpResponseHandler() {
+				@Override
+				public void onSuccess(JSONObject response) {
+					Log.v(TAG, "post->onSuccessJsonObject");
+					try {
+						responseList.add(createMapFromJSONObject(response));
+						Log.v(TAG, "post->onSuccessJsonObject->pauseSuccess");
+						Message msg = new Message();
+						msg.arg1 = Constant.RESULT_OK;
+						msg.obj = response;
+						returnMainTheread(msg);
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
+
+				@Override
+				public void onSuccess(JSONArray response) {
+					Log.v(TAG, "post->onSuccessJsonArray");
+					try {
+						responseList = createArrayFromJSONArray(response);
+						Log.v(TAG, "post->onSuccessJsonArray->pauseSuccess");
+						Message msg = new Message();
+						msg.arg1 = Constant.RESULT_OK;
+						msg.obj = response;
+						returnMainTheread(msg);
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
+
+				@Override
+				public void onFailure(Throwable e, JSONObject errorResponse) {
+					String error = e.toString();
+					Log.d(TAG + " error", error);
+					Message msg = new Message();
+					msg.arg1 = Constant.RESULT_FAILED;
+					msg.obj = error;
+					returnMainTheread(msg);
+				}
+
+				@Override
+				public void onFailure(Throwable e, JSONArray errorResponse) {
+					String error = e.toString();
+					Log.d(TAG + " error", error);
+					Message msg = new Message();
+					msg.arg1 = Constant.RESULT_FAILED;
+					msg.obj = error;
+					returnMainTheread(msg);
+				}
+
+				@Override
+				public void onFailure(Throwable e, String errorResponse) {
+					Log.d(TAG + " error", errorResponse);
+					Message msg = new Message();
+					msg.arg1 = Constant.RESULT_FAILED;
+					msg.obj = errorResponse;
+					returnMainTheread(msg);
+				}
+			});
+		} else {
+			// 新規(POST)
+			RequestParams requestParam = new RequestParams();
+
+			for (Iterator<Entry<String, Object>> it = argsaveParams.entrySet().iterator(); it
+					.hasNext();) {
+				HashMap.Entry<String, Object> entry = (HashMap.Entry<String, Object>) it.next();
+				Object key = entry.getKey();
+				Object value = entry.getValue();
+				if (value instanceof String) {
+					requestParam.put((String) key, (String) value);
+				}
+			}
+
+			AsyncHttpClientAgent.post(context, url, requestParam, new JsonHttpResponseHandler() {
+				@Override
+				public void onSuccess(JSONObject response) {
+					Log.v(TAG, "post->onSuccessJsonObject");
+					try {
+						responseList.add(createMapFromJSONObject(response));
+						Log.v(TAG, "post->onSuccessJsonObject->pauseSuccess");
+						Message msg = new Message();
+						msg.arg1 = Constant.RESULT_OK;
+						msg.obj = response;
+						returnMainTheread(msg);
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
+
+				@Override
+				public void onSuccess(JSONArray response) {
+					Log.v(TAG, "post->onSuccessJsonArray");
+					try {
+						responseList = createArrayFromJSONArray(response);
+						Log.v(TAG, "post->onSuccessJsonArray->pauseSuccess");
+						Message msg = new Message();
+						msg.arg1 = Constant.RESULT_OK;
+						msg.obj = response;
+						returnMainTheread(msg);
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
+
+				@Override
+				public void onFailure(Throwable e, JSONObject errorResponse) {
+					String error = e.toString();
+					Log.d(TAG + " error", error);
+					Message msg = new Message();
+					msg.arg1 = Constant.RESULT_FAILED;
+					msg.obj = error;
+					returnMainTheread(msg);
+				}
+
+				@Override
+				public void onFailure(Throwable e, JSONArray errorResponse) {
+					String error = e.toString();
+					Log.d(TAG + " error", error);
+					Message msg = new Message();
+					msg.arg1 = Constant.RESULT_FAILED;
+					msg.obj = error;
+					returnMainTheread(msg);
+				}
+
+				@Override
+				public void onFailure(Throwable e, String errorResponse) {
+					Log.d(TAG + " error", errorResponse);
+					Message msg = new Message();
+					msg.arg1 = Constant.RESULT_FAILED;
+					msg.obj = errorResponse;
+					returnMainTheread(msg);
+				}
+			});
+		}
+		return false;
+	}
+
+	public String createGetURl(String url, HashMap<String, Object> argsaveParams) {
+		for (Iterator<Entry<String, Object>> it = argsaveParams.entrySet().iterator(); it.hasNext();) {
+			HashMap.Entry<String, Object> entry = (HashMap.Entry<String, Object>) it.next();
+			Object key = entry.getKey();
+			Object value = entry.getValue();
+			if (value instanceof String) {
+				url = url + " " + (String) key + "=" + (String) value;
+			}
+		}
+		return url;
+	}
+
+	public boolean load(loadResourceMode argLoadResourceMode, HashMap<String, Object> argWhereParams) {
 
 		switch (argLoadResourceMode) {
 		case myResource:
-			get(ID);
+			_load(ID, null);
 			break;
 		case listedResource:
-			get(null);
+			_load(null, null);
 			break;
 		case automaticResource:
-			get(ID);
+			_load(ID, argWhereParams);
 			break;
 		default:
 			break;
 		}
 		return true;
 	}
-	
-	public boolean save(Handler argCompletionHandler) {
-		if (null == ID) {
-			// ID無指定は単一モデル参照エラー
-			return false;
+
+	public void setModelData() {
+		total = responseList.size();
+		if (0 < total) {
+			_setModelData(responseList.get(0));
 		}
-		completionHandler = argCompletionHandler;
-		return load(loadResourceMode.myResource);
 	}
 
-	public void get(String resourceId) {
+	public void setModelData(ArrayList<HashMap<String, Object>> list) {
+		responseList = list;
+		total = responseList.size();
+		if (0 < total) {
+			index = 0;
+			_setModelData(responseList.get(0));
+		}
+	}
+
+	public void setModelData(ArrayList<HashMap<String, Object>> list, int argIndex) {
+		responseList = list;
+		total = list.size();
+		if (0 < total) {
+			index = argIndex;
+			_setModelData(list.get(index));
+		}
+	}
+
+	public void _setModelData(HashMap<String, Object> map) {
+
+	}
+
+	public HashMap<String, Object> convertModelData() {
+		return null;
+	}
+
+	public void _load(String resourceId, HashMap<String, Object> argWhereParams) {
 
 		String url = createURLString(resourceId);
-		AsyncHttpClientAgent.get(context, url, null,
-				new JsonHttpResponseHandler() {
-					@Override
-					public void onSuccess(JSONObject response) {
-						Log.v(TAG,"get->onSuccessJsonObject");
-						try {
-							responseList.add(createMapFromJSONObject(response));
-							Log.v(TAG,"get->onSuccessJsonObject->pauseSuccess");
-							Message msg = new Message();
-							msg.arg1 = Constant.RESULT_OK;
-							msg.obj = response;
-							setModelData(msg);
-						} catch (JSONException e) {
-							e.printStackTrace();
-						}
-					}
-					
-					@Override
-					public void onSuccess(JSONArray response) {
-						Log.v(TAG,"get->onSuccessJsonArray");
-						try {
-							responseList = createArrayFromJSONArray(response);
-							Log.v(TAG,"get->onSuccessJsonArray->pauseSuccess");
-							Message msg = new Message();
-							msg.arg1 = Constant.RESULT_OK;
-							msg.obj = response;
-							setModelData(msg);
-						} catch (JSONException e) {
-							e.printStackTrace();
-						}			
-					}
+		if (argWhereParams != null) {
+			url = createGetURl(url, argWhereParams);
+		}
+		AsyncHttpClientAgent.get(context, url, null, new JsonHttpResponseHandler() {
+			@Override
+			public void onSuccess(JSONObject response) {
+				Log.v(TAG, "get->onSuccessJsonObject");
+				try {
+					responseList.add(createMapFromJSONObject(response));
+					Log.v(TAG, "get->onSuccessJsonObject->pauseSuccess");
+					setModelData();
 
-					@Override
-					public void onFailure(Throwable e, JSONObject errorResponse) {
-						String error = e.toString();
-						Log.d(TAG + " error", error);
-						Message msg = new Message();
-						msg.arg1 = Constant.RESULT_FAILED;
-						msg.obj = error;
-						setModelData(msg);
-					}
+					Message msg = new Message();
+					msg.arg1 = Constant.RESULT_OK;
+					msg.obj = response;
+					returnMainTheread(msg);
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+			}
 
-					@Override
-					public void onFailure(Throwable e, JSONArray errorResponse) {
-						String error = e.toString();
-						Log.d(TAG + " error", error);
-						Message msg = new Message();
-						msg.arg1 = Constant.RESULT_FAILED;
-						msg.obj = error;
-						setModelData(msg);
-					}
+			@Override
+			public void onSuccess(JSONArray response) {
+				Log.v(TAG, "get->onSuccessJsonArray");
+				try {
+					responseList = createArrayFromJSONArray(response);
+					Log.v(TAG, "get->onSuccessJsonArray->pauseSuccess");
+					setModelData();
 
-					@Override
-					public void onFailure(Throwable e, String errorResponse) {
-						Log.d(TAG + " error", errorResponse);
-						Message msg = new Message();
-						msg.arg1 = Constant.RESULT_FAILED;
-						msg.obj = errorResponse;
-						setModelData(msg);
-					}
-				});
+					Message msg = new Message();
+					msg.arg1 = Constant.RESULT_OK;
+					msg.obj = response;
+					returnMainTheread(msg);
+				} catch (JSONException e) {
+					e.printStackTrace();
+				}
+			}
+
+			@Override
+			public void onFailure(Throwable e, JSONObject errorResponse) {
+				String error = e.toString();
+				Log.d(TAG + " error", error);
+				Message msg = new Message();
+				msg.arg1 = Constant.RESULT_FAILED;
+				msg.obj = error;
+				returnMainTheread(msg);
+			}
+
+			@Override
+			public void onFailure(Throwable e, JSONArray errorResponse) {
+				String error = e.toString();
+				Log.d(TAG + " error", error);
+				Message msg = new Message();
+				msg.arg1 = Constant.RESULT_FAILED;
+				msg.obj = error;
+				returnMainTheread(msg);
+			}
+
+			@Override
+			public void onFailure(Throwable e, String errorResponse) {
+				Log.d(TAG + " error", errorResponse);
+				Message msg = new Message();
+				msg.arg1 = Constant.RESULT_FAILED;
+				msg.obj = errorResponse;
+				returnMainTheread(msg);
+			}
+		});
 	}
-	
-	public void setModelData(Message msg){
-		
+
+	public void returnMainTheread(Message msg) {
+		if (completionHandler != null) {
+			completionHandler.sendMessage(msg);
+			completionHandler = null;
+		}
 	}
 
-	public ArrayList<HashMap<String,Object>> createArrayFromJSONArray(JSONArray data) throws JSONException {
-		ArrayList<HashMap<String,Object>> array = new ArrayList<HashMap<String,Object>>();
-		for(int i=0;i<data.length();i++){
+	public ArrayList<HashMap<String, Object>> createArrayFromJSONArray(JSONArray data)
+			throws JSONException {
+		ArrayList<HashMap<String, Object>> array = new ArrayList<HashMap<String, Object>>();
+		for (int i = 0; i < data.length(); i++) {
 			JSONObject jsonObject = data.getJSONObject(i);
 			array.add(createMapFromJSONObject(jsonObject));
 		}
 		return array;
 	}
-	
-	public HashMap<String,Object> createMapFromJSONObject(JSONObject data) throws JSONException {
-		HashMap<String,Object> map = new HashMap<String,Object>();
+
+	public HashMap<String, Object> createMapFromJSONObject(JSONObject data) throws JSONException {
+		HashMap<String, Object> map = new HashMap<String, Object>();
 		Iterator<?> keys = data.keys();
 
 		while (keys.hasNext()) {
 			String key = (String) keys.next();
 			if (data.get(key) instanceof JSONObject) {
-				map.put(key, createMapFromJSONObject((JSONObject)data.get(key)));
-			}else if(data.get(key) instanceof JSONArray){
-				map.put(key, createArrayFromJSONArray((JSONArray)data.get(key)));
-			}else if(data.get(key) instanceof String){
+				map.put(key, createMapFromJSONObject((JSONObject) data.get(key)));
+			} else if (data.get(key) instanceof JSONArray) {
+				map.put(key, createArrayFromJSONArray((JSONArray) data.get(key)));
+			} else if (data.get(key) instanceof String) {
 				map.put(key, data.get(key));
 			}
 		}
 		return map;
+	}
+
+	public boolean next() {
+		if (index < responseList.size() - 1) {
+			index++;
+			setModelData(responseList, index);
+			return true;
+		}
+		return false;
+	}
+
+	public ModelBase objectAtIndex(int argIndex) {
+		ModelBase nextModel = null;
+		if (0 < total && argIndex < responseList.size()) {
+			nextModel = new ModelBase(context, protocol, domain, urlbase, tokenKeyName, cryptKey,
+					cryptIV, timeout);
+			nextModel.setModelData(responseList, argIndex);
+		}
+		return nextModel;
+	}
+
+	public void insertObject(ModelBase model, int argIndex) {
+		HashMap<String, Object> response = model.convertModelData();
+		responseList.add(argIndex, response);
+		total = responseList.size();
+	}
+
+	public void replaceObject(ModelBase model, int argIndex) {
+		HashMap<String, Object> response = model.convertModelData();
+		responseList.remove(argIndex);
+		responseList.add(argIndex, response);
+		total = responseList.size();
+	}
+
+	public void removeObject(int argIndex) {
+		responseList.remove(argIndex);
+		total = responseList.size();
 	}
 
 	public void showRequestError(int argStatusCode) {
