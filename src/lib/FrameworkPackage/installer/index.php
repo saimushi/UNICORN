@@ -133,11 +133,14 @@ html {
 	right: 0;
 	bottom: 0;
 	/* style setting */
+	background-color: #FF00BF;
+	<?php if("UNICORN" === PROJECT_NAME){ ?>
 	background-color: black;
 	background-repeat: no-repeat;
 	background-size: 100% auto;
 	background-image:
 		url(https://dl.dropboxusercontent.com/u/22810487/UNICORN/image/background1.jpg);
+	<?php } ?>
 }
 
 .loading.active {
@@ -1418,7 +1421,7 @@ $(document).ready(function(){
 </script>
 </head>
 <body id="pagetop">
-	<h1 id="title" class="title"><img width="40" height="40" src="https://dl.dropboxusercontent.com/u/22810487/UNICORN/image/logo-mini.png"/><?php echo PROJECT_NAME; ?></h1>
+	<h1 id="title" class="title"><?php if("UNICORN" === PROJECT_NAME) { ?><img width="40" height="40" src="https://dl.dropboxusercontent.com/u/22810487/UNICORN/image/logo-mini.png"/><?php } echo PROJECT_NAME; ?></h1>
 	<section id="page0" class="page_box">
 		<article class="page">
 			<h2 id="page1_title" class="page_title"><?php echo PROJECT_NAME; ?>へようこそ。</h2>

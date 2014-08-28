@@ -1,6 +1,6 @@
 //
-//  SampleTests.m
-//  SampleTests
+//  ProjectTests.m
+//  ProjectTests
 //
 //  Created by saimushi on 2014/06/03.
 //  Copyright (c) 2014年 shuhei_ohono. All rights reserved.
@@ -8,11 +8,11 @@
 
 #import <XCTest/XCTest.h>
 
-@interface SampleTests : XCTestCase
+@interface ProjectTests : XCTestCase
 
 @end
 
-@implementation SampleTests
+@implementation ProjectTests
 
 - (void)setUp
 {

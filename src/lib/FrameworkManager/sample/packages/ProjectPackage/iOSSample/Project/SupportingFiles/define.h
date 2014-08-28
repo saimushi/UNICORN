@@ -22,7 +22,7 @@
 // XXX ローカルテスト用
 # define PROTOCOL @"http"
 # define DOMAIN_NAME @"localhost"
-# define URL_BASE @"/workspace/Sample/src/server/apidocs/"
+# define URL_BASE @"/workspace/UNICORN/src/lib/FrameworkManager/template/managedocs/"
 #else
 // XXX ステージング用
 # define PROTOCOL @"http"

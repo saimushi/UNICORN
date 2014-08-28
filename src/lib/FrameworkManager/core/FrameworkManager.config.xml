@@ -10,7 +10,7 @@
 		<SAMPLE_PROJECT_PACKAGE_PATH code="TRUE"><![CDATA[%PROJECT_ROOT_PATH%.'sample/packages/ProjectPackage/']]></SAMPLE_PROJECT_PACKAGE_PATH>
 		<SAMPLE_APIDOC_PATH code="TRUE"><![CDATA[%PROJECT_ROOT_PATH%.'sample/apidocs/']]></SAMPLE_APIDOC_PATH>
 		<DB_DSN>mysqli://fwm:fwmpass@localhost/fwm</DB_DSN>
-		<DENY_HTTP>1</DENY_HTTP>
+		<DENY_HTTP>false</DENY_HTTP>
 		<DENY_ALL_IP>false</DENY_ALL_IP>
 		<!-- 汎用Authの定義 -->
 		<AUTH_TBL_NAME>user</AUTH_TBL_NAME>

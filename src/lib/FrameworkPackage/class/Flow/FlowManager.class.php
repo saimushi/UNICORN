@@ -13,6 +13,20 @@ class FlowManager
 		return TRUE;
 	}
 
+	public static function reverseRewriteURL($argAction){
+		$action= $argAction;
+		if(isset($_SERVER['ReverseRewriteRule'])){
+			$reverseRules = explode(' ', $_SERVER['ReverseRewriteRule']);
+			if(count($reverseRules) == 2){
+				$reverseAction = preg_replace('/' . $reverseRules[0] . '/', $reverseRules[1], $action);
+				if(NULL !== $reverseAction && strlen($reverseAction) > 0){
+					$action = strtolower($reverseAction);
+				}
+			}
+		}
+		return $action;
+	}
+
 	/**
 	 * 次のFlowを特定し、ロードし、そのクラス名を返却する
 	 * @param string クラス名
@@ -23,22 +37,37 @@ class FlowManager
 		// 先ずbackflowなのかどうか
 		if('backflow' === strtolower($argClassName)){
 			// backflowが特定出来無かった時ように強制的にIndexを指定しておく
-			$argClassName = 'Index';
+			$argClassName = 'index';
+			if(strlen($argTargetPath) > 0){
+				$argClassName = $argTargetPath.'/'.$argClassName;
+			}
 			// PostパラメータからBackflowを特定する
 			if(isset($_POST['flowpostformsection-backflow-section'])){
 				$argClassName = $_POST['flowpostformsection-backflow-section'];
-				if(FALSE !== strpos($argClassName, '/')){
-					// sectionとtargetを分割する
-					$targetTmp = explode('/', $argClassName);
-					// 最後だけをsectionIDとして使う
-					$argClassName = $targetTmp[count($targetTmp)-1];
-					unset($targetTmp[count($targetTmp)-1]);
-					$argTargetPath = implode('/', $targetTmp) . '/';
-				}
-				if(FALSE !== strpos($argClassName, '-')){
-					$argClassName = str_replace('-', '_', $argClassName);
-				}
+// 				if(FALSE !== strpos($argClassName, '/')){
+// 					// sectionとtargetを分割する
+// 					$targetTmp = explode('/', $argClassName);
+// 					// 最後だけをsectionIDとして使う
+// 					$argClassName = $targetTmp[count($targetTmp)-1];
+// 					unset($targetTmp[count($targetTmp)-1]);
+// 					$argTargetPath = implode('/', $targetTmp) . '/';
+// 				}
+// 				if(FALSE !== strpos($argClassName, '-')){
+// 					$argClassName = str_replace('-', '_', $argClassName);
+// 				}
 			}
+			// backflowはリダイレクトポスト(307リダイレクト)
+			$action = self::reverseRewriteURL('?_c_=' . $argClassName . '&_o_='.$_GET['_o_']);
+			$query = '';
+			if(isset($_POST['flowpostformsection-backflow-section-query']) && strlen($_POST['flowpostformsection-backflow-section-query']) > 0){
+				$query = '?';
+				if(FALSE === strpos($action, '.'.$_GET['_o_'].'?')){
+					$query = '&';
+				}
+				$query .= $_POST['flowpostformsection-backflow-section-query'];
+			}
+			header('Location: ./'.$action.$query, TRUE, 307);
+			exit();
 		}
 		$className = MVCCore::loadMVCModule($argClassName, FALSE, $argTargetPath);
 			debug('backflowClass='.var_export($className,true));
@@ -279,8 +308,8 @@ class FlowManager
 					$code .= 'if(NULL === Flow::$params[\'view\']){' . PHP_EOL;
 					$code .= $tab . PHP_TAB . 'Flow::$params[\'view\'] = array();' . PHP_EOL;
 					$code .= $tab . '}' . PHP_EOL;
-					$action = '?_c_=' . $tmpAttr['flowpostformsection'] . '&_o_=html';
-					$code .= $tab . '$this->action = \'?_c_=' . $tmpAttr['flowpostformsection'] . '&_o_=html\';' . PHP_EOL;
+					$action = '?_c_=' . $tmpAttr['flowpostformsection'] . '&_o_='.$_GET['_o_'];
+					$code .= $tab . '$this->action = \'?_c_=' . $tmpAttr['flowpostformsection'] . '&_o_='.$_GET['_o_'].'\';' . PHP_EOL;
 					$code .= $tab . 'Flow::$params[\'view\'][] = array(\'form[flowpostformsection=' . $tmpAttr['flowpostformsection'] . ']\' => array(HtmlViewAssignor::REPLACE_ATTR_KEY => array(\'method\'=>\'post\', \'action\'=>$this->_reverseRewriteURL())));' . PHP_EOL;
 					$code .= $tab . 'Flow::$params[\'view\'][] = array(\'form[flowpostformsection=' . $tmpAttr['flowpostformsection'] . ']\' => array(HtmlViewAssignor::APPEND_NODE_KEY => \'<input type="hidden" name="flowpostformsection" value="'.$tmpAttr['flowpostformsection'].'"/>\'));' . PHP_EOL;
 					$code .= $tab;

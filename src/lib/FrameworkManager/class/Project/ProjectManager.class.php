@@ -44,13 +44,13 @@ class ProjectManager
 			// 重いのでコマメにunset
 			unset($apiIndexStr);
 			// iOSサンプル内のプロジェクト内のRESTfulAPIの向け先を帰る
-			$iosdefineStr = file_get_contents($movePath.'/iOSSample/Sample/SupportingFiles/define.h');
+			$iosdefineStr = file_get_contents($movePath.'/iOSSample/Project/SupportingFiles/define.h');
 			// レビュー用の暫定処理
 			$basePath = str_replace('/'.PROJECT_NAME.'/', '|', $_SERVER["REQUEST_URI"]);
 			$basePaths = explode('|', $basePath);
-			$iosdefineStr = str_replace('# define URL_BASE @"/workspace/Sample/src/server/apidocs/"', '# define URL_BASE @"'.$basePaths[0].'/'.$newProjectName.'Package/apidocs/'.'"', $iosdefineStr);
+			$iosdefineStr = str_replace('# define URL_BASE @"/workspace/UNICORN/src/lib/FrameworkManager/template/managedocs/"', '# define URL_BASE @"'.$basePaths[0].'/'.$newProjectName.'Package/apidocs/'.'"', $iosdefineStr);
 			// 新しい定義で書き換え
-			file_put_contents($movePath.'/iOSSample/Sample/SupportingFiles/define.h', $iosdefineStr);
+			file_put_contents($movePath.'/iOSSample/Project/SupportingFiles/define.h', $iosdefineStr);
 			// 重いのでコマメにunset
 			unset($iosdefineStr);
 		}
