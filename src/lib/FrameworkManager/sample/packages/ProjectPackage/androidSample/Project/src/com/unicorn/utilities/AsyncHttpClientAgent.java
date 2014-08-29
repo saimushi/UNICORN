@@ -1,25 +1,33 @@
 package com.unicorn.utilities;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
 import java.util.TimeZone;
+import java.util.Map.Entry;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.client.CookieStore;
 import org.apache.http.cookie.Cookie;
+import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.cookie.BasicClientCookie;
+import org.apache.http.message.BasicHeader;
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
@@ -29,8 +37,6 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.preference.PreferenceManager;
-import android.telephony.TelephonyManager;
-
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.JsonHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
@@ -42,199 +48,35 @@ public class AsyncHttpClientAgent {
 	private static final String mEncPNumber = "cyencpn";
 	private static final String mEncddata = "cyencdd";
 
-	// public static void post(Context context, String url, RequestParams
-	// params, AsyncHttpResponseHandler responseHandler){
-	// AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
-	// CookieStore cookieStore = AsyncHttpClientAgent.loadCookies(context,
-	// asyncHttpClient.getHttpClient());
-	// asyncHttpClient.setCookieStore(cookieStore);
-	// asyncHttpClient.setUserAgent(getUserAgent(context));
-	// asyncHttpClient.addHeader("Content-Type", "text/html; charset=UTF-8");
-	// asyncHttpClient.post(url, params, responseHandler);
-	// }
-
 	public static void post(final Context context, final String url, RequestParams params,
 			final JsonHttpResponseHandler responseHandler) {
-
-		if (null != params) {
-			String regId;
-			if (Constant.isDebug) {
-				regId = "";
-			} else {
-				regId = AuthAgent.getInstance().getData(context, AuthAgent.AUTH_RegistrationID);
-				if (null != regId && !regId.equals("")) {
-					Log.d(TAG, "post regId:" + regId);
-					params.put("registration_id", regId);
-				}
-			}
-		}
-		//language add
-		if(params == null){
+		if (params == null) {
 			params = new RequestParams();
 		}
-		TelephonyManager telephonyManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-		params.put("language", telephonyManager.getSimCountryIso());
-
-		
 		final RequestParams finalParams = params;
+
 		final AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
-		CookieStore cookieStore = AsyncHttpClientAgent.loadCookies(context, asyncHttpClient
+
+		CookieStore cookieStore = AsyncHttpClientAgent.createToken(context, asyncHttpClient
 				.getHttpClient());
 		asyncHttpClient.setCookieStore(cookieStore);
 		asyncHttpClient.setUserAgent(getUserAgent(context));
 		asyncHttpClient.addHeader("Content-Type", "text/html; charset=UTF-8");
-		asyncHttpClient.addHeader("Accept-Language", Locale.getDefault().getLanguage());
-		asyncHttpClient.post(url, params, new JsonHttpResponseHandler() {
-			@Override
-			public void onSuccess(JSONObject response) {
-				try {
-					String status = response.getString("status");
-					if (status.equals("001")) {
-						CookieStore cookieStore = AsyncHttpClientAgent.createToken(context,
-								asyncHttpClient.getHttpClient());
-						asyncHttpClient.setCookieStore(cookieStore);
-						asyncHttpClient.post(url, finalParams, responseHandler);
-					} else {
-						responseHandler.onSuccess(response);
-					}
-				} catch (JSONException e) {
-					e.printStackTrace();
-				}
-			}
-
-			@Override
-			public void onFailure(Throwable e, JSONObject errorResponse) {
-				responseHandler.onFailure(e, errorResponse);
-			}
-
-			@Override
-			public void onFailure(Throwable e, JSONArray errorResponse) {
-				responseHandler.onFailure(e, errorResponse);
-			}
-
-			@Override
-			public void onFailure(Throwable e, String errorResponse) {
-				responseHandler.onFailure(e, errorResponse);
-			}
-		});
-	}
-
-	public static void postBinary(final Context context, final String url, RequestParams params,
-			final JsonHttpResponseHandler responseHandler) {
-
-		if (null != params) {
-			String regId;
-			if (Constant.isDebug) {
-				regId = "";
-			} else {
-				regId = AuthAgent.getInstance().getData(context, AuthAgent.AUTH_RegistrationID);
-				if (null != regId && !regId.equals("")) {
-					Log.d(TAG, "post regId:" + regId);
-					params.put("registration_id", regId);
-				}
-			}
-		}
-		//language add
-		if(params == null){
-			params = new RequestParams();
-		}
-		TelephonyManager telephonyManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-		params.put("language", telephonyManager.getSimCountryIso());
-		
-
-		final RequestParams finalParams = params;
-
-		final AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
-		CookieStore cookieStore = AsyncHttpClientAgent.loadCookies(context, asyncHttpClient
-				.getHttpClient());
-		asyncHttpClient.setCookieStore(cookieStore);
-		asyncHttpClient.setUserAgent(getUserAgent(context));
-		asyncHttpClient.addHeader("Content-Type", "multipart/form-data");
-		asyncHttpClient.setTimeout(20000);
-		asyncHttpClient.post(url, params, new JsonHttpResponseHandler() {
-			@Override
-			public void onSuccess(JSONObject response) {
-				try {
-					String status = response.getString("status");
-					if (status.equals("001")) {
-						CookieStore cookieStore = AsyncHttpClientAgent.createToken(context,
-								asyncHttpClient.getHttpClient());
-						asyncHttpClient.setCookieStore(cookieStore);
-						asyncHttpClient.post(url, finalParams, responseHandler);
-					} else {
-						responseHandler.onSuccess(response);
-					}
-				} catch (JSONException e) {
-					e.printStackTrace();
-				}
-			}
-
-			@Override
-			public void onFailure(Throwable e, JSONObject errorResponse) {
-				responseHandler.onFailure(e, errorResponse);
-			}
-
-			@Override
-			public void onFailure(Throwable e, JSONArray errorResponse) {
-				responseHandler.onFailure(e, errorResponse);
-			}
-
-			@Override
-			public void onFailure(Throwable e, String errorResponse) {
-				responseHandler.onFailure(e, errorResponse);
-			}
-		});
-	}
-
-	public static void get(final Context context, final String url, RequestParams params,final JsonHttpResponseHandler responseHandler) {
-
-//		if (url != Constant.API_UUID_AUTH_URL) {
-//			if (null != params) {
-//				String regId;
-//				if (Constant.isDebug) {
-//					regId = "";
-//				} else {
-//					regId = AuthAgent.getInstance().getData(context, AuthAgent.AUTH_RegistrationID);
-//					if (null != regId && !regId.equals("")) {
-//						Log.d(TAG, "post regId:" + regId);
-//						params.put("registration_id", regId);
-//					}
-//				}
-//			}
-//		}
-
-		if(params == null){
-			params = new RequestParams();
-		}
-//		TelephonyManager telephonyManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);
-//		params.put("language", telephonyManager.getSimCountryIso());
-
-		final RequestParams finalParams = params;
-
-		final AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
-//		CookieStore cookieStore = AsyncHttpClientAgent.loadCookies(context, asyncHttpClient
-//				.getHttpClient());
-		CookieStore cookieStore = AsyncHttpClientAgent.createToken(context,
-				asyncHttpClient.getHttpClient());
-		asyncHttpClient.setCookieStore(cookieStore);
-		asyncHttpClient.setUserAgent(getUserAgent(context));
-		asyncHttpClient.addHeader("Content-Type", "text/html; charset=UTF-8");
-		asyncHttpClient.post(url, params, new JsonHttpResponseHandler() {
+		asyncHttpClient.post(url, finalParams, new JsonHttpResponseHandler() {
 			@Override
 			public void onSuccess(JSONObject response) {
 				responseHandler.onSuccess(response);
 			}
-			
+
 			@Override
 			public void onSuccess(JSONArray response) {
 				responseHandler.onSuccess(response);
 			}
 
-
 			@Override
 			public void onFailure(Throwable e, JSONObject errorResponse) {
 				responseHandler.onFailure(e, errorResponse);
-				
+
 			}
 
 			@Override
@@ -249,27 +91,190 @@ public class AsyncHttpClientAgent {
 		});
 	}
 
-	// public static void get(Context context, String url, RequestParams params,
-	// AsyncHttpResponseHandler responseHandler) {
-	// AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
-	// CookieStore cookieStore = AsyncHttpClientAgent.loadCookies(context,
-	// asyncHttpClient.getHttpClient());
-	// asyncHttpClient.setCookieStore(cookieStore);
-	// asyncHttpClient.setUserAgent(getUserAgent(context));
-	// asyncHttpClient.addHeader("Content-Type", "text/html; charset=UTF-8");
-	// asyncHttpClient.get(url, params, responseHandler);
-	// }
+	public static void postBinary(final Context context, final String url, HashMap<String,Object> argSaveParams,
+			byte[] argUploadData, String argUploadDataName, String argUploadDataContentType,
+			String argUploadDataKey, final JsonHttpResponseHandler responseHandler) {
 
-	// public static void get(Context context, String url,
-	// BinaryHttpResponseHandler responseHandler) {
-	// AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
-	// CookieStore cookieStore = AsyncHttpClientAgent.loadCookies(context,
-	// asyncHttpClient.getHttpClient());
-	// asyncHttpClient.setCookieStore(cookieStore);
-	// asyncHttpClient.setUserAgent(getUserAgent(context));
-	// asyncHttpClient.addHeader("Content-Type", "text/html; charset=UTF-8");
-	// asyncHttpClient.get(url, responseHandler);
-	// }
+		final AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
+		CookieStore cookieStore = AsyncHttpClientAgent.createToken(context, asyncHttpClient
+				.getHttpClient());
+		asyncHttpClient.setCookieStore(cookieStore);
+		asyncHttpClient.setUserAgent(getUserAgent(context));
+		MultipartEntityBuilder builder = MultipartEntityBuilder.create();        
+		if (argSaveParams != null) {
+			for (Iterator<Entry<String, Object>> it = argSaveParams.entrySet().iterator(); it
+					.hasNext();) {
+				HashMap.Entry<String, Object> entry = (HashMap.Entry<String, Object>) it.next();
+				Object key = entry.getKey();
+				Object value = entry.getValue();
+				if (value instanceof String) {
+					builder.addTextBody((String) key, (String) value,ContentType.create("text/plain", Charset.forName("UTF-8")));
+				}
+			}
+		}
+		builder.addBinaryBody(argUploadDataKey, argUploadData, ContentType.create(argUploadDataContentType), argUploadDataName);
+		
+		HttpEntity entity = builder.build();
+		String contentType = null;
+		asyncHttpClient.post(context, url, null, entity, contentType,
+				new JsonHttpResponseHandler() {
+					@Override
+					public void onSuccess(JSONObject response) {
+						responseHandler.onSuccess(response);
+					}
+
+					@Override
+					public void onSuccess(JSONArray response) {
+						responseHandler.onSuccess(response);
+					}
+
+					@Override
+					public void onFailure(Throwable e, JSONObject errorResponse) {
+						responseHandler.onFailure(e, errorResponse);
+
+					}
+
+					@Override
+					public void onFailure(Throwable e, JSONArray errorResponse) {
+						responseHandler.onFailure(e, errorResponse);
+					}
+
+					@Override
+					public void onFailure(Throwable e, String errorResponse) {
+						responseHandler.onFailure(e, errorResponse);
+					}
+				});
+	}
+
+	public static void putBinary(Context context, String url, HashMap<String,Object> argSaveParams,
+			byte[] argUploadData, String argUploadDataName, String argUploadDataContentType,
+			String argUploadDataKey, final JsonHttpResponseHandler responseHandler) {
+
+		final AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
+		CookieStore cookieStore = AsyncHttpClientAgent.createToken(context, asyncHttpClient
+				.getHttpClient());
+		asyncHttpClient.setCookieStore(cookieStore);
+		asyncHttpClient.setUserAgent(getUserAgent(context));
+		Header[] headers = { new BasicHeader("Content-Type", "application/octet-stream"), };
+
+		ByteArrayEntity ben = new ByteArrayEntity(argUploadData);
+		String contentType = null;
+		asyncHttpClient.put(context, url, headers, ben, contentType,
+				new JsonHttpResponseHandler() {
+					@Override
+					public void onSuccess(JSONObject response) {
+						responseHandler.onSuccess(response);
+					}
+
+					@Override
+					public void onSuccess(JSONArray response) {
+						responseHandler.onSuccess(response);
+					}
+
+					@Override
+					public void onFailure(Throwable e, JSONObject errorResponse) {
+						responseHandler.onFailure(e, errorResponse);
+
+					}
+
+					@Override
+					public void onFailure(Throwable e, JSONArray errorResponse) {
+						responseHandler.onFailure(e, errorResponse);
+					}
+
+					@Override
+					public void onFailure(Throwable e, String errorResponse) {
+						responseHandler.onFailure(e, errorResponse);
+					}
+				});
+	}
+	
+	public static void putBinary(Context context, String url,
+			byte[] argUploadData, final JsonHttpResponseHandler responseHandler) {
+
+		final AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
+		CookieStore cookieStore = AsyncHttpClientAgent.createToken(context, asyncHttpClient
+				.getHttpClient());
+		asyncHttpClient.setCookieStore(cookieStore);
+		asyncHttpClient.setUserAgent(getUserAgent(context));
+		Header[] headers = { new BasicHeader("Content-Type", "application/octet-stream"), };
+
+		ByteArrayEntity ben = new ByteArrayEntity(argUploadData);
+		String contentType = null;
+		asyncHttpClient.put(context, url, headers, ben, contentType,
+				new JsonHttpResponseHandler() {
+					@Override
+					public void onSuccess(JSONObject response) {
+						responseHandler.onSuccess(response);
+					}
+
+					@Override
+					public void onSuccess(JSONArray response) {
+						responseHandler.onSuccess(response);
+					}
+
+					@Override
+					public void onFailure(Throwable e, JSONObject errorResponse) {
+						responseHandler.onFailure(e, errorResponse);
+
+					}
+
+					@Override
+					public void onFailure(Throwable e, JSONArray errorResponse) {
+						responseHandler.onFailure(e, errorResponse);
+					}
+
+					@Override
+					public void onFailure(Throwable e, String errorResponse) {
+						responseHandler.onFailure(e, errorResponse);
+					}
+				});
+	}
+
+	public static void get(final Context context, final String url, RequestParams params,
+			final JsonHttpResponseHandler responseHandler) {
+
+		if (params == null) {
+			params = new RequestParams();
+		}
+
+		final RequestParams finalParams = params;
+
+		final AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
+
+		CookieStore cookieStore = AsyncHttpClientAgent.createToken(context, asyncHttpClient
+				.getHttpClient());
+		asyncHttpClient.setCookieStore(cookieStore);
+		asyncHttpClient.setUserAgent(getUserAgent(context));
+		asyncHttpClient.addHeader("Content-Type", "text/html; charset=UTF-8");
+		asyncHttpClient.post(url, finalParams, new JsonHttpResponseHandler() {
+			@Override
+			public void onSuccess(JSONObject response) {
+				responseHandler.onSuccess(response);
+			}
+
+			@Override
+			public void onSuccess(JSONArray response) {
+				responseHandler.onSuccess(response);
+			}
+
+			@Override
+			public void onFailure(Throwable e, JSONObject errorResponse) {
+				responseHandler.onFailure(e, errorResponse);
+
+			}
+
+			@Override
+			public void onFailure(Throwable e, JSONArray errorResponse) {
+				responseHandler.onFailure(e, errorResponse);
+			}
+
+			@Override
+			public void onFailure(Throwable e, String errorResponse) {
+				responseHandler.onFailure(e, errorResponse);
+			}
+		});
+	}
 
 	public static CookieStore loadCookies(Context context) {
 		AsyncHttpClient asyncHttpClient = new AsyncHttpClient();
@@ -279,8 +284,6 @@ public class AsyncHttpClientAgent {
 	public static CookieStore loadCookies(Context context, DefaultHttpClient defaultHttpClient) {
 
 		boolean loginCookieEnabled = false;
-
-		Preferences pref = new Preferences(context);
 
 		CookieStore myCookieStore = defaultHttpClient.getCookieStore();
 
@@ -339,7 +342,7 @@ public class AsyncHttpClientAgent {
 		identifier = "323d323dgfsgsfghjuyt323dgfsgsfghjuyt";
 		String encIdentifier = null;
 		String encDDString = null;
-		
+
 		try {
 			identifier = AESCipher.encryptPKCS7PaddingUTF8(identifier);
 			encIdentifier = AESCipher.encryptPKCS7PaddingUTF8(identifier + gmtstringdata);
@@ -359,7 +362,7 @@ public class AsyncHttpClientAgent {
 		} catch (BadPaddingException e) {
 			e.printStackTrace();
 		}
-		
+
 		if (null != encIdentifier && null != encDDString) {
 			String token = encIdentifier + gmtstringdata;
 			BasicClientCookie newCookie = new BasicClientCookie("token", token);
@@ -387,7 +390,7 @@ public class AsyncHttpClientAgent {
 		}
 
 		StringBuilder sb = new StringBuilder();
-		sb.append("Withly/");
+		sb.append("UnicornProject/");
 		sb.append(versionName);
 		sb.append(" Android");
 
