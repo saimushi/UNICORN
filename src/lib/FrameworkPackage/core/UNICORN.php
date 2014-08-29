@@ -29,6 +29,8 @@ define('PHP_LF', "\n");
 //define($corefilename . '_ERROR_FINALIS', 'finalize');
 
 // XXX 各種フラグファイルを別パスに設置したい場合は以下の定数を定義すればOK(絶対パスでの定義)
+// 開発環境自動判別フラグのセット(高速化用静的ファイル変換)のセット
+//define($corefilename . '_AUTO_STAGE_CHECK_ENABLED', dirname(dirname(__FILE__)).'/.autostagecheck');
 // 自動ジェネレート(高速化用静的ファイル変換)のセット
 //define($corefilename . '_AUTO_GENERATE_ENABLED', dirname(dirname(__FILE__)).'/.autogenerate');
 // 自動ジェネレート(高速化用静的ファイル変換)のセット
@@ -1435,47 +1437,193 @@ function constants($argKey, $argSearchFlag = FALSE){
 	return NULL;
 }
 
+define('CHAKE_STAGE_LOCAL', 'local');
+define('CHAKE_STAGE_DEV', 'dev');
+define('CHAKE_STAGE_TEST', 'test');
+define('CHAKE_STAGE_STAGING', 'stage');
+define('CHAKE_STAGE_RELEASE', 'release');
+
 /**
- * テスト環境チェック
+ * ドメインベースでステージを判定する
  */
-function isTest($argStagingEnabled=FALSE){
-	if((defined('Configure::LOCAL_ENABLED') && TRUE == Configure::LOCAL_ENABLED) || (defined('Configure::DEV_ENABLED') && TRUE == Configure::DEV_ENABLED) || (defined('Configure::TEST_ENABLED') && TRUE == Configure::TEST_ENABLED)) {
-		// ステージング環境をテスト環境とみなすかどうか
-		if(FALSE === $argStagingEnabled){
-			return TRUE;
+function getStage($argHost=NULL){
+	static $stage = NULL;
+	if(NULL === $stage){
+		$host = $_SERVER['SERVER_NAME'];
+		if(NULL !== $argHost){
+			$host = $argHost;
 		}
-		// ステージング環境かどうか
-		elseif(defined('Configure::STAGING_ENABLED') && TRUE == Configure::STAGING_ENABLED){
-			// ステージング環境をテスト環境とみなすので、テスト環境であると返却する
-			return TRUE;
+		$stage = CHAKE_STAGE_RELEASE;
+		if(FALSE !== strpos($host, 'test.')){
+			$stage = CHAKE_STAGE_TEST;
 		}
+		if(FALSE !== strpos($host, 'stage.')){
+			$stage = CHAKE_STAGE_STAGING;
+		}
+		if(FALSE !== strpos($host, 'staging.')){
+			$stage = CHAKE_STAGE_STAGING;
+		}
+		if(FALSE !== strpos($host, 'dev.')){
+			$stage = CHAKE_STAGE_DEV;
+		}
+		if(FALSE !== strpos($host, 'develop.')){
+			$stage = CHAKE_STAGE_DEV;
+		}
+		if(FALSE !== strpos($host, 'development.')){
+			$stage = CHAKE_STAGE_DEV;
+		}
+		if(FALSE !== strpos($host, 'localhost')){
+			$stage = CHAKE_STAGE_LOCAL;
+		}
+		if(FALSE !== strpos($host, '127.0.0.1')){
+			$stage = CHAKE_STAGE_LOCAL;
+		}
+		if(FALSE !== strpos($host, 'exsample.com')){
+			$stage = CHAKE_STAGE_LOCAL;
+		}
+	}
+	return $stage;
+}
+
+/**
+ * 指定されたステージなのかどうかをチェックする
+ * @param $argStage string local dev test stage release
+ */
+function checkStage($argStage, $argHost=NULL){
+	if($argStage === getStage($argHost)){
+		return TRUE;
 	}
 	return FALSE;
 }
 
 /**
- * 現在設定されているロ−カル開発環境フラグを返す
+ * テスト環境チェック
+ * @param $argStagingEnabled bool TRUE=ステージングをテスト環境とみなさない FALSE=ステージングをテスト環境とみなす(デフォルト)
  */
-function getLocalEnabled(){
-	static $localEnabled = NULL;
-	if(NULL === $localEnabled){
-		if(NULL !== defined('PROJECT_NAME')){
+function isTest($argStagingEnabled=FALSE, $argProjectName=NULL, $argHost=NULL){
+	$isTest = FALSE;
+	$host = $_SERVER['SERVER_NAME'];
+	if(NULL !== $argHost){
+		$host = $argHost;
+	}
+	if(1 === getAutoStageCheckEnabled($argProjectName) && FALSE === checkStage(CHAKE_STAGE_RELEASE, $host)){
+		// ステージング環境をテスト環境とみなすかどうか
+		if(FALSE === $argStagingEnabled){
+			// みなすので、テスト確定
+			$isTest = TRUE;
+		}
+		// ステージング環境かどうか
+		elseif(TRUE !== checkStage(CHAKE_STAGE_STAGING, $host)){
+			// ステージング環境をテスト環境とみなさないので、ステージング環境以外なのでテスト環境であると返却する
+			$isTest = TRUE;
+		}
+	}
+	elseif(class_exists('Configure', FALSE)){
+		if(getLocalEnabled($argProjectName, $host) || getDevelopmentEnabled($argProjectName, $host) || getTestEnabled($argProjectName, $host)|| getStagingEnabled($argProjectName, $host)) {
+			// ステージング環境をテスト環境とみなすかどうか
+			if(FALSE === $argStagingEnabled){
+				// みなすので、テスト確定
+				$isTest = TRUE;
+			}
+			// ステージング環境かどうか
+			elseif(0 === getStagingEnabled($argProjectName, $host)){
+				// ステージング環境をテスト環境とみなさないので、ステージング環境以外なのでテスト環境であると返却する
+				$isTest = TRUE;
+			}
+		}
+	}
+	return $isTest;
+}
+
+/**
+ * 現在設定されている開発環境自動判別フラグを返す
+ */
+function getAutoStageCheckEnabled($argProjectName=NULL){
+	static $autoStagecheckEnabled = NULL;
+	if(NULL === $autoStagecheckEnabled || NULL !== $argProjectName){
+		if(NULL !== $argProjectName){
+			$autoStagecheckEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.autostagecheck';
+			if(TRUE !== is_file($autoStagecheckEnabledFilepath)){
+				$autoStagecheckEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.autostagecheck';
+			}
+		}
+		elseif(NULL !== defined('PROJECT_NAME')){
 			// 併設されている事を前提とする！
-			$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.local';
-			if(TRUE !== is_file($localEnabledFilepath)){
-				$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'Package/.local';
+			$autoStagecheckEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.autostagecheck';
+			if(TRUE !== is_file($autoStagecheckEnabledFilepath)){
+				$autoStagecheckEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'Package/.autostagecheck';
 			}
 		}
 		else{
 			$corefilename = corefilename();
-			$localEnabledFilepath = dirname(dirname(__FILE__)).'/.local';
-			if(defined($corefilename . '_WORKSPACE_LOCAL_ENABLED')){
-				$localEnabledFilepath = constant($corefilename . '_WORKSPACE_LOCAL_ENABLED');
+			$autoStagecheckEnabledFilepath = dirname(dirname(__FILE__)).'/.autostagecheck';
+			if(defined($corefilename . '_AUTO_STAGE_CHECK_ENABLED')){
+				$autoStagecheckEnabledFilepath = constant($corefilename . '_AUTO_STAGE_CHECK_ENABLED');
 			}
 		}
-		if(isset($localEnabledFilepath)){
+		if(isset($autoStagecheckEnabledFilepath)){
 			// フラグファイルからフラグをセット
-			$localEnabled = file_exists($localEnabledFilepath);
+			$autoStagecheckEnabled = 0;
+			if(file_exists($autoStagecheckEnabledFilepath)){
+				$autoStagecheckEnabled = 1;
+			}
+		}
+		if(NULL === $argProjectName){
+			// 一応$_SERVERを探す
+			if(isset($_SERVER['autostagecheck']) && 1 === (int)strtolower($_SERVER['autostagecheck'])){
+				// $_SERVERが最強 $_SERVERがあれば$_SERVERに必ず従う
+				$autoStagecheckEnabled = 1;
+			}
+			// XXX Fuel向け拡張
+			if(isset($_SERVER['FUEL_ENV']) && 'local' === strtolower($_SERVER['FUEL_ENV'])){
+				$autoStagecheckEnabled = 1;
+			}
+		}
+		if(NULL === $autoStagecheckEnabled){
+			// フラグ設定が見つからなかったのでdisabledで設定
+			$autoStagecheckEnabled = 0;
+		}
+	}
+	return $autoStagecheckEnabled;
+}
+
+/**
+ * 現在設定されているロ−カル開発環境フラグを返す
+ */
+function getLocalEnabled($argProjectName=NULL, $argHost=NULL){
+	static $localEnabled = NULL;
+	if(NULL === $localEnabled){
+		if(1 === getAutoStageCheckEnabled($argProjectName) && TRUE === checkStage(CHAKE_STAGE_LOCAL, $argHost)){
+			$localEnabled = 1;
+		}
+		else {
+			if(NULL !== $argProjectName){
+				$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.local';
+				if(TRUE !== is_file($localEnabledFilepath)){
+					$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.local';
+				}
+			}
+			elseif(NULL !== defined('PROJECT_NAME')){
+				// 併設されている事を前提とする！
+				$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.local';
+				if(TRUE !== is_file($localEnabledFilepath)){
+					$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'Package/.local';
+				}
+			}
+			else{
+				$corefilename = corefilename();
+				$localEnabledFilepath = dirname(dirname(__FILE__)).'/.local';
+				if(defined($corefilename . '_WORKSPACE_LOCAL_ENABLED')){
+					$localEnabledFilepath = constant($corefilename . '_WORKSPACE_LOCAL_ENABLED');
+				}
+			}
+			if(isset($localEnabledFilepath)){
+				// フラグファイルからフラグをセット
+				$localEnabled = 0;
+				if(file_exists($localEnabledFilepath)){
+					$localEnabled = 1;
+				}
+			}
 		}
 		// 一応$_SERVERを探す
 		if(isset($_SERVER['workspace']) && 'local' === strtolower($_SERVER['workspace'])){
@@ -1497,32 +1645,48 @@ function getLocalEnabled(){
 /**
  * 現在設定されている開発開発環境フラグを返す
  */
-function getDevelopmentEnabled(){
+function getDevelopmentEnabled($argProjectName=NULL, $argHost=NULL){
 	static $devlopmentEnabled = NULL;
 	if(NULL === $devlopmentEnabled){
-		if(NULL !== defined('PROJECT_NAME')){
-			// 併設されている事を前提とする！
-			$devlopmentEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.dev';
-			if(TRUE !== is_file($devlopmentEnabledFilepath)){
-				$devlopmentEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'Package/.dev';
-			}
+		if(1 === getAutoStageCheckEnabled($argProjectName) && TRUE === checkStage(CHAKE_STAGE_DEV, $argHost)){
+			$devlopmentEnabled = 1;
 		}
-		else{
-			$corefilename = corefilename();
-			$devlopmentEnabledFilepath = dirname(dirname(__FILE__)).'/.dev';
-			if(defined($corefilename . '_WORKSPACE_DEV_ENABLED')){
-				$devlopmentEnabledFilepath = constant($corefilename . '_WORKSPACE_DEV_ENABLED');
+		else {
+			if(NULL !== $argProjectName){
+				$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.local';
+				if(TRUE !== is_file($localEnabledFilepath)){
+					$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.local';
+				}
 			}
-			elseif(defined($corefilename . '_WORKSPACE_DEVELOPMENT_ENABLED')){
-				$devlopmentEnabledFilepath = constant($corefilename . '_WORKSPACE_DEVELOPMENT_ENABLED');
+			elseif(NULL !== defined('PROJECT_NAME')){
+				// 併設されている事を前提とする！
+				$devlopmentEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.dev';
+				if(TRUE !== is_file($devlopmentEnabledFilepath)){
+					$devlopmentEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'Package/.dev';
+				}
 			}
-		}
-		if(isset($devlopmentEnabledFilepath)){
-			// フラグファイルからフラグをセット
-			$devlopmentEnabled = file_exists($devlopmentEnabledFilepath);
-			// 一応ファイル名をdevelopmentで探してもみる
-			if(TRUE !== $devlopmentEnabled){
-				$devlopmentEnabled = file_exists(str_replace('.dev', '.development', $devlopmentEnabledFilepath));
+			else{
+				$corefilename = corefilename();
+				$devlopmentEnabledFilepath = dirname(dirname(__FILE__)).'/.dev';
+				if(defined($corefilename . '_WORKSPACE_DEV_ENABLED')){
+					$devlopmentEnabledFilepath = constant($corefilename . '_WORKSPACE_DEV_ENABLED');
+				}
+				elseif(defined($corefilename . '_WORKSPACE_DEVELOPMENT_ENABLED')){
+					$devlopmentEnabledFilepath = constant($corefilename . '_WORKSPACE_DEVELOPMENT_ENABLED');
+				}
+			}
+			if(isset($devlopmentEnabledFilepath)){
+				// フラグファイルからフラグをセット
+				$devlopmentEnabled = 0;
+				if(file_exists($devlopmentEnabledFilepath)){
+					$devlopmentEnabled = 1;
+				}
+				// 一応ファイル名をdevelopmentで探してもみる
+				if(0 === $devlopmentEnabled){
+					if(file_exists(str_replace('.dev', '.development', $devlopmentEnabledFilepath))){
+						$devlopmentEnabled = 1;
+					}
+				}
 			}
 		}
 		// 一応$_SERVERを探す
@@ -1545,26 +1709,40 @@ function getDevelopmentEnabled(){
 /**
  * 現在設定されているテスト開発環境フラグを返す
  */
-function getTestEnabled(){
+function getTestEnabled($argProjectName=NULL, $argHost=NULL){
 	static $testEnabled = NULL;
 	if(NULL === $testEnabled){
-		if(NULL !== defined('PROJECT_NAME')){
-			// 併設されている事を前提とする！
-			$testEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.test';
-			if(TRUE !== is_file($testEnabledFilepath)){
-				$testEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'Package/.test';
-			}
+		if(1 === getAutoStageCheckEnabled($argProjectName) && TRUE === checkStage(CHAKE_STAGE_TEST, $argHost)){
+			$testEnabled = 1;
 		}
-		else{
-			$corefilename = corefilename();
-			$testEnabledFilepath = dirname(dirname(__FILE__)).'/.test';
-			if(defined($corefilename . '_WORKSPACE_TEST_ENABLED')){
-				$testEnabledFilepath = constant($corefilename . '_WORKSPACE_TEST_ENABLED');
+		else {
+			if(NULL !== $argProjectName){
+				$testEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.test';
+				if(TRUE !== is_file($testEnabledFilepath)){
+					$testEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.test';
+				}
 			}
-		}
-		if(isset($testEnabledFilepath)){
-			// フラグファイルからフラグをセット
-			$testEnabled = file_exists($testEnabledFilepath);
+			elseif(NULL !== defined('PROJECT_NAME')){
+				// 併設されている事を前提とする！
+				$testEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.test';
+				if(TRUE !== is_file($testEnabledFilepath)){
+					$testEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'Package/.test';
+				}
+			}
+			else{
+				$corefilename = corefilename();
+				$testEnabledFilepath = dirname(dirname(__FILE__)).'/.test';
+				if(defined($corefilename . '_WORKSPACE_TEST_ENABLED')){
+					$testEnabledFilepath = constant($corefilename . '_WORKSPACE_TEST_ENABLED');
+				}
+			}
+			if(isset($testEnabledFilepath)){
+				// フラグファイルからフラグをセット
+				$testEnabled = 0;
+				if(file_exists($testEnabledFilepath)){
+					$testEnabled = 1;
+				}
+			}
 		}
 		// 一応$_SERVERを探す
 		if(isset($_SERVER['workspace']) && 'test' === strtolower($_SERVER['workspace'])){
@@ -1586,26 +1764,40 @@ function getTestEnabled(){
 /**
  * 現在設定されているステージング開発環境フラグを返す
  */
-function getStagingEnabled(){
+function getStagingEnabled($argProjectName=NULL, $argHost=NULL){
 	static $stagingEnabled = NULL;
 	if(NULL === $stagingEnabled){
-		if(NULL !== defined('PROJECT_NAME')){
-			// 併設されている事を前提とする！
-			$stagingEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.staging';
-			if(TRUE !== is_file($stagingEnabledFilepath)){
-				$stagingEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'Package/.staging';
-			}
+		if(1 === getAutoStageCheckEnabled($argProjectName) && TRUE === checkStage(CHAKE_STAGE_STAGING, $argHost)){
+			$stagingEnabled = 1;
 		}
-		else{
-			$corefilename = corefilename();
-			$stagingEnabledFilepath = dirname(dirname(__FILE__)).'/.staging';
-			if(defined($corefilename . '_WORKSPACE_STAGING_ENABLED')){
-				$stagingEnabledFilepath = constant($corefilename . '_WORKSPACE_STAGING_ENABLED');
+		else {
+			if(NULL !== $argProjectName){
+				$stagingEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.staging';
+				if(TRUE !== is_file($stagingEnabledFilepath)){
+					$stagingEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.staging';
+				}
 			}
-		}
-		if(isset($stagingEnabledFilepath)){
-			// フラグファイルからフラグをセット
-			$stagingEnabled = file_exists($stagingEnabledFilepath);
+			elseif(NULL !== defined('PROJECT_NAME')){
+				// 併設されている事を前提とする！
+				$stagingEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.staging';
+				if(TRUE !== is_file($stagingEnabledFilepath)){
+					$stagingEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'Package/.staging';
+				}
+			}
+			else{
+				$corefilename = corefilename();
+				$stagingEnabledFilepath = dirname(dirname(__FILE__)).'/.staging';
+				if(defined($corefilename . '_WORKSPACE_STAGING_ENABLED')){
+					$stagingEnabledFilepath = constant($corefilename . '_WORKSPACE_STAGING_ENABLED');
+				}
+			}
+			if(isset($stagingEnabledFilepath)){
+				// フラグファイルからフラグをセット
+				$stagingEnabled = 0;
+				if(file_exists($stagingEnabledFilepath)){
+					$stagingEnabled = 1;
+				}
+			}
 		}
 		// 一応$_SERVERを探す
 		if(isset($_SERVER['workspace']) && 'staging' === strtolower($_SERVER['workspace'])){
@@ -1627,38 +1819,53 @@ function getStagingEnabled(){
 /**
  * 現在設定されているデバッグモードフラグを返す
  */
-function getDebugEnabled(){
+function getDebugEnabled($argProjectName=NULL, $argHost=NULL){
 	static $debugEnabled = NULL;
 	if(NULL === $debugEnabled){
-		if(NULL !== defined('PROJECT_NAME')){
-			// 併設されている事を前提とする！
-			$debugEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.debug';
-			if(TRUE !== is_file($debugEnabledFilepath)){
-				$debugEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'Package/.debug';
-			}
-		}
-		else{
-			$corefilename = corefilename();
-			$debugEnabledFilepath = dirname(dirname(__FILE__)).'/.debug';
-			if(defined($corefilename . '_DEBUG_MODE_ENABLED')){
-				$debugEnabledFilepath = constant($corefilename . '_DEBUG_MODE_ENABLED');
-			}
-		}
-		if(isset($debugEnabledFilepath)){
-			// フラグファイルからフラグをセット
-			$debugEnabled = file_exists($debugEnabledFilepath);
-		}
-		// 一応$_SERVERを探す
-		if(isset($_SERVER['debug_mode']) && 1 === (int)$_SERVER['debug_mode']){
-			// $_SERVERが最強 $_SERVERがあれば$_SERVERに必ず従う
+		$debugEnabled = 0;
+		if(TRUE === isTest(FALSE, $argProjectName, $argHost)){
 			$debugEnabled = 1;
 		}
-		else if(isset($_SERVER['debugmode']) && 1 === (int)$_SERVER['debugmode']){
-			$debugEnabled = 1;
-		}
-		if(NULL === $debugEnabled){
-			// フラグ設定が見つからなかったのでdisabledで設定
-			$debugEnabled = 0;
+		else {
+			if(NULL !== $argProjectName){
+				$debugEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.debug';
+				if(TRUE !== is_file($debugEnabledFilepath)){
+					$debugEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.debug';
+				}
+			}
+			elseif(NULL !== defined('PROJECT_NAME')){
+				// 併設されている事を前提とする！
+				$debugEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.debug';
+				if(TRUE !== is_file($debugEnabledFilepath)){
+					$debugEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'Package/.debug';
+				}
+			}
+			else{
+				$corefilename = corefilename();
+				$debugEnabledFilepath = dirname(dirname(__FILE__)).'/.debug';
+				if(defined($corefilename . '_DEBUG_MODE_ENABLED')){
+					$debugEnabledFilepath = constant($corefilename . '_DEBUG_MODE_ENABLED');
+				}
+			}
+			if(isset($debugEnabledFilepath)){
+				// フラグファイルからフラグをセット
+				$debugEnabled = 0;
+				if(file_exists($debugEnabledFilepath)){
+					$debugEnabled = 1;
+				}
+			}
+			// 一応$_SERVERを探す
+			if(isset($_SERVER['debug_mode']) && 1 === (int)$_SERVER['debug_mode']){
+				// $_SERVERが最強 $_SERVERがあれば$_SERVERに必ず従う
+				$debugEnabled = 1;
+			}
+			else if(isset($_SERVER['debugmode']) && 1 === (int)$_SERVER['debugmode']){
+				$debugEnabled = 1;
+			}
+			if(NULL === $debugEnabled){
+				// フラグ設定が見つからなかったのでdisabledで設定
+				$debugEnabled = 0;
+			}
 		}
 	}
 	return $debugEnabled;
@@ -1667,10 +1874,16 @@ function getDebugEnabled(){
 /**
  * 現在設定されているエラーレポーティングフラグを返す
  */
-function getErrorReportEnabled(){
+function getErrorReportEnabled($argProjectName=NULL){
 	static $errorReportEnabled = NULL;
 	if(NULL === $errorReportEnabled){
-		if(NULL !== defined('PROJECT_NAME')){
+		if(NULL !== $argProjectName){
+			$errorReportEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.error_report';
+			if(TRUE !== is_file($errorReportEnabledFilepath)){
+				$errorReportEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.error_report';
+			}
+		}
+		elseif(NULL !== defined('PROJECT_NAME')){
 			// 併設されている事を前提とする！
 			$errorReportEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.error_report';
 			if(TRUE !== is_file($errorReportEnabledFilepath)){
@@ -1686,10 +1899,15 @@ function getErrorReportEnabled(){
 		}
 		if(isset($errorReportEnabledFilepath)){
 			// フラグファイルからフラグをセット
-			$errorReportEnabled = file_exists($errorReportEnabledFilepath);
+			$errorReportEnabled = 0;
+			if(file_exists($errorReportEnabledFilepath)){
+				$errorReportEnabled = 1;
+			}
 			// 一応ファイル名をerror_reportで探してもみる
-			if(TRUE !== $errorReportEnabled){
-				$errorReportEnabled = file_exists(str_replace('.error_report', '.errorreport', $errorReportEnabledFilepath));
+			if(0 === $errorReportEnabled){
+				if(file_exists(str_replace('.error_report', '.errorreport', $errorReportEnabledFilepath))){
+					$errorReportEnabled = 1;
+				}
 			}
 		}
 		// 一応$_SERVERを探す
@@ -1710,10 +1928,16 @@ function getErrorReportEnabled(){
 /**
  * 現在設定されている自動最適化キャッシュ生成フラグを返す
  */
-function getAutoGenerateEnabled(){
+function getAutoGenerateEnabled($argProjectName=NULL){
 	static $autoGenerateEnabled = NULL;
 	if(NULL === $autoGenerateEnabled){
-		if(FALSE !== defined('PROJECT_NAME')){
+		if(NULL !== $argProjectName){
+			$autoGenerateEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.autogenerate';
+			if(TRUE !== is_file($autoGenerateEnabledFilepath)){
+				$autoGenerateEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.autogenerate';
+			}
+		}
+		elseif(FALSE !== defined('PROJECT_NAME')){
 			// 併設されている事を前提とする！
 			$autoGenerateEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.autogenerate';
 			if(TRUE !== is_file($autoGenerateEnabledFilepath)){
@@ -1729,16 +1953,19 @@ function getAutoGenerateEnabled(){
 		}
 		if(isset($autoGenerateEnabledFilepath)){
 			// 自動ジェネレートフラグのセット
-			$autoGenerateEnabled = file_exists($autoGenerateEnabledFilepath);
+			$autoGenerateEnabled = FALSE;
+			if(file_exists($autoGenerateEnabledFilepath)){
+				$autoGenerateEnabled = TRUE;
+			}
 		}
 		// 一応ENVを探す
 		if(isset($_SERVER['autogenerate']) && 1 === (int)$_SERVER['autogenerate']){
 			// ENVが最強 ENVがあればENVに必ず従う
-			$autoGenerateEnabled = 1;
+			$autoGenerateEnabled = TRUE;
 		}
 		if(NULL === $autoGenerateEnabled){
 			// フラグ設定が見つからなかったのでdisabledで設定
-			$autoGenerateEnabled = 0;
+			$autoGenerateEnabled = FALSE;
 		}
 	}
 	return $autoGenerateEnabled;
@@ -1747,10 +1974,16 @@ function getAutoGenerateEnabled(){
 /**
  * 現在設定されている自動最適化キャッシュ生成フラグを返す
  */
-function getAutoMigrationEnabled(){
+function getAutoMigrationEnabled($argProjectName=NULL){
 	static $autoMigrationEnabled = NULL;
 	if(NULL === $autoMigrationEnabled){
-		if(NULL !== defined('PROJECT_NAME')){
+		if(NULL !== $argProjectName){
+			$autoMigrationEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.automigration';
+			if(TRUE !== is_file($autoMigrationEnabledFilepath)){
+				$autoMigrationEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.automigration';
+			}
+		}
+		elseif(NULL !== defined('PROJECT_NAME')){
 			// 併設されている事を前提とする！
 			$autoMigrationEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.PROJECT_NAME.'/.automigration';
 			if(TRUE !== is_file($autoMigrationEnabledFilepath)){
@@ -1766,16 +1999,19 @@ function getAutoMigrationEnabled(){
 		}
 		if(isset($autoMigrationEnabledFilepath)){
 			// 自動マイグレーションフラグのセット
-			$autoMigrationEnabled = file_exists($autoMigrationEnabledFilepath);
+			$autoMigrationEnabled = FALSE;
+			if(file_exists($autoMigrationEnabledFilepath)){
+				$autoMigrationEnabled = TRUE;
+			}
 		}
 		// 一応ENVを探す
 		if(isset($_SERVER['automigration']) && 1 === (int)$_SERVER['automigration']){
 			// ENVが最強 ENVがあればENVに必ず従う
-			$autoMigrationEnabled = 1;
+			$autoMigrationEnabled = TRUE;
 		}
 		if(NULL === $autoMigrationEnabled){
 			// フラグ設定が見つからなかったのでdisabledで設定
-			$autoMigrationEnabled = 0;
+			$autoMigrationEnabled = FALSE;
 		}
 	}
 	return $autoMigrationEnabled;

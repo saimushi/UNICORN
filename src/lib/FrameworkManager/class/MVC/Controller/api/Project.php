@@ -10,8 +10,7 @@ class Project extends RestControllerBase {
 		debug($basedir);
 		if ($handle = opendir($basedir)) {
 			while (false !== ($file = readdir($handle))) {
-				debug($basedir."/".$file);
-				if("." !== $file && ".." !== $file && FALSE !== is_dir($basedir."/".$file)){
+				if("." !== $file && ".." !== $file && FALSE !== is_dir($basedir."/".$file) && is_file($basedir."/".$file."/.projectpackage")){
 					$dirs[] = $file;
 				}
 			}

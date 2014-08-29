@@ -291,6 +291,10 @@ class FlowManager
 				$code .= $tab . '}' . PHP_EOL;
 				$code .= $tab . 'Flow::$params[\'view\'][] = array(\'' . $tmpAttr['selector'] . '\' => ' . self::_resolveValue($tmpAttr['val']) . ');';
 			}
+			elseif('exception' === $codeType){
+				$msg = '';
+				$code .= 'throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__);';
+			}
 			elseif('view' === $codeType){
 				$section = 'str_replace(\'_\', \'-\', $this->controlerClassName)';
 				if(isset($tmpAttr['section']) && strlen($tmpAttr['section']) > 0){

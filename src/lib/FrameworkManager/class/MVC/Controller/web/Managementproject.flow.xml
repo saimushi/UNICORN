@@ -4,6 +4,59 @@
 		<execute>
 			<assign var="res" class="Auth" method="isCertification"/>
 			<if var="res" val="true">
+				<assign var="res"  method="isset" arg1="Flow::$params['get']['target_project']"/>
+				<if var="res" val="false">
+					<exception/>
+				</if>
+				<assign var="res"  method="strlen" arg1="Flow::$params['get']['target_project']"/>
+				<if var="res" val="0">
+					<exception/>
+				</if>
+				<assign var="useAutoGenerate" method="getAutoGenerateEnabled" arg1="Flow::$params['get']['target_project']"/>
+				<if var="useAutoGenerate" val="true">
+					<assign var="useAutoGenerate" val="string:on"/>
+					<flowviewparam selector="#useAutoGenerate" val="$useAutoGenerate"/>
+				</if>
+				<assign var="useAutoMigration" method="getAutoMigrationEnabled" arg1="Flow::$params['get']['target_project']"/>
+				<if var="useAutoMigration" val="true">
+					<assign var="useAutoMigration" val="string:on"/>
+					<flowviewparam selector="#useAutoMigration" val="$useAutoMigration"/>
+				</if>
+				<assign var="useAutoStageCheck" method="getAutoStageCheckEnabled" arg1="Flow::$params['get']['target_project']"/>
+				<if var="useAutoStageCheck" val="1">
+					<assign var="useAutoStageCheck" val="string:on"/>
+					<flowviewparam selector="#useAutoStageCheck" val="$useAutoStageCheck"/>
+				</if>
+				<assign var="isLocal" method="getLocalEnabled" arg1="Flow::$params['get']['target_project']"/>
+				<if var="isLocal" val="1">
+					<assign var="isLocal" val="string:on"/>
+					<flowviewparam selector="#isLocal" val="$isLocal"/>
+				</if>
+				<assign var="isTest" method="getTestEnabled" arg1="Flow::$params['get']['target_project']"/>
+				<if var="isTest" val="1">
+					<assign var="isTest" val="string:on"/>
+					<flowviewparam selector="#isTest" val="$isTest"/>
+				</if>
+				<assign var="isDevelopment" method="getDevelopmentEnabled" arg1="Flow::$params['get']['target_project']"/>
+				<if var="isDevelopment" val="1">
+					<assign var="isDevelopment" val="string:on"/>
+					<flowviewparam selector="#isDevelopment" val="$isDevelopment"/>
+				</if>
+				<assign var="isStaging" method="getStagingEnabled" arg1="Flow::$params['get']['target_project']"/>
+				<if var="isStaging" val="1">
+					<assign var="isStaging" val="string:on"/>
+					<flowviewparam selector="#isStaging" val="$isStaging"/>
+				</if>
+				<assign var="isDebug" method="getDebugEnabled" arg1="Flow::$params['get']['target_project']"/>
+				<if var="isDebug" val="1">
+					<assign var="isDebug" val="string:on"/>
+					<flowviewparam selector="#isDebug" val="$isDebug"/>
+				</if>
+				<assign var="stageTest" method="isTest" arg1="Flow::$params['get']['target_project']"/>
+				<if var="stageTest" val="true">
+					<assign var="stageTest" val="string:on"/>
+					<flowviewparam selector="#stageTest" val="$stageTest"/>
+				</if>
 				<view baseview="base" flowpostformsection="web/generatenewproject-execute"/>
 			</if>
 			<else>

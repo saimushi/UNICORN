@@ -26,7 +26,7 @@ class BasePrependFilter {
 		}
 		// SSLチェック
 		if(FALSE !== $denyHTTP && 0 !== $denyHTTP && "0" !== $denyHTTP){
-			if('on' !== $_SERVER['HTTPS']){
+			if(!(isset($_SERVER['HTTPS']) && 'on' === $_SERVER['HTTPS'])){
 				$allow = FALSE;
 			}
 		}

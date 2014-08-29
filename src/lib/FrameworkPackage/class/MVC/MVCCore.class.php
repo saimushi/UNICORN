@@ -202,6 +202,7 @@ class MVCCore {
 				// 200版以外のステータスコードの場合の出力処理
 				header('HTTP', TRUE, $httpStatus);
 				if(FALSE === $res && isset($Exception)){
+					$html = '';
 					if('json' === $outputType){
 						// exceptionのログ出力
 						if(!class_exists('PHPUnit_Framework_TestCase', FALSE)){
