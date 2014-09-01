@@ -116,6 +116,15 @@ class MVCCore {
 			// コントロール対象を取得
 			$res = self::loadMVCModule();
 			if(FALSE === $res){
+				// フィルター処理
+				if(self::loadMVCFilter('StaticPrependFilter')){
+					$PrependFilter = new StaticPrependFilter();
+					$filtered = $PrependFilter->execute();
+					if (FALSE === $filtered){
+						// XXX フィルターエラー
+						throw new Exception('access denied.');
+					}
+				}
 				// ただのhtml表示かも知れないのを調べる
 				if(is_file($_SERVER['DOCUMENT_ROOT'] . $_SERVER['REQUEST_URI'])){
 					// そのままスタティックファイルとして表示
@@ -125,9 +134,30 @@ class MVCCore {
 					// エラー
 					throw new Exception('controller class faild.');
 				}
+				// フィルター処理
+				if(self::loadMVCFilter('StaticAppendFilter')){
+					$AppendFilter = new StaticAppendFilter();
+					$filtered = $AppendFilter->execute();
+					if (FALSE === $filtered){
+						// XXX フィルターエラー
+						throw new Exception('access denied.');
+					}
+				}
 			}
 			else{
 				$controlerClassName = $res;
+				// フィルター処理
+				$filres = self::loadMVCFilter('MVCPrependFilter');
+				debug($filres);
+				if(self::loadMVCFilter('MVCPrependFilter')){
+					debug('s??');
+					$PrependFilter = new MVCPrependFilter();
+					$filtered = $PrependFilter->execute();
+					if (FALSE === $filtered){
+						// XXX フィルターエラー
+						throw new Exception('access denied.');
+					}
+				}
 				self::$CurrentController = new $controlerClassName();
 				if(isset($_SERVER['REQUEST_METHOD'])){
 					self::$CurrentController->requestMethod = strtoupper($_SERVER['REQUEST_METHOD']);
@@ -141,6 +171,15 @@ class MVCCore {
 				$res = self::$CurrentController->$actionMethodName();
 				if(FALSE === $res){
 					throw new Exception($actionMethodName . ' executed faild.');
+				}
+				// フィルター処理
+				if(self::loadMVCFilter('MVCAppendFilter')){
+					$AppendFilter = new MVCAppendFilter();
+					$filtered = $AppendFilter->execute();
+					if (FALSE === $filtered){
+						// XXX フィルターエラー
+						throw new Exception('access denied.');
+					}
 				}
 			}
 		}
@@ -163,6 +202,7 @@ class MVCCore {
 				// 200版以外のステータスコードの場合の出力処理
 				header('HTTP', TRUE, $httpStatus);
 				if(FALSE === $res && isset($Exception)){
+					$html = '';
 					if('json' === $outputType){
 						// exceptionのログ出力
 						if(!class_exists('PHPUnit_Framework_TestCase', FALSE)){
@@ -188,7 +228,14 @@ class MVCCore {
 						header('Content-type:Content- type: application/xml; charset=UTF-8');
 						exit('<?xml version="1.0" encoding="UTF-8" ?>' . convertObjectToXML(array('error' => $Exception->getMessage())));
 					}
-					_systemError('Exception :' . $Exception->getMessage());
+					elseif('html' === $outputType){
+						$Tpl = self::loadTemplate('error');
+						if(is_object($Tpl)){
+							$dispatch = false;
+							$html = $Tpl->execute();
+						}
+					}
+					_systemError('Exception :' . $Exception->getMessage(), $httpStatus, $html);
 				}
 			}
 			else{
@@ -199,10 +246,17 @@ class MVCCore {
 				if('html' === $outputType){
 					// htmlヘッダー出力
 					header('Content-type: text/html; charset=UTF-8');
+					if(is_array($res)){
+						// html出力なのに配列は出力テンプレートの自動判別を試みる
+
+					}
 				}
 				elseif('txt' === $outputType){
 					// textヘッダー出力
 					header('Content-type: text/plain; charset=UTF-8');
+					if(is_array($res)){
+						$res = var_export($res, TRUE);
+					}
 				}
 				elseif('json' === $outputType){
 					// jsonヘッダー出力
@@ -221,6 +275,14 @@ class MVCCore {
 					header('Content-type:Content- type: application/xml; charset=UTF-8');
 					if(is_array($res)){
 						$res = '<?xml version="1.0" encoding="UTF-8" ?>' . convertObjectToXML($res);
+					}
+				}
+				elseif('csv' === $outputType){
+					// csvヘッダー出力
+					header('Content-type: application/octet-stream; charset=SJIS');
+					if(is_array($res)){
+						// XXX csvといいつつtsvを吐き出す
+						$res = mb_convert_encoding(convertObjectToCSV($res, PHP_TAB), 'SJIS', 'UTF-8');
 					}
 				}
 				elseif('jpg' === $outputType || 'jpeg' === $outputType){
@@ -396,17 +458,16 @@ class MVCCore {
 	 * @return mixed 成功時は対象のクラス名 失敗した場合はFALSEを返す
 	 */
 	public static function loadMVCFilter($argFilterName, $argTargetPath = ''){
-
 		$filterClassName = $argFilterName;
-		if('' !== $argTargetPath){
-			$targetPath = $argTargetPath;
-		}
-		$version = '';
-		if(isset($_GET['_v_']) && strlen($_GET['_v_']) > 0){
-			$version = $_GET['_v_'];
-		}
-
 		if(!class_exists($filterClassName, FALSE)){
+			$targetPath = '';
+			if('' !== $argTargetPath){
+				$targetPath = $argTargetPath;
+			}
+			$version = '';
+			if(isset($_GET['_v_']) && strlen($_GET['_v_']) > 0){
+				$version = $_GET['_v_'];
+			}
 			// コントローラを読み込み
 			if('' !== $version){
 				// バージョン一致のファイルを先ず走査する
@@ -416,14 +477,12 @@ class MVCCore {
 				loadModule('default.controlmain.Filter/' . $targetPath . $filterClassName, TRUE);
 			}
 			if(!class_exists($filterClassName, FALSE)){
-				debug('default.controlmain.Filter/' . $filterClassName);
 				loadModule('default.controlmain.Filter/' . $filterClassName, TRUE);
 			}
-			if(!class_exists($filterClassName, FALSE)){
+			if(!class_exists($filterClassName)){
 				return FALSE;
 			}
 		}
-
 		return $filterClassName;
 	}
 

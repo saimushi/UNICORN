@@ -10,7 +10,7 @@
 	<LOG_PATH stage="local" code="TRUE"><![CDATA[%ROOT_PATH%.'log/']]></LOG_PATH>
 	<LOG_PATH code="TRUE"><![CDATA[dirname(%ROOT_PATH%).'/logs/']]></LOG_PATH>
 	<LOCALE_PATH code="TRUE"><![CDATA[%ROOT_PATH%.'locale/']]></LOCALE_PATH>
-	<FLOWXML_PATH>ProjectPackage/MVC/controller/</FLOWXML_PATH>
+	<FLOWXML_PATH>FrameworkPackage/Flow/controller/</FLOWXML_PATH>
 	<IMAGE_PATH stage="local" code="TRUE"><![CDATA[%ROOT_PATH%.'mnt/']]></IMAGE_PATH>
 	<IMAGE_PATH stage="test" code="TRUE"><![CDATA[dirname(dirname(dirname(%ROOT_PATH%))).'/mnt/']]></IMAGE_PATH>
 	<IMAGE_PATH code="TRUE"><![CDATA[dirname(dirname(dirname(%ROOT_PATH%))).'/mnt/']]></IMAGE_PATH>
@@ -20,4 +20,6 @@
 	<DB_MAINTENANCE_FLAG_FILE code="TRUE"><![CDATA[dirname( __FILE__ ).'/.dbmaintenance']]></DB_MAINTENANCE_FLAG_FILE>
 	<!-- DB定義(DSN形式指定) ※この定義は必須では無いが、この定義は自動で解決されます -->
 	<DB_DSN>mysqli://root:root@localhost/mysql</DB_DSN>
+	<DENY_HTTP>false</DENY_HTTP>
+	<DENY_ALL_IP>false</DENY_ALL_IP>
 </xml>

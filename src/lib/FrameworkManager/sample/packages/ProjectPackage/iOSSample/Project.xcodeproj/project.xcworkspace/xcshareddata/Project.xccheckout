@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>AF23955F-4063-45E8-9821-61768810501B</string>
+	<key>IDESourceControlProjectName</key>
+	<string>Project</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>5BDD6129-C597-4091-A415-A70166B34329</key>
+		<string>ssh://github.com/saimushi/UNICORN.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>src/lib/FrameworkManager/sample/packages/ProjectPackage/iOSSample/Project.xcodeproj/project.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>5BDD6129-C597-4091-A415-A70166B34329</key>
+		<string>../../../../../../../../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>ssh://github.com/saimushi/UNICORN.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>110</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>5BDD6129-C597-4091-A415-A70166B34329</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>5BDD6129-C597-4091-A415-A70166B34329</string>
+			<key>IDESourceControlWCCName</key>
+			<string>UNICORN</string>
+		</dict>
+	</array>
+</dict>
+</plist>

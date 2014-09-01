@@ -206,7 +206,7 @@ function convertObject2XML($data, $level = 0) {
 /**
  * resultSetをCSV文字列に変換
  */
-function convertObjectToCSV($argArr, $argRootFlag = true) {
+function convertObjectToCSV($argArr, $argDelim = ',', $argRootFlag = true) {
 
 	$csvStr = "";
 	$thisFunctionNameStr = __FUNCTION__ ;
@@ -214,12 +214,12 @@ function convertObjectToCSV($argArr, $argRootFlag = true) {
 	while ( list ($key, $value) = each($argArr)) {
 		if (true == is_array($value) || true == is_object($value)) {
 			if ("size" !== $key && "type" !== $key) {
-				$lineStr = $thisFunctionNameStr($value, false);
+				$lineStr = $thisFunctionNameStr($value, $argDelim, false);
 				if (true === $argRootFlag) {
-					if (preg_match("/,$/m", $lineStr)) {
+					if (preg_match("/".$argDelim."$/m", $lineStr)) {
 						$lineStr = substr($lineStr, 0, strlen($lineStr)-1);
 					}
-					$csvStr .= $lineStr.EBS_USER_LINE_END;
+					$csvStr .= $lineStr."\r\n";
 				}
 				else {
 					$csvStr .= $lineStr;
@@ -230,10 +230,10 @@ function convertObjectToCSV($argArr, $argRootFlag = true) {
 			if ("size" != $key && "type" != $key) {
 				$lineStr = "\"".$value."\"";
 				if (true === $argRootFlag) {
-					$csvStr .= $lineStr.EBS_USER_LINE_END;
+					$csvStr .= $lineStr."\r\n";
 				}
 				else {
-					$csvStr .= $lineStr.",";
+					$csvStr .= $lineStr.$argDelim;
 				}
 			}
 		}
@@ -245,8 +245,8 @@ function convertObjectToCSV($argArr, $argRootFlag = true) {
 /**
  * convertObjectToCSVのエイリアス
  */
-function convertObject2CSV($argArr) {
-	return convertObjectToCSV($argArr);
+function convertObject2CSV($argArr, $argDelim = ',') {
+	return convertObjectToCSV($argArr, $argDelim);
 }
 
 /**

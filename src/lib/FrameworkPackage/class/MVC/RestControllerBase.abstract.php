@@ -144,7 +144,7 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 			// XXX multipart/form-dataもPOSTなので、PHPに任せます
 			$requestParams = $_POST;
 		}
-		else if('GET' === $_SERVER['REQUEST_METHOD']){
+		else if('GET' === $_SERVER['REQUEST_METHOD'] || 'HEAD' === $_SERVER['REQUEST_METHOD']){
 			$requestParams = $_GET;
 		}
 		else {
@@ -433,9 +433,12 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 		}
 		if(isset($_SERVER['REQUEST_METHOD'])){
 			$this->requestMethod = strtoupper($_SERVER['REQUEST_METHOD']);
+			if(isset($_POST['_method_']) && strlen($_POST['_method_']) > 0){
+				$this->requestMethod = strtoupper($_POST['_method_']);
+			}
 		}
 		debug($this->restResource);
-		debug(strtolower($this->requestMethod));
+		debug('rest method='.strtolower($this->requestMethod));
 		$resource = self::resolveRESTResource($this->restResource);
 		debug($resource);
 		if(NULL === $resource){
@@ -443,7 +446,7 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 			$this->httpStatus = 400;
 			throw new RESTException(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__, 400);
 		}
-		if('GET' !== $this->requestMethod && 'POST' !== $this->requestMethod && NULL === $resource['ids']){
+		if('GET' !== $this->requestMethod && 'HEAD' !== $this->requestMethod && 'POST' !== $this->requestMethod && NULL === $resource['ids']){
 			// GET,POST以外のメソッドの場合はリソースID指定は必須
 			$this->httpStatus = 400;
 			throw new RESTException(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__, 400);
@@ -580,6 +583,132 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 			throw new RESTException(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__, 400);
 		}
 
+		if(TRUE === is_array($res) && 'HEAD' !== $this->requestMethod){
+			if('html' === $this->outputType){
+				debug('convert html');
+				$basehtml = '';
+				$URIs = explode('?', $_SERVER['REQUEST_URI']);
+				if("index" === strtolower($this->restResourceModel)){
+					$basehtml .= '<h2>Table List</h2>'.PHP_EOL;
+					$basehtml .= '<ul>'.PHP_EOL;
+					for($idx=0; $idx < count($res); $idx++){
+						$basehtml .= '<li><a class="tablelink" id="table_'.$res[$idx].'" href="'.str_replace('/index.html', '/', $URIs[0]).$res[$idx].'.html">'.$res[$idx].'</a></li>'.PHP_EOL;
+					}
+					$basehtml .= '</ul>'.PHP_EOL;
+				}
+				else {
+					$requestParams = $this->getRequestParams();
+					$basehtml .= '<h2>'.$this->restResourceModel.'</h2>'.PHP_EOL;
+					if(TRUE === $this->restResourceListed){
+						$basehtml .= '<h3><form id="crud-form-search" class="crud-form" method="GET"><input type="text" value="' . ((isset($requestParams['LIKE']))? $requestParams['LIKE'] : '') . '" name="LIKE"/><div class="submit-button search-button"><input type="submit" value="search"/></div></form></h3>'.PHP_EOL;
+						if(isset($res[0])){
+							$basehtml .= '<table class="list">'.PHP_EOL;
+							// リストヘッダ
+							$basehtml .= '<tr>'.PHP_EOL;
+							foreach($res[0] as $key => $val){
+								$order = $requestParams['ORDER'];
+								if(strlen($order) > 0 && 0 === strpos($order, $key) && FALSE !== strpos($order, 'DESC')){
+									$order = rawurlencode($key.' ASC');
+								}
+								else {
+									$order = rawurlencode($key.' DESC');
+								}
+								$basehtml .= '<th class="crudkey"><a class="crudlink" id="crud_order_'.$this->restResourceModel.'_'.$key.'" href="'.$URIs[0].'?LIMIT='.$requestParams['LIMIT'].'&OFFSET=0&total='.$requestParams['total'].'&ORDER='.$order.'&LIKE='.rawurlencode($requestParams['LIKE']).'">'.$key.'</a></th>';
+							}
+							$basehtml .= '</tr>'.PHP_EOL;
+							for($idx=0; $idx < count($res); $idx++){
+								$basehtml .= '<tr>'.PHP_EOL;
+								$id = '';
+								foreach($res[$idx] as $key => $val){
+									if('' === $id){
+										$id = $val;
+									}
+									$basehtml .= '<td><a class="crudlink" id="crud_'.$this->restResourceModel.'_'.$id.'" target="_blank" href="'.str_replace('/'.$this->restResourceModel.'.html', '/'.$this->restResourceModel.'/'.$id.'.html', $URIs[0]).'">'.$val.'</a></td>';
+								}
+								$basehtml .= '</tr>'.PHP_EOL;
+							}
+							$basehtml .= '</table>'.PHP_EOL;
+							if(isset($requestParams['LIMIT']) && is_numeric($requestParams['LIMIT']) && (int)$requestParams['LIMIT'] > 0 && isset($requestParams['OFFSET']) && is_numeric($requestParams['OFFSET']) && isset($requestParams['total']) && is_numeric($requestParams['total']) && (int)$requestParams['total'] > 0){
+								// ページング
+								$nowPage = (floor((int)$requestParams['OFFSET']/(int)$requestParams['LIMIT'])+1);
+								if(1 < floor((int)$requestParams['total']/(int)$requestParams['LIMIT'])+1){
+									$basehtml .= '<table class="paging"><tr>'.PHP_EOL;
+									if($nowPage > 1){
+										// 先頭リンク
+										$basehtml .= '<td class="list-paginglink"><a href="'.$URIs[0].'?LIMIT='.$requestParams['LIMIT'].'&OFFSET=0&total='.$requestParams['total'].'&ORDER='.rawurlencode($requestParams['ORDER']).'&LIKE='.rawurlencode($requestParams['LIKE']).'">&lt;&lt;</a></td>'.PHP_EOL;
+										// 前へリンク
+										$basehtml .= '<td class="list-paginglink"><a href="'.$URIs[0].'?LIMIT='.$requestParams['LIMIT'].'&OFFSET='.((int)$requestParams['OFFSET']-(int)$requestParams['LIMIT']).'&total='.$requestParams['total'].'&ORDER='.rawurlencode($requestParams['ORDER']).'&LIKE='.rawurlencode($requestParams['LIKE']).'">&lt;</a></td>'.PHP_EOL;
+									}
+									// 2つ前のページ
+									if($nowPage-2 > 0){
+										$basehtml .= '<td class="list-paginglink"><a href="'.$URIs[0].'?LIMIT='.$requestParams['LIMIT'].'&OFFSET='.((int)$requestParams['OFFSET']-(int)$requestParams['LIMIT']*2).'&total='.$requestParams['total'].'&ORDER='.rawurlencode($requestParams['ORDER']).'&LIKE='.rawurlencode($requestParams['LIKE']).'">'.($nowPage-2).'</a></td>'.PHP_EOL;
+									}
+									// 1つ前のページ
+									if($nowPage-1 > 0){
+										$basehtml .= '<td class="list-paginglink"><a href="'.$URIs[0].'?LIMIT='.$requestParams['LIMIT'].'&OFFSET='.((int)$requestParams['OFFSET']-(int)$requestParams['LIMIT']).'&total='.$requestParams['total'].'&ORDER='.rawurlencode($requestParams['ORDER']).'&LIKE='.rawurlencode($requestParams['LIKE']).'">'.($nowPage-1).'</a></td>'.PHP_EOL;
+									}
+									// 現在ページ
+									$basehtml .= '<td class="list-paginglink"><a href="'.$URIs[0].'?LIMIT='.$requestParams['LIMIT'].'&OFFSET='.$requestParams['OFFSET'].'&total='.$requestParams['total'].'&ORDER='.rawurlencode($requestParams['ORDER']).'&LIKE='.rawurlencode($requestParams['LIKE']).'">'.$nowPage.'</a></td>'.PHP_EOL;
+									// 1つ次のページ
+									if($nowPage+1 <= (floor((int)$requestParams['total']/(int)$requestParams['LIMIT']))){
+										$basehtml .= '<td class="list-paginglink"><a href="'.$URIs[0].'?LIMIT='.$requestParams['LIMIT'].'&OFFSET='.((int)$requestParams['OFFSET']+(int)$requestParams['LIMIT']).'&total='.$requestParams['total'].'&ORDER='.rawurlencode($requestParams['ORDER']).'&LIKE='.rawurlencode($requestParams['LIKE']).'">'.($nowPage+1).'</a></td>'.PHP_EOL;
+									}
+									// 2つ次のページ
+									if($nowPage+2 <= (floor((int)$requestParams['total']/(int)$requestParams['LIMIT']))){
+										$basehtml .= '<td class="list-paginglink"><a href="'.$URIs[0].'?LIMIT='.$requestParams['LIMIT'].'&OFFSET='.((int)$requestParams['OFFSET']+(int)$requestParams['LIMIT']*2).'&total='.$requestParams['total'].'&ORDER='.rawurlencode($requestParams['ORDER']).'&LIKE='.rawurlencode($requestParams['LIKE']).'">'.($nowPage+2).'</a></td>'.PHP_EOL;
+									}
+									if($nowPage < (floor((int)$requestParams['total']/(int)$requestParams['LIMIT']))){
+										// 次へリンク
+										$basehtml .= '<td class="list-paginglink"><a href="'.$URIs[0].'?LIMIT='.$requestParams['LIMIT'].'&OFFSET='.((int)$requestParams['OFFSET']+(int)$requestParams['LIMIT']).'&total='.$requestParams['total'].'&ORDER='.rawurlencode($requestParams['ORDER']).'&LIKE='.rawurlencode($requestParams['LIKE']).'">&gt;</a></td>'.PHP_EOL;
+										// 終端リンク
+										$basehtml .= '<td class="list-paginglink"><a href="'.$URIs[0].'?LIMIT='.$requestParams['LIMIT'].'&OFFSET='.((floor((int)$requestParams['total']/(int)$requestParams['LIMIT'])-1)*(int)$requestParams['LIMIT']).'&total='.$requestParams['total'].'&ORDER='.rawurlencode($requestParams['ORDER']).'&LIKE='.rawurlencode($requestParams['LIKE']).'">&gt;&gt;</a></td>'.PHP_EOL;
+									}
+									$basehtml .= '</tr></table>'.PHP_EOL;
+								}
+							}
+							$basehtml .= '<div class="csv-download-link"><a href="'.str_replace('.html', '.csv', $_SERVER['REQUEST_URI']).'">download csv</a></div>'.PHP_EOL;
+							$basehtml .= '<div class="csv-all-download-link"><a href="'.str_replace('.html', '.csv', $URIs[0]).'?ORDER='.rawurlencode($requestParams['ORDER']).'">download csv all records</a></div>'.PHP_EOL;
+							$basehtml .= '<div class="tablelist-link"><a href="'.str_replace('/'.$this->restResourceModel.'.html', '/index.html', $URIs[0]).'">table list</a></div>'.PHP_EOL;
+						}
+					}
+					else {
+						if(isset($res[0])){
+							$basehtml .= '<form id="crud-form-put" class="crud-form" method="POST">'.PHP_EOL;
+							$basehtml .= '<table class="detail">'.PHP_EOL;
+							$id = '';
+							foreach($res[0] as $key => $val){
+								if('' === $id){
+									$id = $val;
+								}
+								$basehtml .= '<tr><th class="crudkey">'.$key.'</th></tr>'.PHP_EOL;
+								$basehtml .= '<tr><td><input type="text" name="'.$key.'" value="'.htmlspecialchars($val).'"/></td></tr>'.PHP_EOL;
+							}
+							$basehtml .= '<tr><td><div class="submit-button put-button"><input type="submit"/ value="PUT"></div></td></tr>'.PHP_EOL;
+							$basehtml .= '<input type="hidden" name="_method_" value="PUT"/>'.PHP_EOL;
+							$basehtml .= '</table>'.PHP_EOL;
+							$basehtml .= '</form>'.PHP_EOL;
+							$basehtml .= '<form id="crud-form-delete" class="crud-form" method="POST">'.PHP_EOL;
+							$basehtml .= '<div class="submit-button delete-button"><input type="submit"/ value="DELETE"></div>'.PHP_EOL;
+							$basehtml .= '<input type="hidden" name="_method_" value="DELETE"/>'.PHP_EOL;
+							$basehtml .= '</form>'.PHP_EOL;
+							$basehtml .= '<div class="list-link"><a href="'.str_replace('/'.$this->restResourceModel.'/'.$id.'.html', '/'.$this->restResourceModel.'.html', $URIs[0]).'">'.$this->restResourceModel.' list</a></div>'.PHP_EOL;
+						}
+						else {
+							$basehtml .= '<div class="list-link"><a href="javascript:history.back()">back</a></div>'.PHP_EOL;
+						}
+					}
+				}
+				$res = $basehtml;
+			}
+		}
+
+		if('HEAD' === $this->requestMethod && isset($res['describes'])){
+			header('Head: ' . json_encode($res['describes']));
+			header('Rules: ' . json_encode($res['rules']));
+			header('Records: ' . $res['count']);
+			$res = TRUE;
+		}
+
 		// 正常終了(のハズ！)
 		return $res;
 	}
@@ -644,6 +773,23 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 		$baseBinds = NULL;
 		$isDeepModel = FALSE;
 		$deepModels = array();
+		if("index" === strtolower($this->restResourceModel)){
+			// IndexはCRUD出来るテーブル一覧を返す
+			$DBO = self::_getDBO();
+			// XXX MySQL専用になっている事に注意！
+			$response = $DBO->execute("show tables");
+			if(FALSE === $response){
+				throw new Exception(__CLASS__.PATH_SEPARATOR.__METHOD__.PATH_SEPARATOR.__LINE__);
+			}
+			else{
+				$responseArr = $response->GetAll();
+				for($tableIdx=0; $tableIdx < count($responseArr); $tableIdx++){
+					$var = each($responseArr[$tableIdx]);
+					$resources[] = $var[1];
+				}
+			}
+			return $resources;
+		}
 		if(TRUE === $this->restResource['me']){
 			// 認証ユーザーのリソース指定
 			// bind使うので自力で組み立てる
@@ -702,7 +848,8 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 					$baseQuery = ' 1=1 ';
 					$baseBinds = NULL;
 				}
-				// REQUESTされているパラメータは条件分に利用する
+				debug($requestParams);
+				// REQUESTされているパラメータは条件文に利用する
 				for($fieldIdx = 0; $fieldIdx < count($fields); $fieldIdx++){
 					if(isset($requestParams[$fields[$fieldIdx]])){
 						// GETパラメータでbaseクエリを書き換える
@@ -720,6 +867,9 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 						}
 						$baseBinds[$fields[$fieldIdx]] = $bindValue;
 					}
+					else if(isset($requestParams['LIKE']) && strlen($requestParams['LIKE']) > 0){
+						$baseQuery .= ' OR `' . $fields[$fieldIdx] . '` LIKE \'%'.addslashes($requestParams['LIKE']).'%\' ';
+					}
 					// 有効フラグの自動参照制御
 					if($this->restResourceAvailableKeyName == $fields[$fieldIdx]){
 						$baseQuery .= ' AND `' . $this->restResourceAvailableKeyName . '` = :' . $fields[$fieldIdx] . ' ';
@@ -733,6 +883,9 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 						$deepModels[$fields[$fieldIdx]] = $deepBaseResource;
 					}
 				}
+				if(FALSE !== strpos($baseQuery, '1=1  OR ')){
+					$baseQuery = str_replace('1=1  OR ', 'WHERE ', $baseQuery);
+				}
 				// ID指定による参照(単一参照含む)
 				if(NULL !== $this->restResource['ids'] && count($this->restResource['ids']) >= 1){
 					// id指定でループする
@@ -744,7 +897,7 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 						}
 						$binds[$Model->pkeyName] = $this->restResource['ids'][$IDIdx];
 						// ORDER句指定があれば付け足す
-						if(isset($requestParams['ORDER'])){
+						if(isset($requestParams['ORDER']) && 0 < strlen($requestParams['ORDER'])){
 							$query .= ' ORDER BY ' . $requestParams['ORDER'] . ' ';
 						}
 						elseif(in_array($this->restResourceModifyDateKeyName, $fields)) {
@@ -757,8 +910,13 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 							$query .= ' ORDER BY `' . $Model->pkeyName . '` DESC ';
 						}
 						// LIMIT句指定があれば付け足す
-						if(isset($requestParams['LIMIT'])){
-							$query .= ' LIMIT ' . $requestParams['LIMIT'] . ' ';
+						if(isset($requestParams['LIMIT']) && is_numeric($requestParams['LIMIT']) && 0 < (int)$requestParams['LIMIT']){
+							$query .= ' LIMIT';
+							// OFFSET句指定があれば付け足す
+							if(isset($requestParams['OFFSET']) && is_numeric($requestParams['OFFSET']) && 0 < (int)$requestParams['OFFSET']){
+								$query .= ' ' . $requestParams['OFFSET'] . ',';
+							}
+							$query .= ' ' . $requestParams['LIMIT'] . ' ';
 						}
 						debug('load query='.$query);
 						// 読み込み
@@ -809,7 +967,7 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 					$query = $baseQuery;
 					$binds = $baseBinds;
 					// ORDER句指定があれば付け足す
-					if(isset($requestParams['ORDER'])){
+					if(isset($requestParams['ORDER']) && 0 < strlen($requestParams['ORDER'])){
 						$query .= ' ORDER BY ' . $requestParams['ORDER'] . ' ';
 					}
 					elseif(in_array($this->restResourceModifyDateKeyName, $fields)) {
@@ -822,8 +980,13 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 						$query .= ' ORDER BY `' . $Model->pkeyName . '` DESC ';
 					}
 					// LIMIT句指定があれば付け足す
-					if(isset($requestParams['LIMIT'])){
-						$query .= ' LIMIT ' . $requestParams['LIMIT'] . ' ';
+					if(isset($requestParams['LIMIT']) && is_numeric($requestParams['LIMIT']) && 0 < (int)$requestParams['LIMIT']){
+						$query .= ' LIMIT';
+						// OFFSET句指定があれば付け足す
+						if(isset($requestParams['OFFSET']) && is_numeric($requestParams['OFFSET']) && 0 < (int)$requestParams['OFFSET']){
+							$query .= ' ' . $requestParams['OFFSET'] . ',';
+						}
+						$query .= ' ' . $requestParams['LIMIT'] . ' ';
 					}
 
 					// 読み込み
@@ -1202,21 +1365,16 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 					$isDeepModel = TRUE;
 					$deepModels[$fields[$fieldIdx]] = $deepBaseResource;
 				}
-			}
-			// GETパラメータでbaseクエリを書き換える
-			if(is_array($requestParams[$fields[$fieldIdx]]) && isset($requestParams[$fields[$fieldIdx]]['mark']) && isset($requestParams[$fields[$fieldIdx]]['value'])){
-				// =以外の条件を指定したい場合の特殊処理
-				$baseQuery .= ' AND `' . $fields[$fieldIdx] . '` ' . $requestParams[$fields[$fieldIdx]]['mark'] . ' :' . $fields[$fieldIdx] . ' ';
-				$bindValue = $requestParams[$fields[$fieldIdx]]['value'];
-			}
-			else{
-				$baseQuery .= ' AND `' . $fields[$fieldIdx] . '` = :' . $fields[$fieldIdx] . ' ';
-				$bindValue = $requestParams[$fields[$fieldIdx]];
+				// GETパラメータでbaseクエリを書き換える
+				if(is_array($requestParams[$fields[$fieldIdx]]) && isset($requestParams[$fields[$fieldIdx]]['mark']) && isset($requestParams[$fields[$fieldIdx]]['value'])){
+					// =以外の条件を指定したい場合の特殊処理
+					$baseQuery .= ' AND `' . $fields[$fieldIdx] . '` ' . $requestParams[$fields[$fieldIdx]]['mark'] . ' :' . $fields[$fieldIdx] . ' ';
+					$bindValue = $requestParams[$fields[$fieldIdx]]['value'];
+				}
 			}
 			if(NULL === $baseBinds){
 				$baseBinds = array();
 			}
-			$baseBinds[$fields[$fieldIdx]] = $bindValue;
 		}
 		catch (Exception $Exception){
 			// リソースが存在しない
@@ -1225,16 +1383,23 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 		}
 		// リソースの削除
 		if(NULL !== $this->restResource['ids'] && count($this->restResource['ids']) >= 1){
+			$query = $baseQuery;
+			$binds = $baseBinds;
+			debug($query);
 			// id指定でループする
 			for($IDIdx = 0; $IDIdx < count($this->restResource['ids']); $IDIdx++){
-				$query = $baseQuery . ' AND `' . $Model->pkeyName . '` = :' . $Model->pkeyName . ' ';
-				$binds = $baseBinds;
-				$binds[$Model->pkeyName] = $this->restResource['ids'][$IDIdx];
+				if(strlen($Model->pkeyName) > 1){
+					if(FALSE === strpos($query, '`' . $Model->pkeyName . '` = :' . $Model->pkeyName . ' ')){
+						$query = $query . ' AND `' . $Model->pkeyName . '` = :' . $Model->pkeyName . ' ';
+					}
+					$binds[$Model->pkeyName] = $this->restResource['ids'][$IDIdx];
+				}
 				// 読み込み
 				$Model->load($query, $binds);
-				if((int)$Model->id > 0){
+				if((int)$Model->count > 0){
 					// リソースの削除を実行
 					$Model->remove();
+					debug('removed!');
 				}
 			}
 		}
@@ -1252,6 +1417,116 @@ abstract class RestControllerBase extends APIControllerBase implements RestContr
 			}
 		}
 		return TRUE;
+	}
+
+	/**
+	 * HEADメソッド
+	 * @return boolean
+	 */
+	public function head(){
+		$count = '0';
+		$requestParams = $this->getRequestParams();
+		$baseQuery = ' 1=1 ';
+		$baseBinds = NULL;
+		$rules = array('rules'=>array());;
+		if(TRUE === $this->restResource['me']){
+			// 認証ユーザーのリソース指定
+			// bind使うので自力で組み立てる
+			$baseQuery = ' `' . $this->authUserIDFieldName . '` = :' . $this->authUserIDFieldName . ' ';
+			$baseBinds = array($this->authUserIDFieldName => $this->authUserID);
+		}
+		try{
+			if(TRUE === $this->restResource['me'] && NULL !== $this->AuthUser && is_object($this->AuthUser) && strtolower($this->restResourceModel) == strtolower($this->AuthUser->tableName)){
+				// 自分自身のAuthモデルに対しての処理とする
+				$Model = $this->AuthUser;
+				$fields = $Model->getFieldKeys();
+				$count = '1';
+			}
+			else {
+				$Model = $this->_getModel($this->restResourceModel);
+				$fields = $Model->getFieldKeys();
+				// REQUESTされているパラメータは条件文に利用する
+				for($fieldIdx = 0; $fieldIdx < count($fields); $fieldIdx++){
+					if(isset($requestParams[$fields[$fieldIdx]])){
+						// GETパラメータでbaseクエリを書き換える
+						if(is_array($requestParams[$fields[$fieldIdx]]) && isset($requestParams[$fields[$fieldIdx]]['mark']) && isset($requestParams[$fields[$fieldIdx]]['value'])){
+							// =以外の条件を指定したい場合の特殊処理
+							$baseQuery .= ' AND `' . $fields[$fieldIdx] . '` ' . $requestParams[$fields[$fieldIdx]]['mark'] . ' :' . $fields[$fieldIdx] . ' ';
+							$bindValue = $requestParams[$fields[$fieldIdx]]['value'];
+						}
+						else{
+							$baseQuery .= ' AND `' . $fields[$fieldIdx] . '` = :' . $fields[$fieldIdx] . ' ';
+							$bindValue = $requestParams[$fields[$fieldIdx]];
+						}
+						if(NULL === $baseBinds){
+							$baseBinds = array();
+						}
+						$baseBinds[$fields[$fieldIdx]] = $bindValue;
+					}
+					else if(isset($requestParams['LIKE']) && strlen($requestParams['LIKE']) > 0){
+						$baseQuery .= ' OR `' . $fields[$fieldIdx] . '` LIKE \'%'.addslashes($requestParams['LIKE']).'%\' ';
+					}
+					// 有効フラグの自動参照制御
+					if($this->restResourceAvailableKeyName == $fields[$fieldIdx]){
+						$baseQuery .= ' AND `' . $this->restResourceAvailableKeyName . '` = :' . $fields[$fieldIdx] . ' ';
+						$baseBinds[$fields[$fieldIdx]] = 1;
+					}
+				}
+				if(FALSE !== strpos($baseQuery, '1=1  OR ')){
+					$baseQuery = str_replace('1=1  OR ', 'WHERE ', $baseQuery);
+				}
+				$query = $baseQuery;
+				$binds = $baseBinds;
+				// ORDER句指定があれば付け足す
+				if(isset($requestParams['ORDER']) && 0 < strlen($requestParams['ORDER'])){
+					$query .= ' ORDER BY ' . $requestParams['ORDER'] . ' ';
+				}
+				elseif(in_array($this->restResourceModifyDateKeyName, $fields)) {
+					$query .= ' ORDER BY `' . $this->restResourceModifyDateKeyName . '` DESC ';
+				}
+				elseif(in_array($this->restResourceCreateDateKeyName, $fields)) {
+					$query .= ' ORDER BY `' . $this->restResourceCreateDateKeyName . '` DESC ';
+				}
+				else {
+					$query .= ' ORDER BY `' . $Model->pkeyName . '` DESC ';
+				}
+				debug($query);
+				$Model->load($query, $binds);
+				$count = (string)$Model->count;
+				if('' === $count){
+					$count = '0';
+				}
+			}
+			// JSバリデートで使えるようのRuleオブジェクトをおまけで作って上げる
+			debug($Model->describes);
+			foreach($Model->describes as $key => $val){
+				$rules['rules'][$key] = array('required'=>(($val['pkey'] || $val['null'])? FALSE : TRUE), 'email'=>((FALSE === strpos(strtolower($key),'mail')) ? FALSE : TRUE), 'url'=>((FALSE === strpos(strtolower($key),'url')) ? FALSE : TRUE));
+				$rules['rules'][$key]['digits'] = FALSE;
+				if(isset($val['type']) && 'int' === $val['type']){
+					$rules['rules'][$key]['digits'] = TRUE;
+				}
+				if(isset($val['length'])){
+					$rules['rules'][$key]['maxlength']=(int)$val['length'];
+					$rules['rules'][$key]['minlength'] = (int)$val['length'];
+				}
+				if(isset($val['min-length'])){
+					$rules['rules'][$key]['minlength']=(int)$val['min-length'];
+				}
+				$Model->describes[$key]['calender'] = FALSE;
+				if($this->restResourceCreateDateKeyName == $key || $this->restResourceModifyDateKeyName == $key || FALSE !== strpos(strtolower($key),'date')){
+					// ヘッダーでは日付フィールドである事を明確にして置く
+					$Model->describes[$key]['calender'] = TRUE;
+				}
+			}
+		}
+		catch (Exception $Exception){
+			// リソースが存在しない
+			$this->httpStatus = 404;
+			throw new RESTException($Exception->getMessage(), $this->httpStatus);
+		}
+
+		// 定義一覧をヘッダに詰めて返す
+		return array('describes' => $Model->describes, 'count'=>$count, 'rules'=>$rules);
 	}
 }
 

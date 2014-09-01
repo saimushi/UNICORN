@@ -4,19 +4,14 @@ class WebFlowControllerBase extends WebControllerBase {
 
 	public $section = '';
 	public $action = '';
+	public static $flowpostformsectionUsed = FALSE;
 
-	protected function _reverseRewriteURL(){
+	protected function _reverseRewriteURL($argAction=NULL){
 		$action = $this->action;
-		if(isset($_SERVER['ReverseRewriteRule'])){
-			$reverseRules = explode(' ', $_SERVER['ReverseRewriteRule']);
-			if(count($reverseRules) == 2){
-				$reverseAction = preg_replace('/' . $reverseRules[0] . '/', $reverseRules[1], $action);
-				if(NULL !== $reverseAction && strlen($reverseAction) > 0){
-					$action = $reverseAction;
-				}
-			}
+		if(NULL !== $argAction){
+			$action= $argAction;
 		}
-		return $action;
+		return Flow::reverseRewriteURL($action);
 	}
 
 	protected function _initWebFlow(){
@@ -40,44 +35,63 @@ class WebFlowControllerBase extends WebControllerBase {
 			}
 		}
 
-		// flowFormでPOSTされていたら自動的にバリデートする
-		if(isset($_POST['flowpostformsection']) && $_GET['_c_'] === $_POST['flowpostformsection'] && count($_POST) > 0){
+		self::$flowpostformsectionUsed = FALSE;
+
+		if(isset($_POST['flowpostformsection']) && count($_POST) > 0){
 			Flow::$params['post'] = array();
 			foreach($_POST as $key => $val){
+				$executed = FALSE;
 				// Flow用としてPOSTパラメータをしまっておく
 				Flow::$params['post'][$key] = $val;
-				// backflowがポストされてきたらそれをviewのformに自動APPEND
-				if(0 !== strpos($key, 'flowpostformsection-backflow-section')){
-					Flow::$params['view']['form[flowpostformsection]'] = array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="flowpostformsection-backflow-section" value="' . $val . '"/>');
+				// flowFormでPOSTされていたらbackfrowの処理をしておく
+				if($_GET['_c_'] === $_POST['flowpostformsection']){
+					// backflowがポストされてきたらそれをviewのformに自動APPEND
+					if($key === 'flowpostformsection-backflow-section'){
+						Flow::$params['view'][] = array('form[flowpostformsection]' => array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="flowpostformsection-backflow-section" value="' . $val . '"/>'));
+						self::$flowpostformsectionUsed = TRUE;
+						$executed = TRUE;
+					}
+					elseif($key === 'flowpostformsection-backflow-section-query'){
+						Flow::$params['view'][] = array('form[flowpostformsection]' => array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="flowpostformsection-backflow-section-query" value="' . $val . '"/>'));
+						$executed = TRUE;
+					}
 				}
 				// パスワード以外はREPLACE ATTRIBUTEを自動でして上げる
-				if(0 !== strpos($key, 'pass')){
+				if(0 !== strpos($key, 'pass') && $key !== 'flowpostformsection-backflow-section' && $key !== 'flowpostformsection-backflow-section-query'){
 					if(NULL === Flow::$params['view']){
 						Flow::$params['view'] = array();
 					}
 					Flow::$params['view'][] = array('input[name=' . $key . ']' => array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('value'=>$val)));
 				}
+				if(FALSE === $executed && 0 !== strpos($key, 'pass')){
+					// それ以外はformにhiddenで埋め込む
+					Flow::$params['view'][]=  array('form[flowpostformsection]' => array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="'.$key.'" value="' . $val . '"/>'));
+				}
 				// auto validate
 				debug('$key='.$key);
 				debug('$val='.$val);
-				try{
-					if(FALSE !== strpos($key, 'mail')){
-						// メールアドレスのオートバリデート
-						Validations::isEmail($val);
+				// flowFormでPOSTされていたら自動的にバリデートする
+				if($_GET['_c_'] === $_POST['flowpostformsection']){
+					try{
+						if(FALSE !== strpos($key, 'mail')){
+							// メールアドレスのオートバリデート
+							Validations::isEmail($val);
+						}
+						if(FALSE !== strpos($key, '_must') && 0 === strlen($val)){
+							debug('must exception');
+							// 必須パラメータの存在チェック
+							throw new Exception();
+						}
 					}
-					if(FALSE !== strpos($key, '_must') && 0 === strlen($val)){
-						debug('must exception');
-						// 必須パラメータの存在チェック
-						throw new Exception();
+					catch (Exception $Exception){
+						// 最後のエラーメッセージを取っておく
+						$validateError = TRUE;
+						if(NULL === Flow::$params['view']){
+							Flow::$params['view'] = array();
+						}
+						// XXX メッセージの固定化いるか？？
+						Flow::$params['view'][] = array('div[flowpostformsectionerror=' . $_POST['flowpostformsection'] . ']' => 'メールアドレスの形式が違います');
 					}
-				}
-				catch (Exception $Exception){
-					// 最後のエラーメッセージを取っておく
-					$validateError = TRUE;
-					if(NULL === Flow::$params['view']){
-						Flow::$params['view'] = array();
-					}
-					Flow::$params['view'][] = array('div[flowpostformsectionerror=' . $_POST['flowpostformsection'] . ']' => 'メールアドレスの形式が違います');
 				}
 			}
 			if(isset($validateError)){
@@ -105,15 +119,27 @@ class WebFlowControllerBase extends WebControllerBase {
 			if(NULL === Flow::$params['view']){
 				Flow::$params['view'] = array();
 			}
-			Flow::$params['view']['form[flowpostformsection]'] = array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="flowpostformsection-backflow-section" value="' . $backFrowID . '"/>');
+			Flow::$params['view'][] = array('form[flowpostformsection]' => array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="flowpostformsection-backflow-section" value="' . $backFrowID . '"/>'));
+			Flow::$params['view'][] = array('form[flowpostformsection]' => array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="flowpostformsection-backflow-section-query" value="' . Flow::$params['backflow'][count(Flow::$params['backflow']) -1]['query'] . '"/>'));
+			self::$flowpostformsectionUsed = TRUE;
 		}
 
 		// 現在実行中のFlowをBackflowとして登録しておく
-		Flow::$params['backflow'][] = array('section' => $this->section, 'target' => $this->target);
+		$query = '';
+		foreach($_GET as $key => $val){
+			if('_c_' !== $key && '_a_' !== $key && '_o_' !== $key){
+				if(strlen($query) > 0){
+					$query .= '&';
+				}
+				$query .= $key.'='.$val;
+			}
+		}
+		Flow::$params['backflow'][] = array('section' => $this->section, 'target' => $this->target, 'query' => htmlspecialchars($query));
+		debug('backflows=');
 		debug(Flow::$params['backflow']);
 
 		// flowpostformsectionに現在の画面をBackFlowとして登録する
-		if(NULL === Flow::$params['view'] || !isset(Flow::$params['view']['form[flowpostformsection]'])){
+		if(NULL === Flow::$params['view'] && FALSE === self::$flowpostformsectionUsed){
 			$backFrowID = Flow::$params['backflow'][count(Flow::$params['backflow']) -1]['target'] . '/' . Flow::$params['backflow'][count(Flow::$params['backflow']) -1]['section'];
 			if('' === Flow::$params['backflow'][count(Flow::$params['backflow']) -1]['target']){
 				$backFrowID = Flow::$params['backflow'][count(Flow::$params['backflow']) -1]['section'];
@@ -121,7 +147,8 @@ class WebFlowControllerBase extends WebControllerBase {
 			else {
 				$backFrowID = str_replace('//', '/', $backFrowID);
 			}
-			Flow::$params['view']['form[flowpostformsection]'] = array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="flowpostformsection-backflow-section" value="' . $backFrowID . '"/>');
+			Flow::$params['view'][] = array('form[flowpostformsection]' => array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="flowpostformsection-backflow-section" value="' . $backFrowID . '"/>'));
+			Flow::$params['view'][] = array('form[flowpostformsection]' => array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="flowpostformsection-backflow-section-query" value="' . Flow::$params['backflow'][count(Flow::$params['backflow']) -1]['query'] . '"/>'));
 		}
 
 		return TRUE;
