@@ -955,6 +955,31 @@ _CLASSDEF_;
 }
 
 /**
+ * configの読み込みとconfigureクラスの定義を実行する
+ */
+function loadConfigForConfigName($argConfigName){
+	$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . '/core/' . $argConfigName . '.config.xml';
+	if(TRUE !== is_file($projectconfPath)){
+		$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . '/core/config.xml';
+	}
+	if(TRUE !== is_file($projectconfPath)){
+		$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . '/core/' . str_replace('Package', '', $argConfigName) . '.config.xml';
+	}
+	if(TRUE !== is_file($projectconfPath)){
+		$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . 'Package/core/config.xml';
+	}
+	if(TRUE !== is_file($projectconfPath)){
+		$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . 'Package/core/' . $argConfigName . '.config.xml';
+	}
+	if(TRUE === is_file($projectconfPath)){
+		debug($projectconfPath);
+		$res = loadConfig($projectconfPath);
+		debug(var_export($res, TRUE));
+	}
+	return FALSE;
+}
+
+/**
  * フレームワークの初期化処理(内部関数)
  * @param mixed TRUEの時は、読み込み済みのパッケージ情報を返す stringの時はConfigureクラス名としてConfigureクラスに対してのinitを処理する
  */
@@ -2145,6 +2170,67 @@ function getAutoMigrationPath(){
 	return $migrationPath;
 }
 
+/**
+ * コンフィグレーションされている値を返す
+ */
+function getConfig($argKey, $argConfigName=''){
+	static $values = array();
+	$value = NULL;
+	if(!isset($values[$argConfigName])){
+		$values[$argConfigName] = array();
+	}
+	if(!isset($values[$argConfigName][$argKey])){
+		if(class_exists('Configure') && TRUE === defined('Configure::'.$argKey)){
+			// 定義から暗号化キーを設定
+			$value = Configure::constant($argKey);
+		}
+		if(defined('PROJECT_NAME') && strlen(PROJECT_NAME) > 0 && class_exists(PROJECT_NAME . 'Configure')){
+			$ProjectConfigure = PROJECT_NAME . 'Configure';
+			if(TRUE === defined($ProjectConfigure.'::'.$argKey)){
+				// 定義からセッションDBの接続情報を特定
+				$value = $ProjectConfigure::constant($argKey);
+			}
+		}
+		if(!class_exists($argConfigName . 'Configure') && !class_exists($argConfigName) && !class_exists(str_replace('Package', '', $argConfigName))){
+			loadConfigForConfigName($argConfigName);
+		}
+		if('' !== $argConfigName && strlen($argConfigName) > 0 && class_exists($argConfigName . 'Configure')){
+			$ArgConfigure = $argConfigName . 'Configure';
+			if(TRUE === defined($ArgConfigure.'::'.$argKey)){
+				// 定義からセッションDBの接続情報を特定
+				$value = $ArgConfigure::constant($argKey);
+			}
+		}
+		if('' !== $argConfigName && strlen($argConfigName) > 0 && class_exists($argConfigName)){
+			$ArgConfigure = $argConfigName;
+			if(TRUE === defined($ArgConfigure.'::'.$argKey)){
+				// 定義からセッションDBの接続情報を特定
+				$value = $ArgConfigure::constant($argKey);
+			}
+		}
+		$argConfigName = str_replace('Package', '', $argConfigName);
+		if('' !== $argConfigName && strlen($argConfigName) > 0 && class_exists($argConfigName . 'Configure')){
+			$ArgConfigure = $argConfigName . 'Configure';
+			if(TRUE === defined($ArgConfigure.'::'.$argKey)){
+				// 定義からセッションDBの接続情報を特定
+				$value = $ArgConfigure::constant($argKey);
+			}
+		}
+		if('' !== $argConfigName && strlen($argConfigName) > 0 && class_exists($argConfigName)){
+			$ArgConfigure = $argConfigName;
+			if(TRUE === defined($ArgConfigure.'::'.$argKey)){
+				// 定義からセッションDBの接続情報を特定
+				$value = $ArgConfigure::constant($argKey);
+			}
+		}
+		$values[$argConfigName][$argKey] = $value;
+	}
+	else {
+		$value = $values[$argConfigName][$argKey];
+	}
+	return $value;
+}
+
 /*------------------------------ 根幹関数定義 ココから ------------------------------*/
 
 
@@ -2180,19 +2266,8 @@ else {
 
 // PROJECT_NAME定数があったらプロジェクト専用のconfigureを探してみて読み込む
 if(defined('PROJECT_NAME')){
-	$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . PROJECT_NAME . '/core/' . PROJECT_NAME . '.config.xml';
-	if(TRUE !== is_file($projectconfPath)){
-		$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . PROJECT_NAME . 'Package/core/' . PROJECT_NAME . '.config.xml';
-	}
-	loadConfig($projectconfPath);
+	loadConfigForConfigName(PROJECT_NAME);
 }
-
-// パス関連の定数をset_include_pathする
-// foreach(get_defined_constants() as $constKey => $val){
-// 	if(!preg_match('/.+_INCLUDE_PATH$/',$constKey) && !preg_match('/^PHP_.+_PATH$/',$constKey) && !preg_match('/.+USE.*_PATH$/',$constKey) && preg_match('/.+_PATH$/',$constKey)){
-// 		set_include_path(get_include_path().PATH_SEPARATOR.$val);
-// 	}
-// }
 
 /*------------------------------ 手続き型処理 ココまで ------------------------------*/
 

@@ -9,7 +9,6 @@
 
 #crudmain table.list {
 	table-layout:fixed;
-	word-wrap: break-all;
 	width: 100%;
 }
 

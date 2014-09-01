@@ -56,6 +56,15 @@
 		width: 300px;
 	}
 
+	table {
+		width: 100%;
+		table-layout:fixed;
+	}
+
+	table td, table td * {
+		word-wrap: break-word;
+	}
+
 	.background {
 		background-position: center;
 	}

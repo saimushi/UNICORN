@@ -12,6 +12,11 @@
 				<if var="res" val="0">
 					<exception/>
 				</if>
+				<flowviewparam selector="#baseURL" val="getConfig('BASE_URL', Flow::$params['get']['target_project'])"/>
+				<flowviewparam selector="#baseURL" val="array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('href' => getConfig('BASE_URL', Flow::$params['get']['target_project'])))"/>
+				<flowviewparam selector="#DB_DSN" val="getConfig('DB_DSN', Flow::$params['get']['target_project'])"/>
+				<flowviewparam selector="#createdb" val="file_get_contents(getConfig('PROJECT_ROOT_PATH', Flow::$params['get']['target_project']).'core/createdb.sql')"/>
+				<flowviewparam selector="#createtable" val="file_get_contents(getConfig('PROJECT_ROOT_PATH', Flow::$params['get']['target_project']).'core/createtable.sql')"/>
 				<assign var="useAutoGenerate" method="getAutoGenerateEnabled" arg1="Flow::$params['get']['target_project']"/>
 				<if var="useAutoGenerate" val="true">
 					<assign var="useAutoGenerate" val="string:on"/>

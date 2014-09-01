@@ -163,6 +163,24 @@ li {
 	padding: 5px;
 }
 
+
+table {
+	width: 100%;
+}
+
+table th {
+	width: 20%;
+	text-align: left;
+}
+
+table th.t-header {
+	text-align: center;
+}
+
+table td, table td * {
+	word-wrap: break-word;
+}
+
 .orange {
 	/* style setting */
 	color: darkorange;

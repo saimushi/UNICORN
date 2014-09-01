@@ -75,3 +75,8 @@ nav.panelbox {
 	border: 2px solid #FF8000;
 	background-color: RGBA(0, 0, 0, 0.7);
 }
+
+table th.t-header * {
+	/* style setting */
+	color: white;
+}
