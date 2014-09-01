@@ -2,12 +2,8 @@ package com.unicorn.model;
 
 import java.util.HashMap;
 
-import com.unicorn.model.ModelBase.loadResourceMode;
-import com.unicorn.project.Constant;
-
 import android.content.Context;
 import android.os.Handler;
-import android.os.Message;
 
 public class UserModel extends ModelBase {
 
