@@ -955,9 +955,9 @@ _CLASSDEF_;
 }
 
 /**
- * configの読み込みとconfigureクラスの定義を実行する
+ * プロジェクト名からconfigファイルのパスを自動走査して取得する
  */
-function loadConfigForConfigName($argConfigName){
+function getConfigPathForConfigName($argConfigName){
 	$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . '/core/' . $argConfigName . '.config.xml';
 	if(TRUE !== is_file($projectconfPath)){
 		$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . '/core/config.xml';
@@ -972,9 +972,18 @@ function loadConfigForConfigName($argConfigName){
 		$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . 'Package/core/' . $argConfigName . '.config.xml';
 	}
 	if(TRUE === is_file($projectconfPath)){
-		debug($projectconfPath);
-		$res = loadConfig($projectconfPath);
-		debug(var_export($res, TRUE));
+		return $projectconfPath;
+	}
+	return FALSE;
+}
+
+/**
+ * configの読み込みとconfigureクラスの定義を実行する
+ */
+function loadConfigForConfigName($argConfigName){
+	$projectconfPath = getConfigPathForConfigName($argConfigName);
+	if(FALSE !== $projectconfPath){
+		return loadConfig($projectconfPath);
 	}
 	return FALSE;
 }
@@ -1564,8 +1573,10 @@ function isTest($argStagingEnabled=FALSE, $argProjectName=NULL, $argHost=NULL){
  * 現在設定されている開発環境自動判別フラグを返す
  */
 function getAutoStageCheckEnabled($argProjectName=NULL){
-	static $autoStagecheckEnabled = NULL;
-	if(NULL === $autoStagecheckEnabled || NULL !== $argProjectName){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$autoStagecheckEnabled = NULL;
+		$enabled = array();
 		if(NULL !== $argProjectName){
 			$autoStagecheckEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.autostagecheck';
 			if(TRUE !== is_file($autoStagecheckEnabledFilepath)){
@@ -1608,22 +1619,26 @@ function getAutoStageCheckEnabled($argProjectName=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$autoStagecheckEnabled = 0;
 		}
+		$enabled[$argProjectName] = $autoStagecheckEnabled;
 	}
-	return $autoStagecheckEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されているロ−カル開発環境フラグを返す
  */
 function getLocalEnabled($argProjectName=NULL, $argHost=NULL){
-	static $localEnabled = NULL;
-	if(NULL === $localEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$localEnabled = NULL;
+		$enabled = array();
 		if(1 === getAutoStageCheckEnabled($argProjectName) && TRUE === checkStage(CHAKE_STAGE_LOCAL, $argHost)){
 			$localEnabled = 1;
 		}
 		else {
 			if(NULL !== $argProjectName){
 				$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.local';
+				debug($localEnabledFilepath);
 				if(TRUE !== is_file($localEnabledFilepath)){
 					$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.local';
 				}
@@ -1663,24 +1678,27 @@ function getLocalEnabled($argProjectName=NULL, $argHost=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$localEnabled = 0;
 		}
+		$enabled[$argProjectName] = $localEnabled;
 	}
-	return $localEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されている開発開発環境フラグを返す
  */
 function getDevelopmentEnabled($argProjectName=NULL, $argHost=NULL){
-	static $devlopmentEnabled = NULL;
-	if(NULL === $devlopmentEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$devlopmentEnabled = NULL;
+		$enabled = array();
 		if(1 === getAutoStageCheckEnabled($argProjectName) && TRUE === checkStage(CHAKE_STAGE_DEV, $argHost)){
 			$devlopmentEnabled = 1;
 		}
 		else {
 			if(NULL !== $argProjectName){
-				$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.local';
-				if(TRUE !== is_file($localEnabledFilepath)){
-					$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.local';
+				$devlopmentEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.dev';
+				if(TRUE !== is_file($devlopmentEnabledFilepath)){
+					$devlopmentEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.dev';
 				}
 			}
 			elseif(NULL !== defined('PROJECT_NAME')){
@@ -1727,16 +1745,19 @@ function getDevelopmentEnabled($argProjectName=NULL, $argHost=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$devlopmentEnabled = 0;
 		}
+		$enabled[$argProjectName] = $devlopmentEnabled;
 	}
-	return $devlopmentEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されているテスト開発環境フラグを返す
  */
 function getTestEnabled($argProjectName=NULL, $argHost=NULL){
-	static $testEnabled = NULL;
-	if(NULL === $testEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$testEnabled = NULL;
+		$enabled = array();
 		if(1 === getAutoStageCheckEnabled($argProjectName) && TRUE === checkStage(CHAKE_STAGE_TEST, $argHost)){
 			$testEnabled = 1;
 		}
@@ -1782,16 +1803,19 @@ function getTestEnabled($argProjectName=NULL, $argHost=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$testEnabled = 0;
 		}
+		$enabled[$argProjectName] = $testEnabled;
 	}
-	return $testEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されているステージング開発環境フラグを返す
  */
 function getStagingEnabled($argProjectName=NULL, $argHost=NULL){
-	static $stagingEnabled = NULL;
-	if(NULL === $stagingEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$stagingEnabled = NULL;
+		$enabled = array();
 		if(1 === getAutoStageCheckEnabled($argProjectName) && TRUE === checkStage(CHAKE_STAGE_STAGING, $argHost)){
 			$stagingEnabled = 1;
 		}
@@ -1837,17 +1861,19 @@ function getStagingEnabled($argProjectName=NULL, $argHost=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$stagingEnabled = 0;
 		}
+		$enabled[$argProjectName] = $stagingEnabled;
 	}
-	return $stagingEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されているデバッグモードフラグを返す
  */
 function getDebugEnabled($argProjectName=NULL, $argHost=NULL){
-	static $debugEnabled = NULL;
-	if(NULL === $debugEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
 		$debugEnabled = 0;
+		$enabled = array();
 		if(TRUE === isTest(FALSE, $argProjectName, $argHost)){
 			$debugEnabled = 1;
 		}
@@ -1892,16 +1918,19 @@ function getDebugEnabled($argProjectName=NULL, $argHost=NULL){
 				$debugEnabled = 0;
 			}
 		}
+		$enabled[$argProjectName] = $debugEnabled;
 	}
-	return $debugEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されているエラーレポーティングフラグを返す
  */
 function getErrorReportEnabled($argProjectName=NULL){
-	static $errorReportEnabled = NULL;
-	if(NULL === $errorReportEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$errorReportEnabled = NULL;
+		$enabled = array();
 		if(NULL !== $argProjectName){
 			$errorReportEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.error_report';
 			if(TRUE !== is_file($errorReportEnabledFilepath)){
@@ -1947,15 +1976,18 @@ function getErrorReportEnabled($argProjectName=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$errorReportEnabled = 0;
 		}
+		$enabled[$argProjectName] = $errorReportEnabled;
 	}
-	return $errorReportEnabled;
+	return $enabled[$argProjectName];
 }
 /**
  * 現在設定されている自動最適化キャッシュ生成フラグを返す
  */
 function getAutoGenerateEnabled($argProjectName=NULL){
-	static $autoGenerateEnabled = NULL;
-	if(NULL === $autoGenerateEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$autoGenerateEnabled = NULL;
+		$enabled = array();
 		if(NULL !== $argProjectName){
 			$autoGenerateEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.autogenerate';
 			if(TRUE !== is_file($autoGenerateEnabledFilepath)){
@@ -1992,16 +2024,19 @@ function getAutoGenerateEnabled($argProjectName=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$autoGenerateEnabled = FALSE;
 		}
+		$enabled[$argProjectName] = $autoGenerateEnabled;
 	}
-	return $autoGenerateEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されている自動最適化キャッシュ生成フラグを返す
  */
 function getAutoMigrationEnabled($argProjectName=NULL){
-	static $autoMigrationEnabled = NULL;
-	if(NULL === $autoMigrationEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$autoMigrationEnabled = NULL;
+		$enabled = array();
 		if(NULL !== $argProjectName){
 			$autoMigrationEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.automigration';
 			if(TRUE !== is_file($autoMigrationEnabledFilepath)){
@@ -2038,8 +2073,9 @@ function getAutoMigrationEnabled($argProjectName=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$autoMigrationEnabled = FALSE;
 		}
+		$enabled[$argProjectName] = $autoMigrationEnabled;
 	}
-	return $autoMigrationEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**

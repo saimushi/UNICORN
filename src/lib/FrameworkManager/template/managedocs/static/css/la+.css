@@ -80,3 +80,8 @@ table th.t-header * {
 	/* style setting */
 	color: white;
 }
+
+table .configname {
+	/* style setting */
+	color: white;
+}

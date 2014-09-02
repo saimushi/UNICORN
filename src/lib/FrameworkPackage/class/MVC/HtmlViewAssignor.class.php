@@ -228,14 +228,16 @@ class HtmlViewAssignor {
 						if(is_array($val)){
 							$newDomHtml = '';
 							$dom = $Template[$argDepth]->find($argKey);
-							$outerhtml = $dom[0]->outertext();
-							foreach($val as $lKey => $lval){
-								if(is_numeric($lKey)){
-									$lKey = NULL;
+							if(isset($dom) && is_array($dom) && isset($dom[0])){
+								$outerhtml = $dom[0]->outertext();
+								foreach($val as $lKey => $lval){
+									if(is_numeric($lKey)){
+										$lKey = NULL;
+									}
+									$newDomHtml .= self::assign($outerhtml, $lval, $lKey, $argDepth+1);
 								}
-								$newDomHtml .= self::assign($outerhtml, $lval, $lKey, $argDepth+1);
+								$dom[0]->setAttribute('outertext', $newDomHtml);
 							}
-							$dom[0]->setAttribute('outertext', $newDomHtml);
 						}
 					}
 					// 再帰処理

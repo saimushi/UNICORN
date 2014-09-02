@@ -17,6 +17,41 @@
 				<flowviewparam selector="#DB_DSN" val="getConfig('DB_DSN', Flow::$params['get']['target_project'])"/>
 				<flowviewparam selector="#createdb" val="file_get_contents(getConfig('PROJECT_ROOT_PATH', Flow::$params['get']['target_project']).'core/createdb.sql')"/>
 				<flowviewparam selector="#createtable" val="file_get_contents(getConfig('PROJECT_ROOT_PATH', Flow::$params['get']['target_project']).'core/createtable.sql')"/>
+				<assign var="projectconf" val="simplexml_load_file(getConfigPathForConfigName(Flow::$params['get']['target_project']))"/>
+				<assign var="configs" val="array()"/>
+				<foreach eachas="projectconf">
+					<assign var="childeCount" val="$projectconfval->count()"/>
+					<if var="childeCount" style="&gt;" val="1">
+						<assign var="configs[]" val="array(array('.config-node-key' => 'ConfigureName:', '.config-node-val' => $projectconfkey), array('.config-node-key' => array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('class' => 'configname config-node-key'))))"/>
+						<foreach eachas="projectconfval">
+							<assign var="attribute" val="''"/>
+							<assign var="attributeCount" val="count($projectconfvalval->attributes())"/>
+							<if var="attributeCount" style="!=" val="0">
+								<assign var="tmpAttributes" val="$projectconfvalval->attributes()"/>
+								<assign var="attributes" val="array()"/>
+								<foreach eachas="tmpAttributes">
+									<assign var="attributes[]" val="$tmpAttributeskey.'='.$tmpAttributesval"/>
+								</foreach>
+								<assign var="attribute" val="' ('.implode(',',$attributes).')'"/>
+							</if>
+							<assign var="configs[]" val="array(array('.config-node-key' => $projectconfvalkey.$attribute, '.config-node-val' => $projectconfvalval->__toString()), array('.config-node-key' => array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('class' => 'config-node-key'))))"/>
+						</foreach>
+					</if>
+					<else>
+						<assign var="attribute" val="''"/>
+						<assign var="attributeCount" val="count($projectconfval->attributes())"/>
+						<if var="attributeCount" style="!=" val="0">
+							<assign var="tmpAttributes" val="$projectconfval->attributes()"/>
+							<assign var="attributes" val="array()"/>
+							<foreach eachas="tmpAttributes">
+								<assign var="attributes[]" val="$tmpAttributeskey.'='.$tmpAttributesval"/>
+							</foreach>
+							<assign var="attribute" val="' ('.implode(',',$attributes).')'"/>
+						</if>
+						<assign var="configs[]" val="array(array('.config-node-key' => $projectconfkey.$attribute, '.config-node-val' => $projectconfval->__toString()), array('.config-node-key' => array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('class' => 'config-node-key'))))"/>
+					</else>
+				</foreach>
+				<flowviewparam selector=".config-node" val="array(HtmlViewAssignor::LOOP_NODE_KEY => $configs)"/>
 				<assign var="useAutoGenerate" method="getAutoGenerateEnabled" arg1="Flow::$params['get']['target_project']"/>
 				<if var="useAutoGenerate" val="true">
 					<assign var="useAutoGenerate" val="string:on"/>
@@ -57,7 +92,7 @@
 					<assign var="isDebug" val="string:on"/>
 					<flowviewparam selector="#isDebug" val="$isDebug"/>
 				</if>
-				<assign var="stageTest" method="isTest" arg1="Flow::$params['get']['target_project']"/>
+				<assign var="stageTest" method="isTest" arg1="FALSE" arg2="Flow::$params['get']['target_project']"/>
 				<if var="stageTest" val="true">
 					<assign var="stageTest" val="string:on"/>
 					<flowviewparam selector="#stageTest" val="$stageTest"/>
@@ -69,23 +104,55 @@
 			</else>
 		</execute>
 	</section>
-	<section id="Generatenewproject-execute">
+	<section id="Managementproject-modifyflags">
 		<execute>
 			<assign var="res" class="Auth" method="isCertification"/>
 			<if var="res" val="true">
-				<if var="autoValidated" val="true">
-					<assign var="res" class="ProjectManager" method="createProject" arg1="Flow::$params['post']['project_name_must']"/>
-					<if var="res" val="true">
-						<view baseview="base"/>
-					</if>
-					<else>
-						<flowpostformsectionerror>プロジェクトの作成に失敗しました</flowpostformsectionerror>
-					</else>
+				<if var="res" val="false">
+					<exception/>
 				</if>
-				<else>
-					<flowpostformsectionerror>プロジェクト名は必ず指定して下さい</flowpostformsectionerror>
-				</else>
-				<view section="Generatenewproject" flowpostformsection="web/Generatenewproject-execute" baseview="base"/>
+				<assign var="res"  method="strlen" arg1="Flow::$params['get']['target_project']"/>
+				<if var="res" val="0">
+					<exception/>
+				</if>
+				<view baseview="base"/>
+			</if>
+			<else>
+				<flow section="web/login"/>
+			</else>
+		</execute>
+	</section>
+	<section id="Managementproject-modifyconfigure">
+		<execute>
+			<assign var="res" class="Auth" method="isCertification"/>
+			<if var="res" val="true">
+				<if var="res" val="false">
+					<exception/>
+				</if>
+				<assign var="res"  method="strlen" arg1="Flow::$params['get']['target_project']"/>
+				<if var="res" val="0">
+					<exception/>
+				</if>
+				<flowviewparam selector="#configxml" val="file_get_contents(getConfigPathForConfigName(Flow::$params['get']['target_project']))"/>
+				<view baseview="base"/>
+			</if>
+			<else>
+				<flow section="web/login"/>
+			</else>
+		</execute>
+	</section>
+	<section id="Managementproject-modifydbsettings">
+		<execute>
+			<assign var="res" class="Auth" method="isCertification"/>
+			<if var="res" val="true">
+				<if var="res" val="false">
+					<exception/>
+				</if>
+				<assign var="res"  method="strlen" arg1="Flow::$params['get']['target_project']"/>
+				<if var="res" val="0">
+					<exception/>
+				</if>
+				<view baseview="base"/>
 			</if>
 			<else>
 				<flow section="web/login"/>

@@ -334,7 +334,7 @@ class FlowManager
 				if('if' === $codeType){
 					$code .= 'if(';
 				}
-				elseif('elseid' === $codeType){
+				elseif('elseif' === $codeType){
 					$code .= 'elseif(';
 				}
 				elseif('else' === $codeType){
@@ -345,6 +345,14 @@ class FlowManager
 				}
 				if(isset($tmpAttr['var']) && strlen($tmpAttr['var']) > 0){
 					$code .= '$' . $tmpAttr['var'];
+				}
+				// for文
+				if('for' === $codeType){
+					$code .= 'for('.$tmpAttr['iterate'].'; '.$tmpAttr['iterator'].'; '.$tmpAttr['iteration'];
+				}
+				// foreach文
+				if('foreach' === $codeType){
+					$code .= 'foreach($'.$tmpAttr['eachas'].' AS $'.$tmpAttr['eachas'].'key => $'.$tmpAttr['eachas'].'val';
 				}
 				// 式の評価文
 				// if文 elseif文
@@ -358,9 +366,9 @@ class FlowManager
 						$code .= ' === ';
 					}
 				}
-				// else文
-				elseif('else' === $codeType){
-					// elseは何もナシ
+				// else文 for文 foreach文
+				elseif('else' === $codeType || 'for' === $codeType || 'foreach' === $codeType){
+					// 何もナシ
 				}
 				// return文
 				elseif('return' === $codeType){
@@ -401,7 +409,7 @@ class FlowManager
 					$code .= $tmpAttr['property'];
 				}
 				// 式の終端文
-				if('if' === $codeType || 'elseif' === $codeType){
+				if('if' === $codeType || 'elseif' === $codeType || 'for' === $codeType || 'foreach' === $codeType){
 					$code .= '){' . PHP_EOL;
 				}
 				elseif('else' === $codeType){
@@ -414,7 +422,7 @@ class FlowManager
 					}
 				}
 				// 終了子判定
-				if('if' === $codeType || 'elseif' === $codeType || 'else' === $codeType){
+				if('if' === $codeType || 'elseif' === $codeType || 'else' === $codeType || 'for' === $codeType || 'foreach' === $codeType){
 					$code .= $tab . '}';
 				}
 				else{

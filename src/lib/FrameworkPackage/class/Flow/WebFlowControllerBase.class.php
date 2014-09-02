@@ -29,7 +29,6 @@ class WebFlowControllerBase extends WebControllerBase {
 				if(NULL === Flow::$params['view']){
 					Flow::$params['view'] = array();
 				}
-				debug('[frowparamsection=' . $key . ']');
 				Flow::$params['view'][] = array('[frowparamsection=' . $key . ']' => array(HtmlViewAssignor::PART_REPLACE_NODE_KEY => array('_flow_'.$key.'_' => $val)));
 				Flow::$params['view'][] = array('[frowparamsection=' . $key . ']' => array(HtmlViewAssignor::PART_REPLACE_ATTR_KEY => array('href' => array('_flow_'.$key.'_' => $val), 'value' => array('_flow_'.$key.'_' => $val), 'src' => array('_flow_'.$key.'_' => $val))));
 			}
