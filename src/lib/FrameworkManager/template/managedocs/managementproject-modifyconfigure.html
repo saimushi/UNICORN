@@ -1,0 +1,24 @@
+<var selector="title#title" value="array(HtmlViewAssignor::PART_REPLACE_NODE_KEY => array('pagename' => 'Management '  . Flow::$params['get']['target_project'] . ' Flags'))" />
+<script type="text/javascript" src="./static/js/editarea/edit_area_full.js"></script>
+<script type="text/javascript">
+	editAreaLoader.init({
+		id: "configxml"	// id of the textarea to transform		
+		,start_highlight: true	// if start with highlight
+		,allow_resize: "both"
+		,allow_toggle: false
+		,word_wrap: true
+		,save_callback: "my_save"
+		,language: "ja"
+		,syntax: "xml"	
+	});
+	function save(id, content){
+		alert("Here is the content of the EditArea '"+ id +"' as received by the save callback function:\n"+content);
+	}
+</script>
+<section id="main" class="mainbox panelbox">
+	<div class="maincontents">
+		<h2 frowparamsection="target_project">_flow_target_project_のコンフィグ設定を変更出来ます。</h2>
+		<br/>
+		<textarea id="configxml" style="height: 350px; width: 100%;" name="configxml"></textarea>
+	</div>
+</section>
