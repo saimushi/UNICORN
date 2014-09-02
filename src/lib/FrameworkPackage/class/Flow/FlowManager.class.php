@@ -13,7 +13,7 @@ class FlowManager
 		return TRUE;
 	}
 
-	public static function reverseRewriteURL($argAction){
+	public static function reverseRewriteURL($argAction, $argQuery=''){
 		$action= $argAction;
 		if(isset($_SERVER['ReverseRewriteRule'])){
 			$reverseRules = explode(' ', $_SERVER['ReverseRewriteRule']);
@@ -24,7 +24,29 @@ class FlowManager
 				}
 			}
 		}
-		return $action;
+		$query = '';
+		if('' !== $argQuery){
+			$query = $argQuery;
+		}
+		else {
+			foreach($_GET as $key => $val){
+				if('_c_' !== $key && '_a_' !== $key && '_o_' !== $key){
+					if(strlen($query) > 0){
+						$query .= '&';
+					}
+					$query .= $key.'='.$val;
+				}
+			}
+		}
+		if('' !== $query){
+			if(FALSE === strpos($action, '.'.$_GET['_o_'].'?')){
+				$query = '?'.$query;
+			}
+			else {
+				$query = '&'.$query;
+			}
+		}
+		return $action.$query;
 	}
 
 	/**
@@ -57,20 +79,15 @@ class FlowManager
 // 				}
 			}
 			// backflowはリダイレクトポスト(307リダイレクト)
-			$action = self::reverseRewriteURL('?_c_=' . $argClassName . '&_o_='.$_GET['_o_']);
 			$query = '';
 			if(isset($_POST['flowpostformsection-backflow-section-query']) && strlen($_POST['flowpostformsection-backflow-section-query']) > 0){
-				$query = '?';
-				if(FALSE === strpos($action, '.'.$_GET['_o_'].'?')){
-					$query = '&';
-				}
-				$query .= $_POST['flowpostformsection-backflow-section-query'];
+				$query = $_POST['flowpostformsection-backflow-section-query'];
 			}
-			header('Location: ./'.$action.$query, TRUE, 307);
+			header('Location: ./'.self::reverseRewriteURL('?_c_=' . $argClassName . '&_o_='.$_GET['_o_'], $query), TRUE, 307);
 			exit();
 		}
 		$className = MVCCore::loadMVCModule($argClassName, FALSE, $argTargetPath);
-			debug('backflowClass='.var_export($className,true));
+		debug('backflowClass='.var_export($className,true));
 		return $className;
 	}
 

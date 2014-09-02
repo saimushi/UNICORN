@@ -201,6 +201,10 @@ table td, table td * {
 	color: red;
 }
 
+.white {
+	/* style setting */
+	color: white;
+}
 .strong {
 	font-weight: bold;
 }

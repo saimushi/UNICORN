@@ -2,23 +2,31 @@
 <script type="text/javascript" src="./static/js/editarea/edit_area_full.js"></script>
 <script type="text/javascript">
 	editAreaLoader.init({
-		id: "configxml"	// id of the textarea to transform		
-		,start_highlight: true	// if start with highlight
-		,allow_resize: "both"
+		id: "configxml"
+		,start_highlight: true
+		,allow_resize: "y"
 		,allow_toggle: false
-		,word_wrap: true
-		,save_callback: "my_save"
+		,toolbar: "save, search, fullscreen, go_to_line, undo, redo, help"
+		,save_callback: "saved"
 		,language: "ja"
-		,syntax: "xml"	
+		,syntax: "xml"
+		,replace_tab_by_spaces: 2
+		,show_line_colors: true
 	});
-	function save(id, content){
-		alert("Here is the content of the EditArea '"+ id +"' as received by the save callback function:\n"+content);
+	function saved(id, content){
+		$("#"+id).val(content);
+		$('#modifyconfigure-form').submit();
 	}
 </script>
 <section id="main" class="mainbox panelbox">
 	<div class="maincontents">
 		<h2 frowparamsection="target_project">_flow_target_project_のコンフィグ設定を変更出来ます。</h2>
 		<br/>
-		<textarea id="configxml" style="height: 350px; width: 100%;" name="configxml"></textarea>
+		<div flowpostformsectionerror="web/managementproject-modifyconfigure" id="modified-message" class="red errormsg"></div>
+		<br/>
+		<form id="modifyconfigure-form" flowpostformsection="web/managementproject-modifyconfigure">
+			<textarea id="configxml" style="height: 450px; width: 100%;" name="configxml"></textarea>
+			<input type="hidden" name="modify" value="1"/>
+		</form>
 	</div>
 </section>

@@ -126,6 +126,7 @@
 		<execute>
 			<assign var="res" class="Auth" method="isCertification"/>
 			<if var="res" val="true">
+				<assign var="res"  method="isset" arg1="Flow::$params['get']['target_project']"/>
 				<if var="res" val="false">
 					<exception/>
 				</if>
@@ -133,8 +134,23 @@
 				<if var="res" val="0">
 					<exception/>
 				</if>
-				<flowviewparam selector="#configxml" val="file_get_contents(getConfigPathForConfigName(Flow::$params['get']['target_project']))"/>
-				<view baseview="base"/>
+				<assign var="res"  method="isset" arg1="Flow::$params['post']['modify']"/>
+				<if var="res" val="false">
+					<flowviewparam selector="#configxml" val="htmlspecialchars(file_get_contents(getConfigPathForConfigName(Flow::$params['get']['target_project'])))"/>
+				</if>
+				<else>
+					<assign var="res"  method="simplexml_load_string" arg1="Flow::$params['post']['configxml']"/>
+					<if var="res" val="false">
+						<flowpostformsectionerror>(!)XMLの形式に間違があります! 保存しませんでした。&lt;br/&gt;正しいXMLに修正してから保存して下さい。</flowpostformsectionerror>
+					</if>
+					<else>
+						<assign var="res"  method="file_put_contents" arg1="getConfigPathForConfigName(Flow::$params['get']['target_project'])" arg2="Flow::$params['post']['configxml']"/>
+						<flowpostformsectionerror>コンフィグ設定の変更を保存しました。</flowpostformsectionerror>
+						<flowviewparam selector="#modified-message" val="array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('class' => 'white errormsg'))"/>
+					</else>
+					<flowviewparam selector="#configxml" val="htmlspecialchars(Flow::$params['post']['configxml'])"/>
+				</else>
+				<view baseview="base" flowpostformsection="web/managementproject-modifyconfigure"/>
 			</if>
 			<else>
 				<flow section="web/login"/>
