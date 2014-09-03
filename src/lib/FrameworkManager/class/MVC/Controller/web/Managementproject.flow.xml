@@ -144,7 +144,7 @@
 						<flowpostformsectionerror>(!)XMLの形式に間違があります! 保存しませんでした。&lt;br/&gt;正しいXMLに修正してから保存して下さい。</flowpostformsectionerror>
 					</if>
 					<else>
-						<assign var="res"  method="file_put_contents" arg1="getConfigPathForConfigName(Flow::$params['get']['target_project'])" arg2="Flow::$params['post']['configxml']"/>
+						<assign var="res"  method="file_put_contents" arg1="getConfigPathForConfigName(Flow::$params['get']['target_project'])" arg2="str_replace('  ', PHP_TAB, Flow::$params['post']['configxml'])"/>
 						<flowpostformsectionerror>コンフィグ設定の変更を保存しました。</flowpostformsectionerror>
 						<flowviewparam selector="#modified-message" val="array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('class' => 'white errormsg'))"/>
 					</else>

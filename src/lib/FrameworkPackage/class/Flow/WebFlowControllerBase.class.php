@@ -63,7 +63,7 @@ class WebFlowControllerBase extends WebControllerBase {
 					}
 					Flow::$params['view'][] = array('input[name=' . $key . ']' => array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('value'=>htmlspecialchars($val))));
 				}
-				if($this->target.str_replace('_', '-', strtolower($this->section)) !== $_POST['flowpostformsection'] && FALSE === $executed && 0 !== strpos($key, 'pass')){
+				if($this->target.str_replace('_', '-', strtolower(get_class($this))) !== $_POST['flowpostformsection'] && FALSE === $executed && 0 !== strpos($key, 'pass')){
 					// それ以外はformにhiddenで埋め込む
 					Flow::$params['view'][]=  array('form[flowpostformsection]' => array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="'.$key.'" value="' . htmlspecialchars($val) . '"/>'));
 				}
