@@ -302,6 +302,7 @@
 		<execute>
 			<assign var="res" class="Auth" method="isCertification"/>
 			<if var="res" val="true">
+				<assign var="res" method="isset" arg1="Flow::$params['get']['target_project']"/>
 				<if var="res" val="false">
 					<exception/>
 				</if>
@@ -309,7 +310,20 @@
 				<if var="res" val="0">
 					<exception/>
 				</if>
-				<view baseview="base"/>
+				<assign var="res" method="isset" arg1="Flow::$params['post']['modify']"/>
+				<if var="res" val="false">
+					<flowviewparam selector="#createdb" val="htmlspecialchars(file_get_contents(getConfig('PROJECT_ROOT_PATH', Flow::$params['get']['target_project']).'core/createdb.sql'))"/>
+					<flowviewparam selector="#createtable" val="htmlspecialchars(file_get_contents(getConfig('PROJECT_ROOT_PATH', Flow::$params['get']['target_project']).'core/createtable.sql'))"/>
+				</if>
+				<else>
+					<assign var="res" method="file_put_contents" arg1="getConfig('PROJECT_ROOT_PATH', Flow::$params['get']['target_project']).'core/createdb.sql'" arg2="Flow::$params['post']['createdb']"/>
+					<assign var="res" method="file_put_contents" arg1="getConfig('PROJECT_ROOT_PATH', Flow::$params['get']['target_project']).'core/createtable.sql'" arg2="Flow::$params['post']['createtable']"/>
+					<flowpostformsectionerror>初期DB定義設定の変更を保存しました。</flowpostformsectionerror>
+					<flowviewparam selector="#modified-message" val="array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('class' => 'white errormsg'))"/>
+					<flowviewparam selector="#createdb" val="htmlspecialchars(Flow::$params['post']['createdb'])"/>
+					<flowviewparam selector="#createtable" val="htmlspecialchars(Flow::$params['post']['createtable'])"/>
+				</else>
+				<view baseview="base" flowpostformsection="web/managementproject-modifydbsettings"/>
 			</if>
 			<else>
 				<flow section="web/login"/>
