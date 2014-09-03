@@ -360,7 +360,11 @@ class FlowManager
 				elseif('return' === $codeType){
 					$code .= 'return ';
 				}
-				if(isset($tmpAttr['var']) && strlen($tmpAttr['var']) > 0){
+				if(TRUE === ('if' === $codeType || 'elseif' === $codeType) && isset($tmpAttr['condition']) && strlen($tmpAttr['condition']) > 0){
+					$code .= self::_resolveValue($tmpAttr['condition']);
+				}
+				// conditionとは排他
+				elseif(isset($tmpAttr['var']) && strlen($tmpAttr['var']) > 0){
 					$code .= '$' . $tmpAttr['var'];
 				}
 				// for文
@@ -378,8 +382,8 @@ class FlowManager
 					if(isset($tmpAttr['style'])){
 						$code .= ' ' . $tmpAttr['style'] . ' ';
 					}
-					// それ以外は透等価判定
-					else{
+					// それ以外で、且つ左辺と右辺の指定が在る場合は強制最等価判定
+					elseif(TRUE === (isset($tmpAttr['condition']) || isset($tmpAttr['var'])) && $tmpAttr['val']){
 						$code .= ' === ';
 					}
 				}

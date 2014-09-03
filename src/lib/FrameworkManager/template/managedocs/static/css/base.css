@@ -159,6 +159,10 @@ pre {
 	font-size: 1em;
 }
 
+label {
+	line-height: 18px;
+}
+
 li {
 	padding: 5px;
 }
@@ -199,6 +203,7 @@ table td, table td * {
 .red {
 	/* style setting */
 	color: red;
+	background-color: RGBA(0, 0, 0, 0.8);
 }
 
 .white {
