@@ -1,18 +1,36 @@
 <var selector="title#title" value="array(HtmlViewAssignor::PART_REPLACE_NODE_KEY => array('pagename' => 'Management '  . Flow::$params['get']['target_project'] . ' Flags'))" />
 <script type="text/javascript" src="./static/js/editarea/edit_area_full.js"></script>
 <script type="text/javascript">
-	editAreaLoader.init({
-		id: "configxml"
-		,start_highlight: true
-		,allow_resize: "y"
-		,allow_toggle: false
-		,toolbar: "save, search, fullscreen, go_to_line, undo, redo, help"
-		,save_callback: "saved"
-		,language: "ja"
-		,syntax: "xml"
-		,replace_tab_by_spaces: 2
-		,show_line_colors: true
-	});
+	if (640 >= $(window).width()) {
+		// モバイルの場合
+		editAreaLoader.init({
+			id: "configxml"
+			,font_size: "6"
+			,start_highlight: true
+			,allow_resize: "y"
+			,allow_toggle: false
+			,toolbar: "save, search, fullscreen, go_to_line, undo, redo, help"
+			,save_callback: "saved"
+			,language: "ja"
+			,syntax: "xml"
+			,replace_tab_by_spaces: 2
+			,show_line_colors: true
+		});
+	}
+	else {
+		editAreaLoader.init({
+			id: "configxml"
+			,start_highlight: true
+			,allow_resize: "y"
+			,allow_toggle: false
+			,toolbar: "save, search, fullscreen, go_to_line, undo, redo, help"
+			,save_callback: "saved"
+			,language: "ja"
+			,syntax: "xml"
+			,replace_tab_by_spaces: 2
+			,show_line_colors: true
+		});
+	}
 	function saved(id, content){
 		$("#"+id).val(content);
 		$('#modifyconfigure-form').submit();
