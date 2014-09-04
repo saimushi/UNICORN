@@ -1140,7 +1140,7 @@ $(document).ready(function(){
 					}
 					// 1個前の項目ローディング表示
 					$("#step" + argStep + "input" + (stepApply - 1) + "form_box .loading").addClass("active");
-					var data = { fwmpath: fwmpath, fwmdocpath: $("#fwmdocpath").text(), newfwmdocpath: $("#input-newfwmdocpath").val() };
+					var data = { fwmpath: fwmpath, fwmdocpath: $("#fwmdocpath").text(), newfwmdocpath: $("#input-newfwmdocpath").val(), fwmurl: $("#fwmurldisp").text() };
 				}
 				else if(12 == stepApply){
 					// 何もせず次へ(ステップは変わらない)
@@ -1399,7 +1399,7 @@ $(document).ready(function(){
 
 	// 各種フォームの初期値のセット
 	$("#input-path").val("<?php echo $frameworkPath; ?>");
-	$("#input-fwmbaseurl").val($("#input-fwmbaseurl").val() + "<?php $urls = explode('?', $_SERVER['REQUEST_URI']); echo $_SERVER['SERVER_NAME'].$urls[0]; ?>");
+	$("#input-fwmbaseurl").val($("#input-fwmbaseurl").val() + "<?php $urls = explode('?', $_SERVER['REQUEST_URI']); $urls[0] = str_replace('/FrameworkPackage/installer/', '/FrameworkManager/template/', $urls[0]); echo $_SERVER['SERVER_NAME'].$urls[0]; ?>");
 	$("#input-fwmpath").val("<?php echo $fwmgrPath; ?>");
 	$("#input-mysqluser").val("root");
 	$("#input-mysqlpass").val("root");
@@ -2912,7 +2912,7 @@ elseif(isset($_GET["a"])){
 			}
 			else {
 				// アップデートする
-				$updateSQL = "UPDATE `user` SET `name` = '".$username."', `mail` = '".$usermail."', `pass` = '".$userpassHash."', WHERE `mail` =  '".$usermail."' AND `pass` = '".$userpassHash."'";
+				$updateSQL = "UPDATE `user` SET `name` = '".$username."', `mail` = '".$usermail."', `pass` = '".$userpassHash."' WHERE `mail` =  '".$usermail."' AND `pass` = '".$userpassHash."'";
 				installerlog($updateSQL);
 				if (!mysqli_query($connect, $updateSQL)) {
 					exit("{\"ok\":false,\"error\":\"SQL文の実行に失敗しました。 \\n " . mysqli_error($connect) . " \\n 考えられる理由: \\n 1.指定された設定情報にselectの実行権限が無いかも知れません。 \\n 2.指定された設定情報にupdateの実行権限が無いかも知れません。 \\n 3.指定された設定情報にinsertの実行権限が無いかも知れません。\"}");
@@ -2950,6 +2950,17 @@ elseif(isset($_GET["a"])){
 			exit("{\"ok\":true,\"fwmurl\":\"" . str_replace(":///", "://",str_replace(":/", "://", str_replace("//", "/", str_replace("//", "/", $_POST["fwmbaseurl"]."/".basename($_POST["newfwmdocpath"])."/")))) . "\"}");
 		}
 		else if(isset($_GET["apply"]) && 11 === (int)$_GET["apply"]) {
+			if(!isset($_POST["fwmpath"])){
+				// 存在を確認出来ず
+				exit("{\"ok\":false,\"error\":\"指定されたパス「" . $_POST["fwmpath"] . "」にフレームワークを見つけられませんでした。\\n正しいパスを指定し治して、「設定」ボタンを押して下さい。\"}");
+			}
+			$fwmConfXMLPath = $_POST["fwmpath"]."/core/FrameworkManager.config.xml";;
+			if(!is_file($fwmConfXMLPath)){
+				// 存在を確認出来ず
+				exit("{\"ok\":false,\"error\":\"指定されたパス「" . $fwmConfXMLPath . "」にフレームワークを見つけられませんでした。\\n正しいパスを指定し治して、「設定」ボタンを押して下さい。\"}");
+			}
+			$fwmConfXML = simplexml_load_file($fwmConfXMLPath);
+
 			if(10 <= filesize(dirname(__FILE__)."/clog")){
 				// clogが10バイト以上あったらコンソール実行にエラーがあったと言う事
 				$error = @file_get_contents(dirname(__FILE__)."/clog");
@@ -3042,6 +3053,15 @@ elseif(isset($_GET["a"])){
 				fclose($handle);
 				file_put_contents($_POST["newfwmdocpath"]."/index.php", $file);
 			}
+
+			// 移動が終わったらベースURLを書き出す
+			$fwmConfXML->FrameworkManager->BASE_URL = array();
+			$fwmConfXML->FrameworkManager->BASE_URL[0] = $_POST["fwmurl"];
+			$fwmConfXML->FrameworkManager->BASE_URL[0]->addAttribute("stage", "local");
+			$fwmConfXML->FrameworkManager->BASE_URL[1] = $_POST["fwmurl"];
+			$fwmConfXML->FrameworkManager->BASE_URL[1]->addAttribute("stage", "test");
+			$fwmConfXML->FrameworkManager->BASE_URL[2] = $_POST["fwmurl"];
+			$fwmConfXML->asXML($fwmConfXMLPath);
 
 			// フレームワークマネージャーの移動の正常終了
 			exit(json_encode($res));

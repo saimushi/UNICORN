@@ -22,5 +22,5 @@ nbproject/
 .local
 tmps/
 tmp/
-/src/logs/*
+/logs
 !/src/logs/reference.txt

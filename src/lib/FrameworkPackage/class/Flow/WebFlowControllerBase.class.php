@@ -2,16 +2,17 @@
 
 class WebFlowControllerBase extends WebControllerBase {
 
-	public $section = '';
-	public $action = '';
+	public $action='';
+	public $section='';
+	public $target='';
 	public static $flowpostformsectionUsed = FALSE;
 
-	protected function _reverseRewriteURL($argAction=NULL){
+	protected function _reverseRewriteURL($argAction=NULL, $argQuery=''){
 		$action = $this->action;
 		if(NULL !== $argAction){
 			$action= $argAction;
 		}
-		return Flow::reverseRewriteURL($action);
+		return Flow::reverseRewriteURL($action, $argQuery);
 	}
 
 	protected function _initWebFlow(){
@@ -29,7 +30,6 @@ class WebFlowControllerBase extends WebControllerBase {
 				if(NULL === Flow::$params['view']){
 					Flow::$params['view'] = array();
 				}
-				debug('[frowparamsection=' . $key . ']');
 				Flow::$params['view'][] = array('[frowparamsection=' . $key . ']' => array(HtmlViewAssignor::PART_REPLACE_NODE_KEY => array('_flow_'.$key.'_' => $val)));
 				Flow::$params['view'][] = array('[frowparamsection=' . $key . ']' => array(HtmlViewAssignor::PART_REPLACE_ATTR_KEY => array('href' => array('_flow_'.$key.'_' => $val), 'value' => array('_flow_'.$key.'_' => $val), 'src' => array('_flow_'.$key.'_' => $val))));
 			}
@@ -61,15 +61,13 @@ class WebFlowControllerBase extends WebControllerBase {
 					if(NULL === Flow::$params['view']){
 						Flow::$params['view'] = array();
 					}
-					Flow::$params['view'][] = array('input[name=' . $key . ']' => array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('value'=>$val)));
+					Flow::$params['view'][] = array('input[name=' . $key . ']' => array(HtmlViewAssignor::REPLACE_ATTR_KEY => array('value'=>htmlspecialchars($val))));
 				}
-				if(FALSE === $executed && 0 !== strpos($key, 'pass')){
+				if($this->target.str_replace('_', '-', strtolower(get_class($this))) !== $_POST['flowpostformsection'] && FALSE === $executed && 0 !== strpos($key, 'pass')){
 					// それ以外はformにhiddenで埋め込む
-					Flow::$params['view'][]=  array('form[flowpostformsection]' => array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="'.$key.'" value="' . $val . '"/>'));
+					Flow::$params['view'][]=  array('form[flowpostformsection]' => array(HtmlViewAssignor::APPEND_NODE_KEY => '<input type="hidden" name="'.$key.'" value="' . htmlspecialchars($val) . '"/>'));
 				}
 				// auto validate
-				debug('$key='.$key);
-				debug('$val='.$val);
 				// flowFormでPOSTされていたら自動的にバリデートする
 				if($_GET['_c_'] === $_POST['flowpostformsection']){
 					try{

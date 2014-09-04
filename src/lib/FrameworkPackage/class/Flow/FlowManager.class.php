@@ -13,7 +13,7 @@ class FlowManager
 		return TRUE;
 	}
 
-	public static function reverseRewriteURL($argAction){
+	public static function reverseRewriteURL($argAction, $argQuery=''){
 		$action= $argAction;
 		if(isset($_SERVER['ReverseRewriteRule'])){
 			$reverseRules = explode(' ', $_SERVER['ReverseRewriteRule']);
@@ -24,7 +24,29 @@ class FlowManager
 				}
 			}
 		}
-		return $action;
+		$query = '';
+		if('' !== $argQuery){
+			$query = $argQuery;
+		}
+		else {
+			foreach($_GET as $key => $val){
+				if('_c_' !== $key && '_a_' !== $key && '_o_' !== $key){
+					if(strlen($query) > 0){
+						$query .= '&';
+					}
+					$query .= $key.'='.$val;
+				}
+			}
+		}
+		if('' !== $query){
+			if(FALSE === strpos($action, '.'.$_GET['_o_'].'?')){
+				$query = '?'.$query;
+			}
+			else {
+				$query = '&'.$query;
+			}
+		}
+		return $action.$query;
 	}
 
 	/**
@@ -57,20 +79,15 @@ class FlowManager
 // 				}
 			}
 			// backflowはリダイレクトポスト(307リダイレクト)
-			$action = self::reverseRewriteURL('?_c_=' . $argClassName . '&_o_='.$_GET['_o_']);
 			$query = '';
 			if(isset($_POST['flowpostformsection-backflow-section-query']) && strlen($_POST['flowpostformsection-backflow-section-query']) > 0){
-				$query = '?';
-				if(FALSE === strpos($action, '.'.$_GET['_o_'].'?')){
-					$query = '&';
-				}
-				$query .= $_POST['flowpostformsection-backflow-section-query'];
+				$query = $_POST['flowpostformsection-backflow-section-query'];
 			}
-			header('Location: ./'.$action.$query, TRUE, 307);
+			header('Location: ./'.self::reverseRewriteURL('?_c_=' . $argClassName . '&_o_='.$_GET['_o_'], $query), TRUE, 307);
 			exit();
 		}
 		$className = MVCCore::loadMVCModule($argClassName, FALSE, $argTargetPath);
-			debug('backflowClass='.var_export($className,true));
+		debug('backflowClass='.var_export($className,true));
 		return $className;
 	}
 
@@ -334,7 +351,7 @@ class FlowManager
 				if('if' === $codeType){
 					$code .= 'if(';
 				}
-				elseif('elseid' === $codeType){
+				elseif('elseif' === $codeType){
 					$code .= 'elseif(';
 				}
 				elseif('else' === $codeType){
@@ -343,8 +360,20 @@ class FlowManager
 				elseif('return' === $codeType){
 					$code .= 'return ';
 				}
-				if(isset($tmpAttr['var']) && strlen($tmpAttr['var']) > 0){
+				if(TRUE === ('if' === $codeType || 'elseif' === $codeType) && isset($tmpAttr['condition']) && strlen($tmpAttr['condition']) > 0){
+					$code .= self::_resolveValue($tmpAttr['condition']);
+				}
+				// conditionとは排他
+				elseif(isset($tmpAttr['var']) && strlen($tmpAttr['var']) > 0){
 					$code .= '$' . $tmpAttr['var'];
+				}
+				// for文
+				if('for' === $codeType){
+					$code .= 'for('.$tmpAttr['iterate'].'; '.$tmpAttr['iterator'].'; '.$tmpAttr['iteration'];
+				}
+				// foreach文
+				if('foreach' === $codeType){
+					$code .= 'foreach($'.$tmpAttr['eachas'].' AS $'.$tmpAttr['eachas'].'key => $'.$tmpAttr['eachas'].'val';
 				}
 				// 式の評価文
 				// if文 elseif文
@@ -353,14 +382,14 @@ class FlowManager
 					if(isset($tmpAttr['style'])){
 						$code .= ' ' . $tmpAttr['style'] . ' ';
 					}
-					// それ以外は透等価判定
-					else{
+					// それ以外で、且つ左辺と右辺の指定が在る場合は強制最等価判定
+					elseif(TRUE === (isset($tmpAttr['condition']) || isset($tmpAttr['var'])) && $tmpAttr['val']){
 						$code .= ' === ';
 					}
 				}
-				// else文
-				elseif('else' === $codeType){
-					// elseは何もナシ
+				// else文 for文 foreach文
+				elseif('else' === $codeType || 'for' === $codeType || 'foreach' === $codeType){
+					// 何もナシ
 				}
 				// return文
 				elseif('return' === $codeType){
@@ -401,7 +430,7 @@ class FlowManager
 					$code .= $tmpAttr['property'];
 				}
 				// 式の終端文
-				if('if' === $codeType || 'elseif' === $codeType){
+				if('if' === $codeType || 'elseif' === $codeType || 'for' === $codeType || 'foreach' === $codeType){
 					$code .= '){' . PHP_EOL;
 				}
 				elseif('else' === $codeType){
@@ -414,7 +443,7 @@ class FlowManager
 					}
 				}
 				// 終了子判定
-				if('if' === $codeType || 'elseif' === $codeType || 'else' === $codeType){
+				if('if' === $codeType || 'elseif' === $codeType || 'else' === $codeType || 'for' === $codeType || 'foreach' === $codeType){
 					$code .= $tab . '}';
 				}
 				else{

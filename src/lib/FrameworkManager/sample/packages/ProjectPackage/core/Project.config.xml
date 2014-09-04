@@ -3,6 +3,7 @@
 	<Project>
 		<PROJECT_ROOT_PATH code="TRUE"><![CDATA[dirname(dirname(__FILE__)).'/']]></PROJECT_ROOT_PATH>
 		<PACKAGE_CONFIG_XML_PATH code="TRUE"><![CDATA[%PROJECT_ROOT_PATH%.'core/'.PROJECT_NAME.'Project.package.xml']]></PACKAGE_CONFIG_XML_PATH>
+		<BASE_URL>http://localhost/Project/</BASE_URL>
 		<DB_DSN>mysqli://project:project@localhost/project</DB_DSN>
 		<!-- 汎用Authの定義(アプリ用をPrimaryとして定義) -->
 		<AUTH_TBL_NAME>device</AUTH_TBL_NAME>

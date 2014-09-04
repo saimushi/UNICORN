@@ -955,6 +955,40 @@ _CLASSDEF_;
 }
 
 /**
+ * プロジェクト名からconfigファイルのパスを自動走査して取得する
+ */
+function getConfigPathForConfigName($argConfigName){
+	$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . '/core/' . $argConfigName . '.config.xml';
+	if(TRUE !== is_file($projectconfPath)){
+		$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . '/core/config.xml';
+	}
+	if(TRUE !== is_file($projectconfPath)){
+		$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . '/core/' . str_replace('Package', '', $argConfigName) . '.config.xml';
+	}
+	if(TRUE !== is_file($projectconfPath)){
+		$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . 'Package/core/config.xml';
+	}
+	if(TRUE !== is_file($projectconfPath)){
+		$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . $argConfigName . 'Package/core/' . $argConfigName . '.config.xml';
+	}
+	if(TRUE === is_file($projectconfPath)){
+		return $projectconfPath;
+	}
+	return FALSE;
+}
+
+/**
+ * configの読み込みとconfigureクラスの定義を実行する
+ */
+function loadConfigForConfigName($argConfigName){
+	$projectconfPath = getConfigPathForConfigName($argConfigName);
+	if(FALSE !== $projectconfPath){
+		return loadConfig($projectconfPath);
+	}
+	return FALSE;
+}
+
+/**
  * フレームワークの初期化処理(内部関数)
  * @param mixed TRUEの時は、読み込み済みのパッケージ情報を返す stringの時はConfigureクラス名としてConfigureクラスに対してのinitを処理する
  */
@@ -1539,8 +1573,10 @@ function isTest($argStagingEnabled=FALSE, $argProjectName=NULL, $argHost=NULL){
  * 現在設定されている開発環境自動判別フラグを返す
  */
 function getAutoStageCheckEnabled($argProjectName=NULL){
-	static $autoStagecheckEnabled = NULL;
-	if(NULL === $autoStagecheckEnabled || NULL !== $argProjectName){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$autoStagecheckEnabled = NULL;
+		$enabled = array();
 		if(NULL !== $argProjectName){
 			$autoStagecheckEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.autostagecheck';
 			if(TRUE !== is_file($autoStagecheckEnabledFilepath)){
@@ -1583,22 +1619,26 @@ function getAutoStageCheckEnabled($argProjectName=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$autoStagecheckEnabled = 0;
 		}
+		$enabled[$argProjectName] = $autoStagecheckEnabled;
 	}
-	return $autoStagecheckEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されているロ−カル開発環境フラグを返す
  */
 function getLocalEnabled($argProjectName=NULL, $argHost=NULL){
-	static $localEnabled = NULL;
-	if(NULL === $localEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$localEnabled = NULL;
+		$enabled = array();
 		if(1 === getAutoStageCheckEnabled($argProjectName) && TRUE === checkStage(CHAKE_STAGE_LOCAL, $argHost)){
 			$localEnabled = 1;
 		}
 		else {
 			if(NULL !== $argProjectName){
 				$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.local';
+				debug($localEnabledFilepath);
 				if(TRUE !== is_file($localEnabledFilepath)){
 					$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.local';
 				}
@@ -1638,24 +1678,27 @@ function getLocalEnabled($argProjectName=NULL, $argHost=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$localEnabled = 0;
 		}
+		$enabled[$argProjectName] = $localEnabled;
 	}
-	return $localEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されている開発開発環境フラグを返す
  */
 function getDevelopmentEnabled($argProjectName=NULL, $argHost=NULL){
-	static $devlopmentEnabled = NULL;
-	if(NULL === $devlopmentEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$devlopmentEnabled = NULL;
+		$enabled = array();
 		if(1 === getAutoStageCheckEnabled($argProjectName) && TRUE === checkStage(CHAKE_STAGE_DEV, $argHost)){
 			$devlopmentEnabled = 1;
 		}
 		else {
 			if(NULL !== $argProjectName){
-				$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.local';
-				if(TRUE !== is_file($localEnabledFilepath)){
-					$localEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.local';
+				$devlopmentEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.dev';
+				if(TRUE !== is_file($devlopmentEnabledFilepath)){
+					$devlopmentEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'Package/.dev';
 				}
 			}
 			elseif(NULL !== defined('PROJECT_NAME')){
@@ -1702,16 +1745,19 @@ function getDevelopmentEnabled($argProjectName=NULL, $argHost=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$devlopmentEnabled = 0;
 		}
+		$enabled[$argProjectName] = $devlopmentEnabled;
 	}
-	return $devlopmentEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されているテスト開発環境フラグを返す
  */
 function getTestEnabled($argProjectName=NULL, $argHost=NULL){
-	static $testEnabled = NULL;
-	if(NULL === $testEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$testEnabled = NULL;
+		$enabled = array();
 		if(1 === getAutoStageCheckEnabled($argProjectName) && TRUE === checkStage(CHAKE_STAGE_TEST, $argHost)){
 			$testEnabled = 1;
 		}
@@ -1757,16 +1803,19 @@ function getTestEnabled($argProjectName=NULL, $argHost=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$testEnabled = 0;
 		}
+		$enabled[$argProjectName] = $testEnabled;
 	}
-	return $testEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されているステージング開発環境フラグを返す
  */
 function getStagingEnabled($argProjectName=NULL, $argHost=NULL){
-	static $stagingEnabled = NULL;
-	if(NULL === $stagingEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$stagingEnabled = NULL;
+		$enabled = array();
 		if(1 === getAutoStageCheckEnabled($argProjectName) && TRUE === checkStage(CHAKE_STAGE_STAGING, $argHost)){
 			$stagingEnabled = 1;
 		}
@@ -1812,17 +1861,19 @@ function getStagingEnabled($argProjectName=NULL, $argHost=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$stagingEnabled = 0;
 		}
+		$enabled[$argProjectName] = $stagingEnabled;
 	}
-	return $stagingEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されているデバッグモードフラグを返す
  */
 function getDebugEnabled($argProjectName=NULL, $argHost=NULL){
-	static $debugEnabled = NULL;
-	if(NULL === $debugEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
 		$debugEnabled = 0;
+		$enabled = array();
 		if(TRUE === isTest(FALSE, $argProjectName, $argHost)){
 			$debugEnabled = 1;
 		}
@@ -1867,16 +1918,19 @@ function getDebugEnabled($argProjectName=NULL, $argHost=NULL){
 				$debugEnabled = 0;
 			}
 		}
+		$enabled[$argProjectName] = $debugEnabled;
 	}
-	return $debugEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されているエラーレポーティングフラグを返す
  */
 function getErrorReportEnabled($argProjectName=NULL){
-	static $errorReportEnabled = NULL;
-	if(NULL === $errorReportEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$errorReportEnabled = NULL;
+		$enabled = array();
 		if(NULL !== $argProjectName){
 			$errorReportEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.error_report';
 			if(TRUE !== is_file($errorReportEnabledFilepath)){
@@ -1922,15 +1976,18 @@ function getErrorReportEnabled($argProjectName=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$errorReportEnabled = 0;
 		}
+		$enabled[$argProjectName] = $errorReportEnabled;
 	}
-	return $errorReportEnabled;
+	return $enabled[$argProjectName];
 }
 /**
  * 現在設定されている自動最適化キャッシュ生成フラグを返す
  */
 function getAutoGenerateEnabled($argProjectName=NULL){
-	static $autoGenerateEnabled = NULL;
-	if(NULL === $autoGenerateEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$autoGenerateEnabled = NULL;
+		$enabled = array();
 		if(NULL !== $argProjectName){
 			$autoGenerateEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.autogenerate';
 			if(TRUE !== is_file($autoGenerateEnabledFilepath)){
@@ -1967,16 +2024,19 @@ function getAutoGenerateEnabled($argProjectName=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$autoGenerateEnabled = FALSE;
 		}
+		$enabled[$argProjectName] = $autoGenerateEnabled;
 	}
-	return $autoGenerateEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
  * 現在設定されている自動最適化キャッシュ生成フラグを返す
  */
 function getAutoMigrationEnabled($argProjectName=NULL){
-	static $autoMigrationEnabled = NULL;
-	if(NULL === $autoMigrationEnabled){
+	static $enabled = NULL;
+	if(NULL === $enabled || !isset($enabled[$argProjectName])){
+		$autoMigrationEnabled = NULL;
+		$enabled = array();
 		if(NULL !== $argProjectName){
 			$autoMigrationEnabledFilepath = dirname(dirname(dirname(__FILE__))).'/'.$argProjectName.'/.automigration';
 			if(TRUE !== is_file($autoMigrationEnabledFilepath)){
@@ -2013,8 +2073,9 @@ function getAutoMigrationEnabled($argProjectName=NULL){
 			// フラグ設定が見つからなかったのでdisabledで設定
 			$autoMigrationEnabled = FALSE;
 		}
+		$enabled[$argProjectName] = $autoMigrationEnabled;
 	}
-	return $autoMigrationEnabled;
+	return $enabled[$argProjectName];
 }
 
 /**
@@ -2145,6 +2206,67 @@ function getAutoMigrationPath(){
 	return $migrationPath;
 }
 
+/**
+ * コンフィグレーションされている値を返す
+ */
+function getConfig($argKey, $argConfigName=''){
+	static $values = array();
+	$value = NULL;
+	if(!isset($values[$argConfigName])){
+		$values[$argConfigName] = array();
+	}
+	if(!isset($values[$argConfigName][$argKey])){
+		if(class_exists('Configure') && TRUE === defined('Configure::'.$argKey)){
+			// 定義から暗号化キーを設定
+			$value = Configure::constant($argKey);
+		}
+		if(defined('PROJECT_NAME') && strlen(PROJECT_NAME) > 0 && class_exists(PROJECT_NAME . 'Configure')){
+			$ProjectConfigure = PROJECT_NAME . 'Configure';
+			if(TRUE === defined($ProjectConfigure.'::'.$argKey)){
+				// 定義からセッションDBの接続情報を特定
+				$value = $ProjectConfigure::constant($argKey);
+			}
+		}
+		if(!class_exists($argConfigName . 'Configure') && !class_exists($argConfigName) && !class_exists(str_replace('Package', '', $argConfigName))){
+			loadConfigForConfigName($argConfigName);
+		}
+		if('' !== $argConfigName && strlen($argConfigName) > 0 && class_exists($argConfigName . 'Configure')){
+			$ArgConfigure = $argConfigName . 'Configure';
+			if(TRUE === defined($ArgConfigure.'::'.$argKey)){
+				// 定義からセッションDBの接続情報を特定
+				$value = $ArgConfigure::constant($argKey);
+			}
+		}
+		if('' !== $argConfigName && strlen($argConfigName) > 0 && class_exists($argConfigName)){
+			$ArgConfigure = $argConfigName;
+			if(TRUE === defined($ArgConfigure.'::'.$argKey)){
+				// 定義からセッションDBの接続情報を特定
+				$value = $ArgConfigure::constant($argKey);
+			}
+		}
+		$argConfigName = str_replace('Package', '', $argConfigName);
+		if('' !== $argConfigName && strlen($argConfigName) > 0 && class_exists($argConfigName . 'Configure')){
+			$ArgConfigure = $argConfigName . 'Configure';
+			if(TRUE === defined($ArgConfigure.'::'.$argKey)){
+				// 定義からセッションDBの接続情報を特定
+				$value = $ArgConfigure::constant($argKey);
+			}
+		}
+		if('' !== $argConfigName && strlen($argConfigName) > 0 && class_exists($argConfigName)){
+			$ArgConfigure = $argConfigName;
+			if(TRUE === defined($ArgConfigure.'::'.$argKey)){
+				// 定義からセッションDBの接続情報を特定
+				$value = $ArgConfigure::constant($argKey);
+			}
+		}
+		$values[$argConfigName][$argKey] = $value;
+	}
+	else {
+		$value = $values[$argConfigName][$argKey];
+	}
+	return $value;
+}
+
 /*------------------------------ 根幹関数定義 ココから ------------------------------*/
 
 
@@ -2180,19 +2302,8 @@ else {
 
 // PROJECT_NAME定数があったらプロジェクト専用のconfigureを探してみて読み込む
 if(defined('PROJECT_NAME')){
-	$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . PROJECT_NAME . '/core/' . PROJECT_NAME . '.config.xml';
-	if(TRUE !== is_file($projectconfPath)){
-		$projectconfPath = dirname(dirname(dirname(__FILE__))).'/' . PROJECT_NAME . 'Package/core/' . PROJECT_NAME . '.config.xml';
-	}
-	loadConfig($projectconfPath);
+	loadConfigForConfigName(PROJECT_NAME);
 }
-
-// パス関連の定数をset_include_pathする
-// foreach(get_defined_constants() as $constKey => $val){
-// 	if(!preg_match('/.+_INCLUDE_PATH$/',$constKey) && !preg_match('/^PHP_.+_PATH$/',$constKey) && !preg_match('/.+USE.*_PATH$/',$constKey) && preg_match('/.+_PATH$/',$constKey)){
-// 		set_include_path(get_include_path().PATH_SEPARATOR.$val);
-// 	}
-// }
 
 /*------------------------------ 手続き型処理 ココまで ------------------------------*/
 

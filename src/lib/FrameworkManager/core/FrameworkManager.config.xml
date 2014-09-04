@@ -10,6 +10,9 @@
 		<SAMPLE_PROJECT_PACKAGE_PATH code="TRUE"><![CDATA[%PROJECT_ROOT_PATH%.'sample/packages/ProjectPackage/']]></SAMPLE_PROJECT_PACKAGE_PATH>
 		<SAMPLE_APIDOC_PATH code="TRUE"><![CDATA[%PROJECT_ROOT_PATH%.'sample/apidocs/']]></SAMPLE_APIDOC_PATH>
 		<DB_DSN>mysqli://fwm:fwmpass@localhost/fwm</DB_DSN>
+		<BASE_URL stage="local">http://localhost/workspace/UNICORN/src/lib/FrameworkManager/template/managedocs/</BASE_URL>
+		<BASE_URL stage="test">http://example.com/managedocs/</BASE_URL>
+		<BASE_URL>http://localhost/workspace/UNICORN/src/lib/FrameworkManager/template/managedocs/</BASE_URL>
 		<DENY_HTTP>false</DENY_HTTP>
 		<DENY_ALL_IP>false</DENY_ALL_IP>
 		<!-- 汎用Authの定義 -->

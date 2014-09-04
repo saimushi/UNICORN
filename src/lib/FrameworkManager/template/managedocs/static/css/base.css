@@ -159,8 +159,30 @@ pre {
 	font-size: 1em;
 }
 
+label {
+	line-height: 18px;
+}
+
 li {
 	padding: 5px;
+}
+
+
+table {
+	width: 100%;
+}
+
+table th {
+	width: 20%;
+	text-align: left;
+}
+
+table th.t-header {
+	text-align: center;
+}
+
+table td, table td * {
+	word-wrap: break-word;
 }
 
 .orange {
@@ -181,8 +203,13 @@ li {
 .red {
 	/* style setting */
 	color: red;
+	background-color: RGBA(0, 0, 0, 0.8);
 }
 
+.white {
+	/* style setting */
+	color: white;
+}
 .strong {
 	font-weight: bold;
 }
