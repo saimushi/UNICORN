@@ -12,10 +12,12 @@ import org.json.JSONObject;
 import com.loopj.android.http.JsonHttpResponseHandler;
 import com.loopj.android.http.RequestParams;
 import com.unicorn.project.Constant;
+import com.unicorn.project.R;
 import com.unicorn.utilities.AsyncHttpClientAgent;
 import com.unicorn.utilities.Log;
 import com.unicorn.utilities.PublicFunction;
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Message;
@@ -50,6 +52,7 @@ public class ModelBase {
 	public Handler completionHandler;
 	public Handler modelBaseHandler;
 
+	//コンストラクタ
 	public ModelBase(Context argContext) {
 		context = argContext;
 		protocol = "";
@@ -72,6 +75,7 @@ public class ModelBase {
 		completionHandler = null;
 	}
 
+	//コンストラクタ
 	public ModelBase(Context argContext, String argProtocol, String argDomain, String argURLBase,
 			String argTokenKeyName) {
 		this(argContext);
@@ -81,6 +85,7 @@ public class ModelBase {
 		tokenKeyName = argTokenKeyName;
 	}
 
+	//コンストラクタ
 	public ModelBase(Context argContext, String argProtocol, String argDomain, String argURLBase,
 			String argTokenKeyName, int argTimeout) {
 		this(argContext);
@@ -91,6 +96,7 @@ public class ModelBase {
 		timeout = argTimeout;
 	}
 
+	//コンストラクタ
 	public ModelBase(Context argContext, String argProtocol, String argDomain, String argURLBase,
 			String argTokenKeyName, String argCryptKey, String argCryptIV) {
 		this(argContext, argProtocol, argDomain, argURLBase, argTokenKeyName);
@@ -98,6 +104,7 @@ public class ModelBase {
 		cryptIV = argCryptIV;
 	}
 
+	//コンストラクタ
 	public ModelBase(Context argContext, String argProtocol, String argDomain, String argURLBase,
 			String argTokenKeyName, String argCryptKey, String argCryptIV, int argTimeout) {
 		this(argContext, argProtocol, argDomain, argURLBase, argTokenKeyName, argCryptKey,
@@ -120,7 +127,7 @@ public class ModelBase {
 		return url;
 	}
 
-	/* モデルを参照する */
+	// モデルを参照する
 	public boolean load() {
 		if (null == ID || "".equals(ID)) {
 			// ID無指定は単一モデル参照エラー
@@ -129,6 +136,7 @@ public class ModelBase {
 		return load(loadResourceMode.myResource, null);
 	}
 
+	// モデルを参照する
 	public boolean load(Handler argCompletionHandler) {
 		if (null == ID) {
 			// ID無指定は単一モデル参照エラー
@@ -138,21 +146,22 @@ public class ModelBase {
 		return load(loadResourceMode.myResource, null);
 	}
 
-	/* モデルを参照する */
+	// モデルを参照する
 	public boolean list() {
 		return load(loadResourceMode.listedResource, null);
 	}
-
+	// モデルを参照する
 	public boolean list(Handler argCompletionHandler) {
 		completionHandler = argCompletionHandler;
 		return load(loadResourceMode.listedResource, null);
 	}
 
-	/* モデルを参照する */
+	//条件を指定してモデルを参照する
 	public boolean query(HashMap<String, Object> argWhereParams) {
 		return load(loadResourceMode.automaticResource, argWhereParams);
 	}
 
+	//条件を指定してモデルを参照する
 	public boolean query(HashMap<String, Object> argWhereParams, Handler argCompletionHandler) {
 		completionHandler = argCompletionHandler;
 		return load(loadResourceMode.automaticResource, argWhereParams);
@@ -539,6 +548,7 @@ public class ModelBase {
 		return false;
 	}
 
+	//argsaveParamsを元にsaveのURLを生成する
 	public String createGetURl(String url, HashMap<String, Object> argsaveParams) {
 		for (Iterator<Entry<String, Object>> it = argsaveParams.entrySet().iterator(); it.hasNext();) {
 			HashMap.Entry<String, Object> entry = (HashMap.Entry<String, Object>) it.next();
@@ -569,6 +579,8 @@ public class ModelBase {
 		return true;
 	}
 
+	//通信レスポンスデータを元にmodelにデータをセットする。
+	//暫定で0番目を指定
 	public void setModelData() {
 		total = responseList.size();
 		if (0 < total) {
@@ -576,6 +588,8 @@ public class ModelBase {
 		}
 	}
 
+	//0番目のHashMapを元にmodelにデータをセットする。
+	//セット部分は各モデルで_setModelDataをOverrideして実装して下さい。
 	public void setModelData(ArrayList<HashMap<String, Object>> list) {
 		responseList = list;
 		total = responseList.size();
@@ -585,6 +599,8 @@ public class ModelBase {
 		}
 	}
 
+	//argIndex番目のHashMapを元にmodelにデータをセットする。
+	//セット部分は各モデルで_setModelDataをOverrideして実装して下さい。
 	public void setModelData(ArrayList<HashMap<String, Object>> list, int argIndex) {
 		responseList = list;
 		total = list.size();
@@ -674,6 +690,7 @@ public class ModelBase {
 		});
 	}
 
+	//handlerがある場合mainスレッドに制御を戻す
 	public void returnMainTheread(Message msg) {
 		if (completionHandler != null) {
 			completionHandler.sendMessage(msg);
@@ -681,6 +698,7 @@ public class ModelBase {
 		}
 	}
 
+	//JsonArrayをArrayListに変換
 	public ArrayList<HashMap<String, Object>> createArrayFromJSONArray(JSONArray data)
 			throws JSONException {
 		ArrayList<HashMap<String, Object>> array = new ArrayList<HashMap<String, Object>>();
@@ -691,6 +709,7 @@ public class ModelBase {
 		return array;
 	}
 
+	//JsonObjectをkey,valueでHashMapに変換
 	public HashMap<String, Object> createMapFromJSONObject(JSONObject data) throws JSONException {
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		Iterator<?> keys = data.keys();
@@ -706,6 +725,32 @@ public class ModelBase {
 			}
 		}
 		return map;
+	}
+	
+	/* 特殊なメソッド1 インクリメント(加算) */
+	public boolean increment(){
+	    return true;
+	}
+	
+	public boolean _increment(HashMap<String,Object> argSaveParams){
+	    if(null != ID){
+	    	return save(argSaveParams);
+	    }
+	    // インクリメントはID指定ナシはエラー！
+	    return false;
+	}
+
+	/* 特殊なメソッド2 デクリメント(減算) */
+	public boolean decrement(){
+	    return true;
+	}
+
+	public boolean _decrement(HashMap<String,Object> argSaveParams){
+	    if(null != ID){
+	        return save(argSaveParams);
+	    }
+	    // インクリメントはID指定ナシはエラー！
+	    return false;
 	}
 
 	public boolean next() {
@@ -745,26 +790,27 @@ public class ModelBase {
 		total = responseList.size();
 	}
 
-	public void showRequestError(int argStatusCode) {
-		String errorMsg = "通信がタイムアウトしました。\n\n電波状況の良い所で再度実行してみて下さい。";
+	//activityに管理させる為、引数にactivityを追加
+	public void showRequestError(int argStatusCode,Activity activity) {
+		String errorMsg = context.getString(R.string.errorMsgTimeout);
 		if (0 < argStatusCode) {
-			errorMsg = "ご迷惑をお掛けします。\n\nサーバーが致命的なエラーを発生させました。\n最初からやり直すか、それでも改善しない場合はシステム管理会社に問い合わせをして下さい。";
+			errorMsg = context.getString(R.string.errorMsgServerError);
 			if (400 == argStatusCode) {
-				errorMsg = "エラーコード400\n\nデータの入力にあやまりがあるか\nサーバー側の問題により、処理を正常に受付出来ませんでした。\n最初からやり直すか、それでも改善しない場合はシステム管理会社に問い合わせをして下さい。";
+				errorMsg = context.getString(R.string.errorMsg400);
 			}
 			if (401 == argStatusCode) {
-				errorMsg = "エラーコード401\n\n何らかの理由により、認証に失敗しました。\n最初からやり直すか、それでも改善しない場合はシステム管理会社に問い合わせをして下さい。";
+				errorMsg = context.getString(R.string.errorMsg401);
 			}
 			if (404 == argStatusCode) {
-				errorMsg = "エラーコード404\n\n要求したデータが既に存在しませんでした。\n最初からやり直すか、それでも改善しない場合はシステム管理会社に問い合わせをして下さい。";
+				errorMsg = context.getString(R.string.errorMsg404);
 			}
 			if (503 == argStatusCode) {
-				errorMsg = "エラーコード503\n\nご迷惑をお掛けします。\nサーバーが現在メンテナンス中です。\nしばらく経ってから再度実行して下さい。";
+				errorMsg = context.getString(R.string.errorMsg503);
 			}
 		}
 
 		if (context != null) {
-			PublicFunction.showAlert(context, errorMsg);
+			PublicFunction.showAlert(context, errorMsg,activity);
 		}
 	}
 }

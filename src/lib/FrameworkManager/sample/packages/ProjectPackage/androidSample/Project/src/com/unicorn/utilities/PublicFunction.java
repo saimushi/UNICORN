@@ -3,8 +3,7 @@ package com.unicorn.utilities;
 import java.io.UnsupportedEncodingException;
 import java.util.Calendar;
 
-import com.unicorn.project.R;
-
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -115,7 +114,8 @@ public class PublicFunction {
 		return context.getResources().getIdentifier(name, resourceType, context.getPackageName());
 	}
 	
-	public static void showAlert(Context context, String msg) {
+	//dialogをActivityに管理させる為にactivityを渡す必要あり
+	public static void showAlert(Context context, String msg,Activity activity) {
 		AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(context);
 		alertDialogBuilder.setMessage(msg);
 		alertDialogBuilder.setPositiveButton("OK",
@@ -126,6 +126,9 @@ public class PublicFunction {
 				});
 		alertDialogBuilder.setCancelable(true);
 		AlertDialog alertDialog = alertDialogBuilder.create();
+		if(activity != null){
+			alertDialog.setOwnerActivity(activity);
+		}
 		alertDialog.show();
 	}
 }
