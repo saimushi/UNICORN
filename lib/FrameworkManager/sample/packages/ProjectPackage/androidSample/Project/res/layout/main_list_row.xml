@@ -2,8 +2,8 @@
     android:layout_width="match_parent"
     android:layout_height="100dp">
 
-    <ImageView android:layout_width="80dp"
-        android:layout_height="80dp"
+    <ImageView android:layout_width="70dp"
+        android:layout_height="70dp"
         android:id="@+id/main_list_image"
         android:layout_alignParentLeft="true"
         android:layout_centerVertical="true"
@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:id="@+id/main_list_name"
         android:layout_marginLeft="10dp"
-        android:layout_toRightOf="@id/main_list"
+        android:layout_toRightOf="@id/main_list_image"
         android:layout_centerVertical="true"
         android:text="aaa">
         
