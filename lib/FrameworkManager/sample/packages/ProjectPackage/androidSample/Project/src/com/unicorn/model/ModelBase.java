@@ -1,5 +1,8 @@
 package com.unicorn.model;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -17,7 +20,7 @@ import com.unicorn.project.Constant;
 import com.unicorn.project.R;
 import com.unicorn.utilities.AsyncHttpClientAgent;
 import com.unicorn.utilities.Log;
-import com.unicorn.utilities.PublicFunction;
+import com.unicorn.utilities.Utilitis;
 
 import android.app.Activity;
 import android.content.Context;
@@ -54,7 +57,7 @@ public class ModelBase {
 	public Handler completionHandler;
 	public Handler modelBaseHandler;
 
-	//コンストラクタ
+	// コンストラクタ
 	public ModelBase(Context argContext) {
 		context = argContext;
 		protocol = "";
@@ -77,7 +80,7 @@ public class ModelBase {
 		completionHandler = null;
 	}
 
-	//コンストラクタ
+	// コンストラクタ
 	public ModelBase(Context argContext, String argProtocol, String argDomain, String argURLBase,
 			String argTokenKeyName) {
 		this(argContext);
@@ -87,7 +90,7 @@ public class ModelBase {
 		tokenKeyName = argTokenKeyName;
 	}
 
-	//コンストラクタ
+	// コンストラクタ
 	public ModelBase(Context argContext, String argProtocol, String argDomain, String argURLBase,
 			String argTokenKeyName, int argTimeout) {
 		this(argContext);
@@ -98,7 +101,7 @@ public class ModelBase {
 		timeout = argTimeout;
 	}
 
-	//コンストラクタ
+	// コンストラクタ
 	public ModelBase(Context argContext, String argProtocol, String argDomain, String argURLBase,
 			String argTokenKeyName, String argCryptKey, String argCryptIV) {
 		this(argContext, argProtocol, argDomain, argURLBase, argTokenKeyName);
@@ -106,7 +109,7 @@ public class ModelBase {
 		cryptIV = argCryptIV;
 	}
 
-	//コンストラクタ
+	// コンストラクタ
 	public ModelBase(Context argContext, String argProtocol, String argDomain, String argURLBase,
 			String argTokenKeyName, String argCryptKey, String argCryptIV, int argTimeout) {
 		this(argContext, argProtocol, argDomain, argURLBase, argTokenKeyName, argCryptKey,
@@ -152,18 +155,19 @@ public class ModelBase {
 	public boolean list() {
 		return load(loadResourceMode.listedResource, null);
 	}
+
 	// モデルを参照する
 	public boolean list(Handler argCompletionHandler) {
 		completionHandler = argCompletionHandler;
 		return load(loadResourceMode.listedResource, null);
 	}
 
-	//条件を指定してモデルを参照する
+	// 条件を指定してモデルを参照する
 	public boolean query(HashMap<String, Object> argWhereParams) {
 		return load(loadResourceMode.automaticResource, argWhereParams);
 	}
 
-	//条件を指定してモデルを参照する
+	// 条件を指定してモデルを参照する
 	public boolean query(HashMap<String, Object> argWhereParams, Handler argCompletionHandler) {
 		completionHandler = argCompletionHandler;
 		return load(loadResourceMode.automaticResource, argWhereParams);
@@ -550,7 +554,7 @@ public class ModelBase {
 		return false;
 	}
 
-	//argsaveParamsを元にsaveのURLを生成する
+	// argsaveParamsを元にsaveのURLを生成する
 	public String createGetURl(String url, HashMap<String, Object> argsaveParams) {
 		for (Iterator<Entry<String, Object>> it = argsaveParams.entrySet().iterator(); it.hasNext();) {
 			HashMap.Entry<String, Object> entry = (HashMap.Entry<String, Object>) it.next();
@@ -581,8 +585,8 @@ public class ModelBase {
 		return true;
 	}
 
-	//通信レスポンスデータを元にmodelにデータをセットする。
-	//暫定で0番目を指定
+	// 通信レスポンスデータを元にmodelにデータをセットする。
+	// 暫定で0番目を指定
 	public void setModelData() {
 		total = responseList.size();
 		if (0 < total) {
@@ -590,8 +594,8 @@ public class ModelBase {
 		}
 	}
 
-	//0番目のHashMapを元にmodelにデータをセットする。
-	//セット部分は各モデルで_setModelDataをOverrideして実装して下さい。
+	// 0番目のHashMapを元にmodelにデータをセットする。
+	// セット部分は各モデルで_setModelDataをOverrideして実装して下さい。
 	public void setModelData(ArrayList<HashMap<String, Object>> list) {
 		responseList = list;
 		total = responseList.size();
@@ -601,8 +605,8 @@ public class ModelBase {
 		}
 	}
 
-	//argIndex番目のHashMapを元にmodelにデータをセットする。
-	//セット部分は各モデルで_setModelDataをOverrideして実装して下さい。
+	// argIndex番目のHashMapを元にmodelにデータをセットする。
+	// セット部分は各モデルで_setModelDataをOverrideして実装して下さい。
 	public void setModelData(ArrayList<HashMap<String, Object>> list, int argIndex) {
 		responseList = list;
 		total = list.size();
@@ -692,7 +696,7 @@ public class ModelBase {
 		});
 	}
 
-	//handlerがある場合mainスレッドに制御を戻す
+	// handlerがある場合mainスレッドに制御を戻す
 	public void returnMainTheread(Message msg) {
 		if (completionHandler != null) {
 			completionHandler.sendMessage(msg);
@@ -700,7 +704,7 @@ public class ModelBase {
 		}
 	}
 
-	//JsonArrayをArrayListに変換
+	// JsonArrayをArrayListに変換
 	public ArrayList<HashMap<String, Object>> createArrayFromJSONArray(JSONArray data)
 			throws JSONException {
 		ArrayList<HashMap<String, Object>> array = new ArrayList<HashMap<String, Object>>();
@@ -711,7 +715,7 @@ public class ModelBase {
 		return array;
 	}
 
-	//JsonObjectをkey,valueでHashMapに変換
+	// JsonObjectをkey,valueでHashMapに変換
 	public HashMap<String, Object> createMapFromJSONObject(JSONObject data) throws JSONException {
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		Iterator<?> keys = data.keys();
@@ -728,31 +732,31 @@ public class ModelBase {
 		}
 		return map;
 	}
-	
+
 	/* 特殊なメソッド1 インクリメント(加算) */
-	public boolean increment(){
-	    return true;
+	public boolean increment() {
+		return true;
 	}
-	
-	public boolean _increment(HashMap<String,Object> argSaveParams){
-	    if(null != ID){
-	    	return save(argSaveParams);
-	    }
-	    // インクリメントはID指定ナシはエラー！
-	    return false;
+
+	public boolean _increment(HashMap<String, Object> argSaveParams) {
+		if (null != ID) {
+			return save(argSaveParams);
+		}
+		// インクリメントはID指定ナシはエラー！
+		return false;
 	}
 
 	/* 特殊なメソッド2 デクリメント(減算) */
-	public boolean decrement(){
-	    return true;
+	public boolean decrement() {
+		return true;
 	}
 
-	public boolean _decrement(HashMap<String,Object> argSaveParams){
-	    if(null != ID){
-	        return save(argSaveParams);
-	    }
-	    // インクリメントはID指定ナシはエラー！
-	    return false;
+	public boolean _decrement(HashMap<String, Object> argSaveParams) {
+		if (null != ID) {
+			return save(argSaveParams);
+		}
+		// インクリメントはID指定ナシはエラー！
+		return false;
 	}
 
 	public boolean next() {
@@ -768,31 +772,32 @@ public class ModelBase {
 		ModelBase nextModel = null;
 		if (0 < total && argIndex < responseList.size()) {
 			Class<?> cls;
-			
+
 			Constructor<?> constructor = null;
 			// 引数の型を定義
 			Class<Context> contextParam = Context.class;
 			Class<String> stringParam = String.class;
-		    
+
 			String className = this.getClass().getName();
-		    try {
-		    	cls = Class.forName(className);
-		    	constructor = cls.getConstructor(contextParam,stringParam,stringParam,stringParam,stringParam,stringParam,stringParam,Integer.TYPE);
-		    	// 引数を渡してオブジェクトを生成する
-		    	nextModel = (ModelBase)constructor.newInstance(context, protocol, domain, urlbase, tokenKeyName, cryptKey,
-		    			cryptIV, timeout);
-		    	nextModel.setModelData(responseList, argIndex);
-		    } catch (ClassNotFoundException e) {
-		        e.printStackTrace();
-		    } catch (NoSuchMethodException e) {
-		        e.printStackTrace();
-		    } catch (InstantiationException e) {
-		        e.printStackTrace();
-		    } catch (IllegalAccessException e) {
-		        e.printStackTrace();
-		    } catch (InvocationTargetException e) {
-		        e.printStackTrace();
-		    }
+			try {
+				cls = Class.forName(className);
+				constructor = cls.getConstructor(contextParam, stringParam, stringParam,
+						stringParam, stringParam, stringParam, stringParam, Integer.TYPE);
+				// 引数を渡してオブジェクトを生成する
+				nextModel = (ModelBase) constructor.newInstance(context, protocol, domain, urlbase,
+						tokenKeyName, cryptKey, cryptIV, timeout);
+				nextModel.setModelData(responseList, argIndex);
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			} catch (NoSuchMethodException e) {
+				e.printStackTrace();
+			} catch (InstantiationException e) {
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				e.printStackTrace();
+			}
 		}
 		return nextModel;
 	}
@@ -814,18 +819,17 @@ public class ModelBase {
 		responseList.remove(argIndex);
 		total = responseList.size();
 	}
-	
-	
-	public ArrayList<ModelBase> toArray(){
+
+	public ArrayList<ModelBase> toArray() {
 		ArrayList<ModelBase> array = new ArrayList<ModelBase>();
-		for(int i=0;i<total;i++){
+		for (int i = 0; i < total; i++) {
 			array.add(objectAtIndex(i));
 		}
 		return array;
 	}
 
-	//activityに管理させる為、引数にactivityを追加
-	public void showRequestError(int argStatusCode,Activity activity) {
+	// activityに管理させる為、引数にactivityを追加
+	public void showRequestError(int argStatusCode, Activity activity) {
 		String errorMsg = context.getString(R.string.errorMsgTimeout);
 		if (0 < argStatusCode) {
 			errorMsg = context.getString(R.string.errorMsgServerError);
@@ -844,7 +848,7 @@ public class ModelBase {
 		}
 
 		if (context != null) {
-			PublicFunction.showAlert(context, errorMsg,activity);
+			Utilitis.showAlert(context, errorMsg, activity);
 		}
 	}
 }

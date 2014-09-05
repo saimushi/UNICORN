@@ -1,5 +1,7 @@
 package com.unicorn.utilities;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Calendar;
 
@@ -11,7 +13,7 @@ import android.content.DialogInterface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 
-public class PublicFunction {
+public class Utilitis {
 
 	// Converting a string of hex character to bytes
 	public static byte[] hexStringToByteArray(String s) {
@@ -113,6 +115,43 @@ public class PublicFunction {
 	public static int getResoruceIdFromName(Context context, String name, String resourceType) {
 		return context.getResources().getIdentifier(name, resourceType, context.getPackageName());
 	}
+	
+	// ファイル→バイトデータ
+	public static byte[] file2data(Context context, String fileName) throws Exception {
+			int size;
+			byte[] w = new byte[1024];
+			InputStream in = null;
+			ByteArrayOutputStream out = null;
+			try {
+				// ファイル入力ストリームのオープン
+				in = context.openFileInput(fileName);
+
+				// バイト配列の読み込み
+				out = new ByteArrayOutputStream();
+				while (true) {
+					size = in.read(w);
+					if (size <= 0)
+						break;
+					out.write(w, 0, size);
+				}
+				out.close();
+
+				// ファイル入力ストリームのクローズ
+				in.close();
+
+				// ByteArrayOutputStreamオブジェクトのバイト配列化
+				return out.toByteArray();
+			} catch (Exception e) {
+				try {
+					if (in != null)
+						in.close();
+					if (out != null)
+						out.close();
+				} catch (Exception e2) {
+				}
+				throw e;
+			}
+		}
 	
 	//dialogをActivityに管理させる為にactivityを渡す必要あり
 	public static void showAlert(Context context, String msg,Activity activity) {

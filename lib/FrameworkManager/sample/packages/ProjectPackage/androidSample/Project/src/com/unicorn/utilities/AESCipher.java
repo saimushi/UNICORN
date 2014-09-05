@@ -29,28 +29,28 @@ public class AESCipher {
 			IllegalBlockSizeException, BadPaddingException {
 
 		IvParameterSpec ivSpec = new IvParameterSpec(
-				PublicFunction.asByteArray(Constant.NETWORK_CRYPT_IV));
+				Utilitis.asByteArray(Constant.NETWORK_CRYPT_IV));
 		SecretKeySpec newKey = new SecretKeySpec(Constant.NETWORK_CRYPT_KEY.getBytes("UTF-8"),
 				"AES");
 		Cipher cipher = null;
 		cipher = Cipher.getInstance(padding);
 		cipher.init(Cipher.ENCRYPT_MODE, newKey, ivSpec);
 		byte[] tmp = cipher.doFinal(textBytes);
-		return PublicFunction.byteArrayToHexString(tmp);
+		return Utilitis.byteArrayToHexString(tmp);
 	}
 
 	public static String decryptPKCS7PaddingUTF8(String text)
 			throws java.io.UnsupportedEncodingException, NoSuchAlgorithmException,
 			NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException,
 			IllegalBlockSizeException, BadPaddingException {
-		return decrypt(PublicFunction.hexStringToByteArray(text), "AES/CBC/PKCS7Padding");
+		return decrypt(Utilitis.hexStringToByteArray(text), "AES/CBC/PKCS7Padding");
 	}
 
 	public static String decryptZeroPaddingUTF8(String text)
 			throws java.io.UnsupportedEncodingException, NoSuchAlgorithmException,
 			NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException,
 			IllegalBlockSizeException, BadPaddingException {
-		return decrypt(PublicFunction.hexStringToByteArray(text), "AES/CBC/ZeroBytePadding");
+		return decrypt(Utilitis.hexStringToByteArray(text), "AES/CBC/ZeroBytePadding");
 	}
 
 	private static String decrypt(byte[] textBytes, String padding)
@@ -59,7 +59,7 @@ public class AESCipher {
 			IllegalBlockSizeException, BadPaddingException {
 
 		IvParameterSpec ivSpec = new IvParameterSpec(
-				PublicFunction.asByteArray(Constant.NETWORK_CRYPT_IV));
+				Utilitis.asByteArray(Constant.NETWORK_CRYPT_IV));
 		SecretKeySpec newKey = new SecretKeySpec(Constant.NETWORK_CRYPT_KEY.getBytes("UTF-8"),
 				"AES");
 		Cipher cipher = Cipher.getInstance(padding);
