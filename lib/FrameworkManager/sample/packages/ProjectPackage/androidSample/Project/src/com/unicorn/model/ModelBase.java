@@ -769,7 +769,7 @@ public class ModelBase {
 		if (0 < total && argIndex < responseList.size()) {
 			Class<?> cls;
 			
-			Constructor constructor = null;
+			Constructor<?> constructor = null;
 			// 引数の型を定義
 			Class<Context> contextParam = Context.class;
 			Class<String> stringParam = String.class;
