@@ -1,5 +1,7 @@
 package com.unicorn.model;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -765,9 +767,32 @@ public class ModelBase {
 	public ModelBase objectAtIndex(int argIndex) {
 		ModelBase nextModel = null;
 		if (0 < total && argIndex < responseList.size()) {
-			nextModel = new ModelBase(context, protocol, domain, urlbase, tokenKeyName, cryptKey,
-					cryptIV, timeout);
-			nextModel.setModelData(responseList, argIndex);
+			Class<?> cls;
+			
+			Constructor constructor = null;
+			// 引数の型を定義
+			Class<Context> contextParam = Context.class;
+			Class<String> stringParam = String.class;
+		    
+			String className = this.getClass().getName();
+		    try {
+		    	cls = Class.forName(className);
+		    	constructor = cls.getConstructor(contextParam,stringParam,stringParam,stringParam,stringParam,stringParam,stringParam,Integer.TYPE);
+		    	// 引数を渡してオブジェクトを生成する
+		    	nextModel = (ModelBase)constructor.newInstance(context, protocol, domain, urlbase, tokenKeyName, cryptKey,
+		    			cryptIV, timeout);
+		    	nextModel.setModelData(responseList, argIndex);
+		    } catch (ClassNotFoundException e) {
+		        e.printStackTrace();
+		    } catch (NoSuchMethodException e) {
+		        e.printStackTrace();
+		    } catch (InstantiationException e) {
+		        e.printStackTrace();
+		    } catch (IllegalAccessException e) {
+		        e.printStackTrace();
+		    } catch (InvocationTargetException e) {
+		        e.printStackTrace();
+		    }
 		}
 		return nextModel;
 	}
@@ -788,6 +813,15 @@ public class ModelBase {
 	public void removeObject(int argIndex) {
 		responseList.remove(argIndex);
 		total = responseList.size();
+	}
+	
+	
+	public ArrayList<ModelBase> toArray(){
+		ArrayList<ModelBase> array = new ArrayList<ModelBase>();
+		for(int i=0;i<total;i++){
+			array.add(objectAtIndex(i));
+		}
+		return array;
 	}
 
 	//activityに管理させる為、引数にactivityを追加

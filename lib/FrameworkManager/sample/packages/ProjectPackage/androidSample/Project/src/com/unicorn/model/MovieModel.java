@@ -7,6 +7,7 @@ import android.os.Handler;
 
 public class MovieModel extends ModelBase {
 
+	public static String TAG = "MovieModel";
 	public String thumbnail;
 	public String url;
 	
