@@ -12,6 +12,7 @@ public final class ImageCache {
 	static {
 		int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
 //		sLruCache = new LruCache<String, Bitmap>(MEM_CACHE_SIZE) {
+		//使用可能メモリの1/8までキャッシュ領域として使用
 		sLruCache = new LruCache<String, Bitmap>(maxMemory/8) {
 			@Override
 			protected int sizeOf(String key, Bitmap bitmap) {
