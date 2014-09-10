@@ -420,8 +420,6 @@ public class ModelBase {
 	 * @param argUploadData アップロードデータのbyte[]
 	 * @return ID無しの場合はfalse,それ以外はtrueを返却
 	 */
-	/* ファイルを一つのモデルリソースと見立てて保存(アップロード)する */
-	/* PUTメソッドでのアップロード処理を強制します！ */
 	public boolean _save(byte[] argUploadData) {
 		String url = createURLString(ID);
 
@@ -496,6 +494,12 @@ public class ModelBase {
 		return false;
 	}
 
+	/**
+	 * ファイルを一つのモデルリソースと見立ててアップロードする。
+	 * ID無しでのアップロードは許可しない為強制PUT
+	 * @param argsaveParams postするデータ
+	 * @return trueを返却
+	 */
 	public boolean save(HashMap<String, Object> argsaveParams) {
 
 		String url = createURLString(ID);
@@ -649,14 +653,14 @@ public class ModelBase {
 				}
 			});
 		}
-		return false;
+		return true;
 	}
 
 	/**
-	 * argsaveParamsを元にsaveのURLを生成する（GET)
-	 * @param url パラメータを除くurl
-	 * @param argsaveParams GETで送信するパラメータのmap
-	 * @return 生成されたurl
+	 * GET通信をする際にパラメータをURLにつける
+	 * @param url 元のURLが入っています
+	 * @param argsaveParams getパラメータのmap
+	 * @return 生成されたurlが返却されます
 	 */
 	public String createGetURl(String url, HashMap<String, Object> argsaveParams) {
 		for (Iterator<Entry<String, Object>> it = argsaveParams.entrySet().iterator(); it.hasNext();) {
@@ -671,7 +675,9 @@ public class ModelBase {
 	}
 
 	/**
-	 * argsaveParamsを元にsaveのURLを生成する（GET)
+	 * IDを元にモデル参照を行います
+	 * ただしloadResourceModeがautomaticResourceの場合のみargWhereParamsのデータをもとに
+	 * 条件検索を行う事ができます。
 	 * @param loadResourceMode モデル参照するタイプ
 	 * myResource　自分のデータ
 	 * listedResource　リストデータ
@@ -745,10 +751,19 @@ public class ModelBase {
 
 	}
 
+	/**
+	 * モデルからモデル生成の元データとなるMapを生成する
+	 * 各モデルでOverrideして実装。
+	 * @return trueを返却します
+	 */
 	public HashMap<String, Object> convertModelData() {
 		return null;
 	}
 
+	/**
+	 * 引数でわたされたresourceIdのモデルを参照する
+	 * @param argWhereParams　条件をしてして参照する場合に渡すMap
+	 */
 	public void _load(String resourceId, HashMap<String, Object> argWhereParams) {
 
 		String url = createURLString(resourceId);
@@ -821,7 +836,10 @@ public class ModelBase {
 		});
 	}
 
-	// handlerがある場合mainスレッドに制御を戻す
+	/**
+	 * handlerがnullで無い場合、通信結果をhandlerに渡す
+	 * @param msg　通信結果が格納されています。
+	 */
 	public void returnMainTheread(Message msg) {
 		if (completionHandler != null) {
 			completionHandler.sendMessage(msg);
@@ -829,7 +847,13 @@ public class ModelBase {
 		}
 	}
 
-	// JsonArrayをArrayListに変換
+	/**
+	 * JSONArrayをパースしてArrayListに変換します
+	 * JSONArray内のJSONObjectはcreateMapFromJSONObjectでHashMap<String,Object>に変換されます
+	 * @param data JSONArrayが格納されています
+	 * @throws JSONException パースに失敗した場合throwされます
+	 * @return JsonArrayをパースした結果
+	 */
 	public ArrayList<HashMap<String, Object>> createArrayFromJSONArray(JSONArray data)
 			throws JSONException {
 		ArrayList<HashMap<String, Object>> array = new ArrayList<HashMap<String, Object>>();
@@ -840,7 +864,13 @@ public class ModelBase {
 		return array;
 	}
 
-	// JsonObjectをkey,valueでHashMapに変換
+	/**
+	 * JSONObjectをパースしてHashMap<String,Object>に変換します
+	 * JSONObject内にJSONArrayがあった場合はcreateArrayFromJSONArrayでArrayListへ変換されます
+	 * @param data JSONObjectが格納されています
+	 * @throws JSONException パースに失敗した場合throwされます
+	 * @return JsonObjectをパースした結果
+	 */
 	public HashMap<String, Object> createMapFromJSONObject(JSONObject data) throws JSONException {
 		HashMap<String, Object> map = new HashMap<String, Object>();
 		Iterator<?> keys = data.keys();
@@ -858,11 +888,20 @@ public class ModelBase {
 		return map;
 	}
 
-	/* 特殊なメソッド1 インクリメント(加算) */
+	/**
+	 * model内のあるデータを1加算する場合に使用する目的のメソッド
+	 * 各モデルでorrverrideして使用
+	 * 各モデルでの実装内容：目的の変数を加算してreplacedをtrueにして_incrementを呼び出します
+	 * @return _incrementメソッドをコールした戻り値が返ります
+	 */
 	public boolean increment() {
 		return true;
 	}
 
+	/**
+	 * modelbaseを継承した子クラスのincrementから呼ばれます。
+	 * @return _incrementメソッドをコールした戻り値が返ります
+	 */
 	public boolean _increment(HashMap<String, Object> argSaveParams) {
 		if (null != ID) {
 			return save(argSaveParams);
@@ -871,11 +910,20 @@ public class ModelBase {
 		return false;
 	}
 
-	/* 特殊なメソッド2 デクリメント(減算) */
+	/**
+	 * model内のあるデータを1減算する場合に使用する目的のメソッド
+	 * 各モデルでorrverrideして使用
+	 * 各モデルでの実装内容：目的の変数を減算してreplacedをtrueにして_decrementを呼び出します
+	 * @return _decrementメソッドをコールした戻り値が返ります
+	 */
 	public boolean decrement() {
 		return true;
 	}
 
+	/**
+	 * modelbaseを継承した子クラスのdecrementから呼ばれます。
+	 * @return _decrementメソッドをコールした戻り値が返ります
+	 */
 	public boolean _decrement(HashMap<String, Object> argSaveParams) {
 		if (null != ID) {
 			return save(argSaveParams);
@@ -884,6 +932,10 @@ public class ModelBase {
 		return false;
 	}
 
+	/**
+	 * total件数が現在のindexより多い場合次のモデルを取得する
+	 * @return 次のモデルが存在しない場合false、それ以外はtrueを返す
+	 */
 	public boolean next() {
 		if (index < responseList.size() - 1) {
 			index++;
