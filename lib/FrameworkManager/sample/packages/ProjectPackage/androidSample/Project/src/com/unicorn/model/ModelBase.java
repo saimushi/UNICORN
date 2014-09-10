@@ -933,7 +933,7 @@ public class ModelBase {
 	}
 
 	/**
-	 * total件数が現在のindexより多い場合次のモデルを取得する
+	 * total件数が現在のindexより多い場合次のモデルデータに変更する
 	 * @return 次のモデルが存在しない場合false、それ以外はtrueを返す
 	 */
 	public boolean next() {
@@ -945,6 +945,11 @@ public class ModelBase {
 		return false;
 	}
 
+	/**
+	 * argIndex番目のモデルデータを取得します
+	 * @param argIndex 何番目のmodelを取得するか
+	 * @return argIndex番目のモデル
+	 */
 	public ModelBase objectAtIndex(int argIndex) {
 		ModelBase nextModel = null;
 		if (0 < total && argIndex < responseList.size()) {
@@ -979,12 +984,22 @@ public class ModelBase {
 		return nextModel;
 	}
 
+	/**
+	 * argIndex番目にモデルを挿入します
+	 * @param model 挿入するモデル
+	 * @param argIndex 何番目に挿入するか
+	 */
 	public void insertObject(ModelBase model, int argIndex) {
 		HashMap<String, Object> response = model.convertModelData();
 		responseList.add(argIndex, response);
 		total = responseList.size();
 	}
-
+	
+	/**
+	 * argIndex番目のモデルを置き換えます
+	 * @param model 置き換えるモデル
+	 * @param argIndex 何番目に挿入するか
+	 */
 	public void replaceObject(ModelBase model, int argIndex) {
 		HashMap<String, Object> response = model.convertModelData();
 		responseList.remove(argIndex);
@@ -992,11 +1007,19 @@ public class ModelBase {
 		total = responseList.size();
 	}
 
+	/**
+	 * argIndex番目のモデルを削除します
+	 * @param argIndex 何番目のモデルを削除するか
+	 */
 	public void removeObject(int argIndex) {
 		responseList.remove(argIndex);
 		total = responseList.size();
 	}
 
+	/**
+	 * モデルデータを全件ArrayListにして返します
+	 * @return　全件分のArrayList<ModelBase>
+	 */
 	public ArrayList<ModelBase> toArray() {
 		ArrayList<ModelBase> array = new ArrayList<ModelBase>();
 		for (int i = 0; i < total; i++) {
@@ -1005,7 +1028,11 @@ public class ModelBase {
 		return array;
 	}
 
-	// activityに管理させる為、引数にactivityを追加
+	/**
+	 * エラーダイアログを表示します
+	 * @param argStatusCode エラーのステータスコード
+	 * @param activity　このダイアログを管理するActivity（最前面のactivity)
+	 */
 	public void showRequestError(int argStatusCode, Activity activity) {
 		String errorMsg = context.getString(R.string.errorMsgTimeout);
 		if (0 < argStatusCode) {
