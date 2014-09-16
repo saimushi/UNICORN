@@ -745,7 +745,7 @@ public class ModelBase {
 	/**
 	 * setModelDataから呼ばれるメソッド
 	 * 各モデルでOverrideして実装。モデル毎の専用変数にデータを入れて下さい
-	 * @param list モデルにセットする元データ(jsonのArray) 
+	 * @param map モデルにセットする元データ(jsonのMap) 
 	 */
 	public void _setModelData(HashMap<String, Object> map) {
 
