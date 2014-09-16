@@ -14,7 +14,9 @@ import android.widget.ProgressBar;
 
 /**
  * 画像ダウンローダークラス
- * 
+ * ImageViewとurlを渡すとurlから画像を取得しImageViewにsetImageされます
+ * ダウンロードスレッドはキューで管理されており、最大スレッド数はTHREAD_MAX_NUMで定義されます
+ * @author　c1363
  */
 public class LoadBitmapManager {
 
@@ -24,9 +26,6 @@ public class LoadBitmapManager {
 	private static Handler handler;
 	private static Context mContext;
 
-	/**
-	 * 始めて使われるときに初期化される。
-	 */
 	static {
 		/*
 		 * 画像情報を貯めるためのキュー
@@ -67,15 +66,21 @@ public class LoadBitmapManager {
 		};
 	}
 
+	/**
+	 * キューにたまったダウンロードスレッドを空にする
+	 */
 	public static void clearQueue() {
 		downloadQueue.clear();
 	}
 
 	/**
 	 * 引数として渡されたurlで画像をダウンロードしてImageViewに対して 画像を設定する。
-	 * 
-	 * @param imgView
-	 * @param url
+	 * @param context Activityのコンテキストが入っています
+	 * @param imgView　ダウンロードした画像をセットするImageViewが入っています
+	 * @param progress　ダウンロード中にprogressバーを表示する場合はprogressバーを渡します
+	 * @param url ダウンロードする画像のurlがはいっています
+	 * @param isMask ダウンロードした画像をマスクする場合に使用します
+	 * @param sideLength　ダウンロード後に画像を正方形にリサイズする場合縦横の長さを渡します
 	 */
 	public static void doDownloadBitmap(Context context, ImageView imgView, ProgressBar progress,
 			String url, boolean isMask, int sideLength) {
@@ -97,8 +102,6 @@ public class LoadBitmapManager {
 
 	/**
 	 * 実際に画像をダウンロードするワーカー
-	 * 
-	 * @author satohu20xx
 	 */
 	private static class DownloadWorker implements Runnable {
 

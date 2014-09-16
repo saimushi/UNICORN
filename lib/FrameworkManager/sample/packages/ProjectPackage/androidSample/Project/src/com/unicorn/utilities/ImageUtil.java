@@ -8,6 +8,7 @@ import android.graphics.Matrix;
 import android.util.DisplayMetrics;
 import android.view.WindowManager;
 
+
 public class ImageUtil {
 	public static Bitmap resizeBitmapToDisplaySize480_Id(Context context, int _id) {
 
