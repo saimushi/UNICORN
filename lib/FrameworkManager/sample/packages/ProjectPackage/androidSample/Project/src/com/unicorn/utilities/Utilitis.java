@@ -13,9 +13,17 @@ import android.content.DialogInterface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 
+/**
+ * どこからでも呼べる便利メソッドの集まりです
+ * @author c1363
+ */
 public class Utilitis {
 
-	// Converting a string of hex character to bytes
+	/**
+	 * １６進数文字列をbyte[]に変換するメソッド
+	 * @param s　文字列
+	 * @return　変換後のbyte[]
+	 */
 	public static byte[] hexStringToByteArray(String s) {
 		int len = s.length();
 		byte[] data = new byte[len / 2];
@@ -26,6 +34,11 @@ public class Utilitis {
 		return data;
 	}
 
+	/**
+	 * 文字列をbyte[]に変換するメソッド
+	 * @param hex
+	 * @return　変換後のbyte[]
+	 */
 	public static byte[] asByteArray(String hex) {
 		byte[] bytes = null;
 		try {
