@@ -1,5 +1,10 @@
 UNICORN
 ====
+##UNICRONはUNICORN-Projectとして、以下に移転しました。
+
+http://unicorn-project.github.io
+
+====
 可能性を追求した(する)フレームワーク  
 主にスマホアプリケーション開発において「Fast Start」である事に重点を置いています。
 
